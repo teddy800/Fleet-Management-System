@@ -1,0 +1,15 @@
+<odoo>
+
+    <menuitem id="mesob_root" name="MESSOB Fleet"/>
+
+    <menuitem id="mesob_vehicle_menu"
+              name="Vehicles"
+              parent="mesob_root"
+              action="fleet.fleet_vehicle_action"/>
+
+    <menuitem id="mesob_service_menu"
+              name="Service Records"
+              parent="mesob_root"
+              action="mesob_service_action"/>
+
+</odoo>

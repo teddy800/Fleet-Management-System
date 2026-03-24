@@ -1,0 +1,21 @@
+<odoo>
+
+    <record id="dashboard_action" model="ir.actions.act_window">
+        <field name="name">Fleet Dashboard</field>
+        <field name="res_model">mesob.service.record</field>
+        <field name="view_mode">graph</field>
+    </record>
+
+    <record id="dashboard_graph" model="ir.ui.view">
+        <field name="name">dashboard.graph</field>
+        <field name="model">mesob.service.record</field>
+        <field name="arch" type="xml">
+            <graph string="Costs" type="bar">
+                <field name="date" type="row"/>
+                <field name="cost" type="measure"/>
+                <field name="service_type" type="col"/>
+            </graph>
+        </field>
+    </record>
+
+</odoo>

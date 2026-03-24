@@ -1,0 +1,26 @@
+<odoo>
+
+    <record id="fleet_vehicle_form_mesob" model="ir.ui.view">
+        <field name="name">fleet.vehicle.form.mesob</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//sheet" position="inside">
+
+                <group string="MESSOB Info">
+                    <field name="is_available"/>
+                    <field name="driver_id"/>
+                    <field name="vin"/>
+                    <field name="location"/>
+                    <field name="purchase_value"/>
+                    <field name="residual_value"/>
+                    <field name="is_maintenance_due"/>
+                </group>
+
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

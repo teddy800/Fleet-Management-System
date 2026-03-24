@@ -1,0 +1,4 @@
+# file: C:\Users\HP\odoo-addons\mesob_fleet_customizations\models\fleet_vehicle.py
+# hypothesis_version: 6.151.9
+
+[0.0, 100, 500, '=', 'Assignment Date', 'Available', 'Contract Expiry', 'Contract Expiry Date', 'Driver', 'Fuel Logs', 'Location', 'Maintenance Due', 'Purchase Value', 'Residual Value', 'Stock Moves', 'Tax Expiry', 'Tax Expiry Date', 'VIN', 'active', 'current_odometer', 'domain', 'driver_id', 'fleet.vehicle', 'fuel_log_ids.volume', 'hr.employee', 'in', 'license_plate', 'mail.activity', 'mesob.fuel.log', 'name', 'no_create', 'odometer', 'res_id', 'res_model', 'stock.move', 'summary', 'tree,form', 'type', 'vehicle_id', 'view_mode', 'volume']

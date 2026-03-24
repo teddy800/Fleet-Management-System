@@ -1,0 +1,23 @@
+{
+    'name': 'Mesob Fleet Customizations',
+    'version': '1.0',
+    'summary': 'Advanced Fleet Management with HR & Inventory Integration',
+    'author': 'Group 3',
+    'category': 'Fleet',
+    'depends': ['fleet', 'hr', 'stock', 'mail'],
+    'data': [
+        'security/security.xml',
+        'security/ir.model.access.csv',
+        'views/menu.xml',
+        'views/fleet_vehicle_views.xml',
+        'views/service_record_views.xml',
+        'views/fuel_log_views.xml',
+        'views/odometer_log_views.xml',
+        'views/trip_request_views.xml',
+        'views/trip_assignment_views.xml',
+        'views/dashboard_views.xml',
+        'data/cron.xml',
+    ],
+    'installable': True,
+    'application': True,
+}

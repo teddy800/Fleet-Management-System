@@ -1,0 +1,4 @@
+# file: C:\Users\HP\odoo-addons\mesob_fleet_customizations\models\trip_log.py
+# hypothesis_version: 6.151.9
+
+['Arrive', 'Depart', 'Trip Log', 'arrive', 'depart', 'mesob.trip.log']
