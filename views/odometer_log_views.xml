@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Odometer Log List View -->
+    <record id="view_odometer_log_list" model="ir.ui.view">
+        <field name="name">mesob.odometer.log.list</field>
+        <field name="model">mesob.odometer.log</field>
+        <field name="arch" type="xml">
+            <list string="Odometer Logs">
+                <field name="date"/>
+                <field name="vehicle_id"/>
+                <field name="value"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Odometer Log Form View -->
+    <record id="view_odometer_log_form" model="ir.ui.view">
+        <field name="name">mesob.odometer.log.form</field>
+        <field name="model">mesob.odometer.log</field>
+        <field name="arch" type="xml">
+            <form string="Odometer Log">
+                <sheet>
+                    <group>
+                        <field name="vehicle_id"/>
+                        <field name="date"/>
+                        <field name="value"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Odometer Log Action -->
+    <record id="action_odometer_log" model="ir.actions.act_window">
+        <field name="name">Odometer Logs</field>
+        <field name="res_model">mesob.odometer.log</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

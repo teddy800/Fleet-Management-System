@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Fuel Log List View -->
+    <record id="view_fuel_log_list" model="ir.ui.view">
+        <field name="name">mesob.fuel.log.list</field>
+        <field name="model">mesob.fuel.log</field>
+        <field name="arch" type="xml">
+            <list string="Fuel Logs">
+                <field name="date"/>
+                <field name="vehicle_id"/>
+                <field name="driver_id"/>
+                <field name="volume"/>
+                <field name="cost"/>
+                <field name="odometer"/>
+                <field name="station"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Fuel Log Form View -->
+    <record id="view_fuel_log_form" model="ir.ui.view">
+        <field name="name">mesob.fuel.log.form</field>
+        <field name="model">mesob.fuel.log</field>
+        <field name="arch" type="xml">
+            <form string="Fuel Log">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="vehicle_id"/>
+                            <field name="driver_id"/>
+                            <field name="date"/>
+                        </group>
+                        <group>
+                            <field name="volume"/>
+                            <field name="cost"/>
+                            <field name="odometer"/>
+                            <field name="station"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Fuel Log Action -->
+    <record id="action_fuel_log" model="ir.actions.act_window">
+        <field name="name">Fuel Logs</field>
+        <field name="res_model">mesob.fuel.log</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>
