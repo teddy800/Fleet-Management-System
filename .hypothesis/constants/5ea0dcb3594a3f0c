@@ -1,4 +1,0 @@
-# file: C:\Users\HP\odoo-addons\mesob_fleet_customizations\models\inventory_allocation.py
-# hypothesis_version: 6.151.9
-
-['fleet.vehicle', 'product.product']

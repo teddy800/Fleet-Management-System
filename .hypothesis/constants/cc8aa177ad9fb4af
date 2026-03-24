@@ -1,4 +1,0 @@
-# file: C:\Users\HP\odoo-addons\mesob_fleet_customizations\models\odometer_log.py
-# hypothesis_version: 6.151.9
-
-['=', 'Odometer Log', 'fleet.vehicle', 'mesob.odometer.log', 'value', 'value desc', 'vehicle_id']

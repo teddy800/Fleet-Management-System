@@ -1,4 +1,0 @@
-# file: C:\Users\HP\odoo-addons\mesob_fleet_customizations\models\fuel_log.py
-# hypothesis_version: 6.151.9
-
-['Fuel Log', 'fleet.vehicle', 'hr.employee', 'mesob.fuel.log']

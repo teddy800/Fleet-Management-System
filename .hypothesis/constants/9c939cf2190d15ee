@@ -1,4 +1,0 @@
-# file: C:\Users\HP\odoo-addons\mesob_fleet_customizations\models\service_record.py
-# hypothesis_version: 6.151.9
-
-['Fuel', 'Maintenance', 'Service Record', 'cost', 'fleet.vehicle', 'fuel', 'maintenance', 'mesob.service.record', 'res.currency', 'restrict']
