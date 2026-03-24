@@ -1,12 +1,17 @@
 {
-    'name': 'MESOB Fleet Customizations',
+    'name': 'Mesob Fleet Management',
     'version': '1.0',
     'summary': 'Advanced Fleet Management System',
-    'depends': ['fleet', 'hr', 'stock', 'mail'],
+    'author': 'Mesob',
+    'category': 'Fleet',
+    'depends': ['base', 'fleet', 'hr', 'stock', 'mail'],
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',
+
         'data/cron.xml',
+
+        'views/menu.xml',
         'views/fleet_vehicle_views.xml',
         'views/service_record_views.xml',
         'views/fuel_log_views.xml',

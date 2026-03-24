@@ -6,4 +6,3 @@ class InventoryAllocation(models.Model):
     vehicle_id = fields.Many2one('fleet.vehicle')
     product_id = fields.Many2one('product.product')
     quantity = fields.Float()
-    

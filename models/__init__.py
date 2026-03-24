@@ -5,4 +5,5 @@ from . import odometer_log
 from . import maintenance_schedule
 from . import trip_request
 from . import trip_assignment
+from . import trip_log
 from . import inventory_allocation
