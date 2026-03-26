@@ -83,17 +83,13 @@ class MaintenanceLog(models.Model):
     def action_start(self):
         for rec in self:
             rec.state = 'in_progress'
-            rec.vehicle_id.is_available = False
+            rec.vehicle_id.availability = False
 
     def action_complete(self):
         for rec in self:
             rec.state = 'done'
-
-            # Update vehicle odometer
             rec.vehicle_id.current_odometer = rec.odometer
-
-            # Make vehicle available again
-            rec.vehicle_id.is_available = True
+            rec.vehicle_id.availability = True
 
     def action_cancel(self):
         self.state = 'cancel'

@@ -3,6 +3,7 @@ from . import service_record
 from . import fuel_log
 from . import odometer_log
 from . import maintenance_schedule
+from . import maintenance_log
 from . import trip_request
 from . import trip_assignment
 from . import trip_log

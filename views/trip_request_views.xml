@@ -1,54 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Trip Request List View -->
     <record id="view_trip_request_list" model="ir.ui.view">
         <field name="name">mesob.trip.request.list</field>
         <field name="model">mesob.trip.request</field>
         <field name="arch" type="xml">
-            <list string="Trip Requests">
-                <field name="requester_id"/>
-                <field name="purpose"/>
-                <field name="vehicle_category_needed"/>
-                <field name="start_datetime"/>
-                <field name="end_datetime"/>
-                <field name="status"/>
+            <list>
+                <field name="vehicle_id"/>
+                <field name="driver_id"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <field name="state"/>
             </list>
         </field>
     </record>
 
-    <!-- Trip Request Form View -->
     <record id="view_trip_request_form" model="ir.ui.view">
         <field name="name">mesob.trip.request.form</field>
         <field name="model">mesob.trip.request</field>
         <field name="arch" type="xml">
-            <form string="Trip Request">
+            <form>
                 <header>
-                    <field name="status" widget="statusbar" statusbar_visible="draft,approved,rejected"/>
+                    <button string="Approve" name="action_approve" type="object"
+                            invisible="state != 'draft'" class="btn-primary"/>
+                    <button string="Mark Done" name="action_done" type="object"
+                            invisible="state != 'approved'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,approved,done"/>
                 </header>
                 <sheet>
                     <group>
-                        <group>
-                            <field name="requester_id"/>
-                            <field name="vehicle_category_needed"/>
-                        </group>
-                        <group>
-                            <field name="start_datetime"/>
-                            <field name="end_datetime"/>
-                        </group>
-                    </group>
-                    <group string="Locations">
-                        <field name="pickup_location"/>
-                        <field name="dest_location"/>
-                    </group>
-                    <group string="Details">
-                        <field name="purpose"/>
+                        <field name="vehicle_id"/>
+                        <field name="driver_id"/>
+                        <field name="start_date"/>
+                        <field name="end_date"/>
                     </group>
                 </sheet>
             </form>
         </field>
     </record>
 
-    <!-- Trip Request Action -->
     <record id="action_trip_request" model="ir.actions.act_window">
         <field name="name">Trip Requests</field>
         <field name="res_model">mesob.trip.request</field>
