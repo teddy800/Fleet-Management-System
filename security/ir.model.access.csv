@@ -1,4 +1,10 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_trip,trip,model_mesob_trip_request,,1,1,1,1
-access_fuel,fuel,model_mesob_fuel_log,,1,1,1,1
-access_service,service,model_mesob_service_record,,1,1,1,1
+access_trip_request,trip_request,model_mesob_trip_request,,1,1,1,1
+access_fuel_log,fuel_log,model_mesob_fuel_log,,1,1,1,1
+access_service_record,service_record,model_mesob_service_record,,1,1,1,1
+access_odometer_log,odometer_log,model_mesob_odometer_log,,1,1,1,1
+access_maintenance_schedule,maintenance_schedule,model_mesob_maintenance_schedule,,1,1,1,1
+access_maintenance_log,maintenance_log,model_mesob_maintenance_log,,1,1,1,1
+access_trip_assignment,trip_assignment,model_mesob_trip_assignment,,1,1,1,1
+access_trip_log,trip_log,model_mesob_trip_log,,1,1,1,1
+access_inventory_allocation,inventory_allocation,model_mesob_inventory_allocation,,1,1,1,1
