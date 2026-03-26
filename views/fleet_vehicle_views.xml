@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
     <record id="fleet_vehicle_form_mesob" model="ir.ui.view">
@@ -7,17 +8,11 @@
         <field name="arch" type="xml">
 
             <xpath expr="//sheet" position="inside">
-
                 <group string="MESSOB Info">
-                    <field name="is_available"/>
-                    <field name="driver_id"/>
-                    <field name="vin"/>
-                    <field name="location"/>
-                    <field name="purchase_value"/>
-                    <field name="residual_value"/>
-                    <field name="is_maintenance_due"/>
+                    <field name="availability"/>
+                    <field name="current_odometer"/>
+                    <field name="maintenance_due"/>
                 </group>
-
             </xpath>
 
         </field>
