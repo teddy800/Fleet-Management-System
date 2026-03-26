@@ -11,7 +11,6 @@
 
         'data/cron.xml',
 
-        'views/menu.xml',
         'views/fleet_vehicle_views.xml',
         'views/service_record_views.xml',
         'views/fuel_log_views.xml',
@@ -19,6 +18,7 @@
         'views/trip_request_views.xml',
         'views/trip_assignment_views.xml',
         'views/dashboard_views.xml',
+        'views/menu.xml',
     ],
     'installable': True,
     'application': True,
