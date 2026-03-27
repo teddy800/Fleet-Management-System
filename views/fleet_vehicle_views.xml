@@ -5,11 +5,11 @@
         <field name="model">fleet.vehicle</field>
         <field name="inherit_id" ref="fleet.fleet_vehicle_view_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//sheet/div[hasclass('oe_button_box')]" position="after">
-                <group string="MESSOB Fleet Info">
+            <xpath expr="//sheet" position="inside">
+                <group string="MESSOB Fleet Info" col="2">
                     <field name="availability"/>
-                    <field name="current_odometer"/>
                     <field name="maintenance_due" readonly="1"/>
+                    <field name="current_odometer"/>
                 </group>
             </xpath>
         </field>
