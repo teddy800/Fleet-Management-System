@@ -1,46 +1,174 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="view_trip_request_list" model="ir.ui.view">
-        <field name="name">mesob.trip.request.list</field>
-        <field name="model">mesob.trip.request</field>
-        <field name="arch" type="xml">
-            <list>
-                <field name="vehicle_id"/>
-                <field name="driver_id"/>
-                <field name="start_date"/>
-                <field name="end_date"/>
-                <field name="state"/>
-            </list>
-        </field>
-    </record>
-
+    <!-- Form View -->
     <record id="view_trip_request_form" model="ir.ui.view">
         <field name="name">mesob.trip.request.form</field>
         <field name="model">mesob.trip.request</field>
         <field name="arch" type="xml">
             <form>
                 <header>
-                    <button string="Approve" name="action_approve" type="object"
-                            invisible="state != 'draft'" class="btn-primary"/>
-                    <button string="Mark Done" name="action_done" type="object"
-                            invisible="state != 'approved'"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,approved,done"/>
+                    <button name="action_submit" string="Submit" type="object"
+                            class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_approve" string="Approve" type="object"
+                            class="btn-success" invisible="state != 'pending'"
+                            groups="mesob_fleet_management.group_fleet_dispatcher"/>
+                    <button name="action_reject" string="Reject" type="object"
+                            class="btn-danger" invisible="state != 'pending'"
+                            groups="mesob_fleet_management.group_fleet_dispatcher"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            invisible="state != 'pending'"/>
+                    <button name="action_complete" string="Mark Complete" type="object"
+                            class="btn-primary" invisible="state != 'in_progress'"/>
+                    <button name="action_close" string="Close" type="object"
+                            invisible="state != 'completed'"
+                            groups="mesob_fleet_management.group_fleet_manager"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,pending,approved,in_progress,completed,closed"/>
                 </header>
                 <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
                     <group>
-                        <field name="vehicle_id"/>
-                        <field name="driver_id"/>
-                        <field name="start_date"/>
-                        <field name="end_date"/>
+                        <group string="Trip Details">
+                            <field name="requester_id" readonly="state != 'draft'"/>
+                            <field name="vehicle_category_id"/>
+                            <field name="pickup_location" required="1"/>
+                            <field name="destination_location" required="1"/>
+                        </group>
+                        <group string="Schedule">
+                            <field name="start_date" required="1"/>
+                            <field name="end_date" required="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="purpose" required="1" placeholder="Purpose of the trip..."/>
+                        <field name="justification" required="1" placeholder="Justification..."/>
+                    </group>
+                    <group string="Assignment" invisible="state not in ['approved','in_progress','completed','closed']">
+                        <field name="vehicle_id" readonly="1"/>
+                        <field name="driver_id" readonly="1"/>
+                    </group>
+                    <group string="Rejection" invisible="state != 'rejected'">
+                        <field name="rejection_reason" readonly="1"/>
+                    </group>
+                    <group string="Timestamps" invisible="state == 'draft'">
+                        <field name="submitted_at" readonly="1"/>
+                        <field name="approved_at" readonly="1" invisible="not approved_at"/>
+                        <field name="rejected_at" readonly="1" invisible="not rejected_at"/>
+                        <field name="started_at" readonly="1" invisible="not started_at"/>
+                        <field name="completed_at" readonly="1" invisible="not completed_at"/>
+                        <field name="closed_at" readonly="1" invisible="not closed_at"/>
                     </group>
                 </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
             </form>
         </field>
     </record>
 
-    <record id="action_trip_request" model="ir.actions.act_window">
-        <field name="name">Trip Requests</field>
+    <!-- List View -->
+    <record id="view_trip_request_list" model="ir.ui.view">
+        <field name="name">mesob.trip.request.list</field>
+        <field name="model">mesob.trip.request</field>
+        <field name="arch" type="xml">
+            <list decoration-info="state == 'pending'"
+                  decoration-success="state == 'approved'"
+                  decoration-danger="state == 'rejected'"
+                  decoration-warning="state == 'in_progress'"
+                  decoration-muted="state in ['closed','draft']">
+                <field name="name"/>
+                <field name="requester_id"/>
+                <field name="pickup_location"/>
+                <field name="destination_location"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <field name="vehicle_category_id"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'pending'"
+                       decoration-success="state in ['approved','completed']"
+                       decoration-danger="state == 'rejected'"
+                       decoration-warning="state == 'in_progress'"
+                       decoration-muted="state in ['closed','draft']"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Kanban View -->
+    <record id="view_trip_request_kanban" model="ir.ui.view">
+        <field name="name">mesob.trip.request.kanban</field>
+        <field name="model">mesob.trip.request</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state">
+                <field name="color"/>
+                <field name="state"/>
+                <field name="name"/>
+                <field name="requester_id"/>
+                <field name="start_date"/>
+                <field name="end_date"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click">
+                            <strong><field name="name"/></strong>
+                            <div><field name="requester_id"/></div>
+                            <div><field name="start_date"/> → <field name="end_date"/></div>
+                            <div><field name="state" widget="badge"/></div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_trip_request_search" model="ir.ui.view">
+        <field name="name">mesob.trip.request.search</field>
+        <field name="model">mesob.trip.request</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="requester_id"/>
+                <field name="vehicle_category_id"/>
+                <filter string="My Requests" name="my_requests"
+                        domain="[('requester_id','=',uid)]"/>
+                <filter string="Pending" name="pending"
+                        domain="[('state','=','pending')]"/>
+                <filter string="Approved" name="approved"
+                        domain="[('state','=','approved')]"/>
+                <filter string="In Progress" name="in_progress"
+                        domain="[('state','=','in_progress')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Status" name="group_state" context="{'group_by':'state'}"/>
+                    <filter string="Requester" name="group_requester" context="{'group_by':'requester_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Personal Dashboard Action -->
+    <record id="action_my_trip_requests" model="ir.actions.act_window">
+        <field name="name">My Trip Requests</field>
+        <field name="res_model">mesob.trip.request</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('requester_id','=',uid)]</field>
+        <field name="context">{'search_default_my_requests': 1}</field>
+    </record>
+
+    <!-- Dispatcher Queue Action -->
+    <record id="action_dispatcher_queue" model="ir.actions.act_window">
+        <field name="name">Pending Requests Queue</field>
         <field name="res_model">mesob.trip.request</field>
         <field name="view_mode">list,form</field>
+        <field name="domain">[('state','=','pending')]</field>
+        <field name="context">{'search_default_pending': 1}</field>
+    </record>
+
+    <!-- All Trip Requests Action -->
+    <record id="action_trip_requests" model="ir.actions.act_window">
+        <field name="name">Trip Requests</field>
+        <field name="res_model">mesob.trip.request</field>
+        <field name="view_mode">list,kanban,form</field>
     </record>
 </odoo>

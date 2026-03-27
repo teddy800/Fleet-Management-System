@@ -1,4 +1,6 @@
-from odoo import models, fields
+from odoo import models, fields, api
+from odoo.exceptions import ValidationError
+
 
 class ServiceRecord(models.Model):
     _name = 'mesob.service.record'
@@ -8,6 +10,17 @@ class ServiceRecord(models.Model):
     date = fields.Date()
     cost = fields.Float()
     description = fields.Text()
-    service_type = fields.Char()
+    service_type = fields.Selection([
+        ('routine', 'Routine'),
+        ('repair', 'Repair'),
+        ('inspection', 'Inspection'),
+        ('emergency', 'Emergency'),
+    ])
     fuel_volume = fields.Float()
     odometer = fields.Float()
+
+    @api.constrains('cost')
+    def _check_cost(self):
+        for rec in self:
+            if rec.cost < 0:
+                raise ValidationError("Service cost cannot be negative.")

@@ -1,0 +1,8 @@
+<odoo>
+    <record id="seq_trip_request" model="ir.sequence">
+        <field name="name">Trip Request</field>
+        <field name="code">mesob.trip.request</field>
+        <field name="prefix">TR/%(year)s/</field>
+        <field name="padding">4</field>
+    </record>
+</odoo>

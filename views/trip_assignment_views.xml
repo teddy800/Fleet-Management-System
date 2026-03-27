@@ -1,5 +1,33 @@
-<?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="view_trip_assignment_form" model="ir.ui.view">
+        <field name="name">mesob.trip.assignment.form</field>
+        <field name="model">mesob.trip.assignment</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm" string="Confirm Assignment" type="object"
+                            class="btn-primary" invisible="state != 'draft'"
+                            groups="mesob_fleet_management.group_fleet_dispatcher"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            invisible="state == 'cancelled'"
+                            groups="mesob_fleet_management.group_fleet_dispatcher"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,confirmed,cancelled"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="trip_id"/>
+                        <field name="vehicle_id"
+                               domain="[('availability','=',True)]"/>
+                        <field name="driver_id"
+                               domain="[('active','=',True)]"/>
+                        <field name="confirmed_at" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <record id="view_trip_assignment_list" model="ir.ui.view">
         <field name="name">mesob.trip.assignment.list</field>
         <field name="model">mesob.trip.assignment</field>
@@ -8,27 +36,15 @@
                 <field name="trip_id"/>
                 <field name="vehicle_id"/>
                 <field name="driver_id"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'confirmed'"
+                       decoration-danger="state == 'cancelled'"/>
+                <field name="confirmed_at"/>
             </list>
         </field>
     </record>
 
-    <record id="view_trip_assignment_form" model="ir.ui.view">
-        <field name="name">mesob.trip.assignment.form</field>
-        <field name="model">mesob.trip.assignment</field>
-        <field name="arch" type="xml">
-            <form>
-                <sheet>
-                    <group>
-                        <field name="trip_id"/>
-                        <field name="vehicle_id"/>
-                        <field name="driver_id"/>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <record id="action_trip_assignment" model="ir.actions.act_window">
+    <record id="action_trip_assignments" model="ir.actions.act_window">
         <field name="name">Trip Assignments</field>
         <field name="res_model">mesob.trip.assignment</field>
         <field name="view_mode">list,form</field>

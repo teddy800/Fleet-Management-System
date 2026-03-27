@@ -1,7 +1,7 @@
 {
     'name': 'Mesob Fleet Management',
-    'version': '1.0',
-    'summary': 'Advanced Fleet Management System',
+    'version': '1.1',
+    'summary': 'Advanced Fleet Management System for MESOB',
     'author': 'Mesob',
     'category': 'Fleet',
     'depends': ['base', 'fleet', 'hr', 'stock', 'mail'],
@@ -10,11 +10,14 @@
         'security/ir.model.access.csv',
 
         'data/cron.xml',
+        'data/sequence.xml',
 
         'views/fleet_vehicle_views.xml',
         'views/service_record_views.xml',
         'views/fuel_log_views.xml',
         'views/odometer_log_views.xml',
+        'views/maintenance_schedule_views.xml',
+        'views/maintenance_log_views.xml',
         'views/trip_request_views.xml',
         'views/trip_assignment_views.xml',
         'views/dashboard_views.xml',

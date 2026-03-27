@@ -6,72 +6,46 @@ class MaintenanceLog(models.Model):
     _name = 'mesob.maintenance.log'
     _description = 'Vehicle Maintenance Log'
     _order = 'date desc'
-    _inherit = ['mail.thread']
+    _inherit = ['mail.thread', 'mail.activity.mixin']
 
-    # 🔗 RELATIONS
     vehicle_id = fields.Many2one(
-        'fleet.vehicle',
-        required=True,
-        ondelete='cascade',
-        tracking=True
+        'fleet.vehicle', required=True, ondelete='cascade', tracking=True
     )
+    technician_id = fields.Many2one('hr.employee', string="Technician", tracking=True)
+    service_record_id = fields.Many2one('mesob.service.record', string="Related Service")
 
-    technician_id = fields.Many2one(
-        'hr.employee',
-        string="Technician",
-        tracking=True
-    )
-
-    service_record_id = fields.Many2one(
-        'mesob.service.record',
-        string="Related Service"
-    )
-
-    # 📅 BASIC INFO
     date = fields.Date(required=True, tracking=True)
     description = fields.Text()
 
-    # 🔧 MAINTENANCE TYPE
     maintenance_type = fields.Selection([
         ('preventive', 'Preventive'),
         ('corrective', 'Corrective'),
-        ('emergency', 'Emergency')
+        ('emergency', 'Emergency'),
     ], required=True, tracking=True)
 
-    # 💰 COST
-    cost = fields.Float()
+    cost = fields.Float(tracking=True)
     currency_id = fields.Many2one(
-        'res.currency',
-        default=lambda self: self.env.company.currency_id
+        'res.currency', default=lambda self: self.env.company.currency_id
     )
 
-    # 📏 ODOMETER
-    odometer = fields.Float(
-        string="Odometer Reading",
-        required=True
-    )
+    odometer = fields.Float(string="Odometer Reading", required=True, tracking=True)
 
-    # 📦 INVENTORY LINK (PARTS USED)
     parts_ids = fields.One2many(
-        'mesob.inventory.allocation',
-        'vehicle_id',
-        string="Parts Used"
+        'mesob.inventory.allocation', 'maintenance_log_id', string="Parts Used"
     )
 
-    # 📊 STATUS
     state = fields.Selection([
         ('draft', 'Draft'),
         ('in_progress', 'In Progress'),
         ('done', 'Completed'),
-        ('cancel', 'Cancelled')
+        ('cancel', 'Cancelled'),
     ], default='draft', tracking=True)
 
-    # ✅ VALIDATIONS
     @api.constrains('cost')
     def _check_cost(self):
         for rec in self:
             if rec.cost < 0:
-                raise ValidationError("Cost cannot be negative.")
+                raise ValidationError("Maintenance cost cannot be negative.")
 
     @api.constrains('odometer')
     def _check_odometer(self):
@@ -79,7 +53,6 @@ class MaintenanceLog(models.Model):
             if rec.odometer < 0:
                 raise ValidationError("Odometer must be positive.")
 
-    # 🔄 ACTIONS (WORKFLOW)
     def action_start(self):
         for rec in self:
             rec.state = 'in_progress'
@@ -90,6 +63,15 @@ class MaintenanceLog(models.Model):
             rec.state = 'done'
             rec.vehicle_id.current_odometer = rec.odometer
             rec.vehicle_id.availability = True
+            schedule = self.env['mesob.maintenance.schedule'].search(
+                [('vehicle_id', '=', rec.vehicle_id.id)], limit=1
+            )
+            if schedule:
+                schedule.last_odometer = rec.odometer
+                schedule.last_service_date = rec.date
 
     def action_cancel(self):
-        self.state = 'cancel'
+        for rec in self:
+            rec.state = 'cancel'
+            if rec.vehicle_id:
+                rec.vehicle_id.availability = True

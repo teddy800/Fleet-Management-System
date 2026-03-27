@@ -1,0 +1,82 @@
+<odoo>
+    <record id="view_maintenance_log_form" model="ir.ui.view">
+        <field name="name">mesob.maintenance.log.form</field>
+        <field name="model">mesob.maintenance.log</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_start" string="Start" type="object"
+                            class="btn-primary" invisible="state != 'draft'"
+                            groups="mesob_fleet_management.group_fleet_manager"/>
+                    <button name="action_complete" string="Complete" type="object"
+                            class="btn-success" invisible="state != 'in_progress'"
+                            groups="mesob_fleet_management.group_fleet_manager"/>
+                    <button name="action_cancel" string="Cancel" type="object"
+                            invisible="state in ['done','cancel']"
+                            groups="mesob_fleet_management.group_fleet_manager"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,in_progress,done"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Vehicle &amp; Technician">
+                            <field name="vehicle_id" required="1"/>
+                            <field name="technician_id"/>
+                            <field name="date" required="1"/>
+                            <field name="maintenance_type" required="1"/>
+                        </group>
+                        <group string="Cost &amp; Odometer">
+                            <field name="cost"/>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="odometer" required="1"/>
+                            <field name="service_record_id"/>
+                        </group>
+                    </group>
+                    <field name="description" placeholder="Describe the maintenance work..."/>
+                    <notebook>
+                        <page string="Parts Used">
+                            <field name="parts_ids">
+                                <list editable="bottom">
+                                    <field name="vehicle_id" column_invisible="1"
+                                           default_focus="0"/>
+                                    <field name="product_id" required="1"/>
+                                    <field name="quantity" required="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_maintenance_log_list" model="ir.ui.view">
+        <field name="name">mesob.maintenance.log.list</field>
+        <field name="model">mesob.maintenance.log</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="vehicle_id"/>
+                <field name="date"/>
+                <field name="maintenance_type"/>
+                <field name="technician_id"/>
+                <field name="cost"/>
+                <field name="odometer"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'done'"
+                       decoration-warning="state == 'in_progress'"
+                       decoration-danger="state == 'cancel'"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_maintenance_logs" model="ir.actions.act_window">
+        <field name="name">Maintenance Logs</field>
+        <field name="res_model">mesob.maintenance.log</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

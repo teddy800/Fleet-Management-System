@@ -1,4 +1,5 @@
 from . import fleet_vehicle
+from . import hr_employee
 from . import service_record
 from . import fuel_log
 from . import odometer_log

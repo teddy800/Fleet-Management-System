@@ -1,16 +1,33 @@
 <odoo>
+    <!-- Fleet Dashboard: vehicle availability summary -->
+    <record id="view_fleet_dashboard" model="ir.ui.view">
+        <field name="name">fleet.vehicle.dashboard</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="arch" type="xml">
+            <list string="Fleet Status">
+                <field name="name"/>
+                <field name="license_plate"/>
+                <field name="availability"/>
+                <field name="current_odometer"/>
+                <field name="maintenance_due" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
 
     <record id="dashboard_action" model="ir.actions.act_window">
         <field name="name">Fleet Dashboard</field>
-        <field name="res_model">mesob.service.record</field>
-        <field name="view_mode">graph</field>
+        <field name="res_model">fleet.vehicle</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('active','=',True)]</field>
+        <field name="context">{'search_default_group_availability': 1}</field>
     </record>
 
+    <!-- Service cost graph -->
     <record id="dashboard_graph" model="ir.ui.view">
-        <field name="name">dashboard.graph</field>
+        <field name="name">dashboard.service.graph</field>
         <field name="model">mesob.service.record</field>
         <field name="arch" type="xml">
-            <graph string="Costs" type="bar">
+            <graph string="Service Costs" type="bar">
                 <field name="date" type="row"/>
                 <field name="cost" type="measure"/>
                 <field name="service_type" type="col"/>
@@ -18,4 +35,9 @@
         </field>
     </record>
 
+    <record id="dashboard_service_action" model="ir.actions.act_window">
+        <field name="name">Service Cost Analysis</field>
+        <field name="res_model">mesob.service.record</field>
+        <field name="view_mode">graph,list</field>
+    </record>
 </odoo>
