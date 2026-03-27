@@ -1,4 +1,62 @@
 <odoo>
+    <!-- Enhanced Fleet Dashboard for Figma Design -->
+    <record id="view_fleet_dashboard_kanban" model="ir.ui.view">
+        <field name="name">fleet.dashboard.kanban</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="arch" type="xml">
+            <kanban class="o_fleet_dashboard">
+                <field name="name"/>
+                <field name="license_plate"/>
+                <field name="availability"/>
+                <field name="current_odometer"/>
+                <field name="maintenance_due"/>
+                <field name="fuel_efficiency"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="o_kanban_card_header">
+                                <div class="o_kanban_card_header_title">
+                                    <div class="o_field_char o_text_overflow" t-att-title="record.name.raw_value">
+                                        <field name="name"/>
+                                    </div>
+                                    <div class="text-muted">
+                                        <field name="license_plate"/>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="container o_kanban_card_content">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <button class="btn btn-primary" name="action_view_trips" type="object">
+                                            View Trips
+                                        </button>
+                                    </div>
+                                    <div class="col-6 text-right">
+                                        <field name="availability" widget="badge" 
+                                               decoration-success="availability == 'available'"
+                                               decoration-warning="availability == 'maintenance'"
+                                               decoration-danger="availability == 'unavailable'"/>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <span class="text-muted">Odometer: </span>
+                                        <field name="current_odometer"/> km
+                                    </div>
+                                </div>
+                                <div class="row" t-if="record.maintenance_due.raw_value">
+                                    <div class="col-12">
+                                        <span class="badge badge-warning">Maintenance Due</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
     <!-- Fleet Dashboard: vehicle availability summary -->
     <record id="view_fleet_dashboard" model="ir.ui.view">
         <field name="name">fleet.vehicle.dashboard</field>
@@ -17,9 +75,61 @@
     <record id="dashboard_action" model="ir.actions.act_window">
         <field name="name">Fleet Dashboard</field>
         <field name="res_model">fleet.vehicle</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
         <field name="domain">[('active','=',True)]</field>
         <field name="context">{'search_default_group_availability': 1}</field>
+        <field name="view_id" ref="view_fleet_dashboard_kanban"/>
+    </record>
+
+    <!-- Mobile-Responsive Trip Request Dashboard -->
+    <record id="view_trip_request_dashboard" model="ir.ui.view">
+        <field name="name">trip.request.dashboard</field>
+        <field name="model">mesob.trip.request</field>
+        <field name="arch" type="xml">
+            <kanban class="o_trip_dashboard" create="true" quick_create="false">
+                <field name="employee_id"/>
+                <field name="purpose"/>
+                <field name="state"/>
+                <field name="start_datetime"/>
+                <field name="vehicle_category"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="o_kanban_card_header">
+                                <div class="o_kanban_card_header_title">
+                                    <div class="o_field_char o_text_overflow">
+                                        <field name="purpose"/>
+                                    </div>
+                                    <div class="text-muted">
+                                        <field name="employee_id"/>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="container o_kanban_card_content">
+                                <div class="row">
+                                    <div class="col-8">
+                                        <field name="start_datetime" widget="datetime"/>
+                                    </div>
+                                    <div class="col-4 text-right">
+                                        <field name="state" widget="badge" 
+                                               decoration-info="state == 'pending'"
+                                               decoration-success="state == 'approved'"
+                                               decoration-warning="state == 'in_progress'"
+                                               decoration-muted="state == 'completed'"/>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <span class="text-muted">Vehicle: </span>
+                                        <field name="vehicle_category"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
     </record>
 
     <!-- Service cost graph -->

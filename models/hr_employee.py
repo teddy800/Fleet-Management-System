@@ -18,6 +18,24 @@ class HrEmployee(models.Model):
     synced_from_hr = fields.Boolean(
         string="Synced from HR", default=False, readonly=True
     )
+    
+    # Fleet-specific fields
+    is_driver = fields.Boolean(string="Is Driver", default=False)
+    driver_license_number = fields.Char(string="Driver License Number")
+    license_expiry_date = fields.Date(string="License Expiry Date")
+    is_fleet_dispatcher = fields.Boolean(string="Is Fleet Dispatcher", default=False)
+    is_fleet_manager = fields.Boolean(string="Is Fleet Manager", default=False)
+    
+    # Trip request fields
+    trip_request_ids = fields.One2many('mesob.trip.request', 'employee_id', string="Trip Requests")
+    active_trip_count = fields.Integer(string="Active Trips", compute="_compute_active_trips")
+    
+    @api.depends('trip_request_ids')
+    def _compute_active_trips(self):
+        for employee in self:
+            employee.active_trip_count = len(employee.trip_request_ids.filtered(
+                lambda r: r.state in ['pending', 'approved', 'in_progress']
+            ))
 
     def _upsert_employee(self, payload):
         """Create or update an hr.employee from an HRMS payload dict."""

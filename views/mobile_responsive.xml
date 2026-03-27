@@ -1,0 +1,173 @@
+<odoo>
+    <!-- Mobile-Responsive Fleet Views for Figma Design Integration -->
+    
+    <!-- Mobile Trip Request Form -->
+    <record id="view_trip_request_form_mobile" model="ir.ui.view">
+        <field name="name">trip.request.form.mobile</field>
+        <field name="model">mesob.trip.request</field>
+        <field name="arch" type="xml">
+            <form string="Trip Request" class="o_form_mobile">
+                <header>
+                    <button name="action_submit" string="Submit Request" type="object" 
+                            class="btn-primary" states="draft"/>
+                    <button name="action_approve" string="Approve" type="object" 
+                            class="btn-success" states="pending" 
+                            groups="mesob_fleet_customizations.group_fleet_dispatcher"/>
+                    <button name="action_reject" string="Reject" type="object" 
+                            class="btn-danger" states="pending"
+                            groups="mesob_fleet_customizations.group_fleet_dispatcher"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,pending,approved,in_progress,completed"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Trip Details" class="o_group_mobile">
+                            <field name="employee_id" options="{'no_create': True}"/>
+                            <field name="purpose" placeholder="Enter trip purpose..."/>
+                            <field name="vehicle_category" widget="selection"/>
+                            <field name="priority" widget="priority"/>
+                        </group>
+                        <group string="Schedule" class="o_group_mobile">
+                            <field name="start_datetime" widget="datetime"/>
+                            <field name="end_datetime" widget="datetime"/>
+                            <field name="is_recurring"/>
+                        </group>
+                    </group>
+                    <group string="Locations" class="o_group_mobile">
+                        <field name="pickup_location" placeholder="Pickup address..."/>
+                        <field name="destination_location" placeholder="Destination address..."/>
+                        <field name="estimated_distance"/>
+                    </group>
+                    <group string="Assignment" class="o_group_mobile" 
+                           attrs="{'invisible': [('state', 'in', ['draft', 'pending'])]}">
+                        <field name="assigned_vehicle_id"/>
+                        <field name="assigned_driver_id"/>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Mobile Vehicle Dashboard -->
+    <record id="view_vehicle_dashboard_mobile" model="ir.ui.view">
+        <field name="name">vehicle.dashboard.mobile</field>
+        <field name="model">fleet.vehicle</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile o_fleet_mobile_dashboard">
+                <field name="name"/>
+                <field name="license_plate"/>
+                <field name="availability"/>
+                <field name="current_odometer"/>
+                <field name="maintenance_due"/>
+                <field name="driver_id"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click o_kanban_mobile_card">
+                            <div class="o_kanban_card_header">
+                                <div class="o_kanban_card_header_title">
+                                    <div class="o_field_char o_text_overflow">
+                                        <strong><field name="name"/></strong>
+                                    </div>
+                                    <div class="text-muted small">
+                                        <field name="license_plate"/>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_card_header_right">
+                                    <field name="availability" widget="badge" 
+                                           decoration-success="availability == 'available'"
+                                           decoration-warning="availability == 'maintenance'"
+                                           decoration-danger="availability == 'unavailable'"/>
+                                </div>
+                            </div>
+                            <div class="o_kanban_card_content">
+                                <div class="row no-gutters">
+                                    <div class="col-6">
+                                        <small class="text-muted">Driver:</small><br/>
+                                        <field name="driver_id"/>
+                                    </div>
+                                    <div class="col-6 text-right">
+                                        <small class="text-muted">Odometer:</small><br/>
+                                        <field name="current_odometer"/> km
+                                    </div>
+                                </div>
+                                <div class="row no-gutters mt-2" t-if="record.maintenance_due.raw_value">
+                                    <div class="col-12">
+                                        <span class="badge badge-warning w-100">Maintenance Due</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="o_kanban_card_footer">
+                                <div class="btn-group w-100" role="group">
+                                    <button class="btn btn-sm btn-outline-primary" name="action_view_trips" type="object">
+                                        Trips
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" name="action_view_maintenance" type="object">
+                                        Service
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Mobile Driver Interface -->
+    <record id="view_driver_mobile_dashboard" model="ir.ui.view">
+        <field name="name">driver.mobile.dashboard</field>
+        <field name="model">mesob.trip.assignment</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile o_driver_mobile_dashboard" create="false">
+                <field name="trip_request_id"/>
+                <field name="vehicle_id"/>
+                <field name="state"/>
+                <field name="start_datetime"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click o_kanban_mobile_card">
+                            <div class="o_kanban_card_header">
+                                <div class="o_kanban_card_header_title">
+                                    <div class="o_field_char">
+                                        <strong><field name="trip_request_id"/></strong>
+                                    </div>
+                                    <div class="text-muted small">
+                                        <field name="vehicle_id"/> • <field name="start_datetime" widget="datetime"/>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_card_header_right">
+                                    <field name="state" widget="badge"/>
+                                </div>
+                            </div>
+                            <div class="o_kanban_card_content">
+                                <div class="btn-group w-100 mt-2" role="group">
+                                    <button class="btn btn-success btn-sm" name="action_start_trip" type="object"
+                                            attrs="{'invisible': [('state', '!=', 'assigned')]}">
+                                        Start Trip
+                                    </button>
+                                    <button class="btn btn-warning btn-sm" name="action_complete_trip" type="object"
+                                            attrs="{'invisible': [('state', '!=', 'in_progress')]}">
+                                        Complete
+                                    </button>
+                                    <button class="btn btn-info btn-sm" name="action_view_route" type="object">
+                                        Route
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+</odoo>
