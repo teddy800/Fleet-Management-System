@@ -116,7 +116,6 @@ class TripRequest(models.Model):
     # Related Records
     trip_assignment_id = fields.Many2one('mesob.trip.assignment', string="Trip Assignment")
     fuel_log_ids = fields.One2many('mesob.fuel.log', 'trip_request_id', string="Fuel Logs")
-    expense_ids = fields.One2many('mesob.trip.expense', 'trip_request_id', string="Trip Expenses")
     
     # Computed Fields
     duration_hours = fields.Float(string="Duration (Hours)", compute="_compute_duration", store=True)

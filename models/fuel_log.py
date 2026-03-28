@@ -9,6 +9,7 @@ class FuelLog(models.Model):
 
     vehicle_id = fields.Many2one('fleet.vehicle', required=True)
     driver_id = fields.Many2one('hr.employee', string="Driver")
+    trip_request_id = fields.Many2one('mesob.trip.request', string="Trip Request", ondelete='set null')
     date = fields.Date(required=True)
     fuel_station = fields.Char(string="Fuel Station")
     volume = fields.Float(string="Volume (L)")

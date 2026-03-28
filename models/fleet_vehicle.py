@@ -89,7 +89,7 @@ class FleetVehicle(models.Model):
                 
             vehicle.maintenance_due = maintenance_due
 
-    @api.depends('fuel_log_ids')
+    @api.depends('current_odometer')
     def _compute_fuel_efficiency(self):
         for vehicle in self:
             fuel_logs = self.env['mesob.fuel.log'].search([('vehicle_id', '=', vehicle.id)], order='date')
@@ -100,7 +100,7 @@ class FleetVehicle(models.Model):
             else:
                 vehicle.fuel_efficiency = 0
 
-    @api.depends('trip_assignment_ids')
+    @api.depends('current_odometer')
     def _compute_trip_stats(self):
         for vehicle in self:
             assignments = self.env['mesob.trip.assignment'].search([('vehicle_id', '=', vehicle.id), ('state', '=', 'completed')])
@@ -112,7 +112,7 @@ class FleetVehicle(models.Model):
             else:
                 vehicle.average_trip_distance = 0
 
-    @api.depends('trip_assignment_ids')
+    @api.depends('current_odometer')
     def _compute_utilization_rate(self):
         for vehicle in self:
             # Calculate utilization for the last 30 days
@@ -134,7 +134,7 @@ class FleetVehicle(models.Model):
             else:
                 vehicle.utilization_rate = 0
 
-    @api.depends('maintenance_log_ids')
+    @api.depends('current_odometer')
     def _compute_maintenance_cost(self):
         for vehicle in self:
             maintenance_logs = self.env['mesob.maintenance.log'].search([('vehicle_id', '=', vehicle.id)])
