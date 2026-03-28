@@ -234,6 +234,23 @@ class GPSLog(models.Model):
         
         return locations
 
+    @api.model
+    def fetch_all_vehicle_locations(self):
+        """Cron: fetch GPS data from external gateway for all vehicles"""
+        url = self.env['ir.config_parameter'].sudo().get_param('mesob.gps_gateway_url')
+        if not url:
+            _logger.warning("mesob.gps_gateway_url not configured; skipping GPS fetch.")
+            return
+        try:
+            response = requests.get(url, timeout=15)
+            response.raise_for_status()
+            gps_records = response.json()
+            for record in gps_records:
+                self.sudo().create_from_gps_data(record)
+            _logger.info("GPS fetch complete: %d records processed.", len(gps_records))
+        except Exception as e:
+            _logger.error("GPS fetch failed: %s", e)
+
 
 class Geofence(models.Model):
     _name = 'mesob.geofence'
