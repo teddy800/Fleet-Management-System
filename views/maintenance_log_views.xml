@@ -7,13 +7,13 @@
                 <header>
                     <button name="action_start" string="Start" type="object"
                             class="btn-primary" invisible="state != 'draft'"
-                            groups="mesob_fleet_management.group_fleet_manager"/>
+                            groups="mesob_fleet_customizations.group_fleet_manager"/>
                     <button name="action_complete" string="Complete" type="object"
                             class="btn-success" invisible="state != 'in_progress'"
-                            groups="mesob_fleet_management.group_fleet_manager"/>
+                            groups="mesob_fleet_customizations.group_fleet_manager"/>
                     <button name="action_cancel" string="Cancel" type="object"
                             invisible="state in ['done','cancel']"
-                            groups="mesob_fleet_management.group_fleet_manager"/>
+                            groups="mesob_fleet_customizations.group_fleet_manager"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,in_progress,done"/>
                 </header>

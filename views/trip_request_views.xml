@@ -15,7 +15,7 @@
                             class="btn-danger" invisible="state != 'pending'"
                             groups="mesob_fleet_customizations.group_fleet_dispatcher"/>
                     <button name="action_cancel" string="Cancel" type="object"
-                            invisible="state != 'pending'"/>
+                            invisible="state not in ('draft','pending')"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,pending,approved,assigned,in_progress,completed"/>
                 </header>
@@ -24,35 +24,35 @@
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
                     <group>
-                        <group string="Trip Details">
-                            <field name="employee_id" readonly="state != 'draft'"/>
+                        <group string="Request Details">
+                            <field name="employee_id" options="{'no_create': True}"/>
+                            <field name="purpose"/>
                             <field name="vehicle_category"/>
-                            <field name="pickup_location" required="1"/>
-                            <field name="destination_location" required="1"/>
+                            <field name="trip_type"/>
+                            <field name="priority" widget="priority"/>
+                            <field name="passenger_count"/>
                         </group>
                         <group string="Schedule">
-                            <field name="start_datetime" required="1"/>
-                            <field name="end_datetime" required="1"/>
+                            <field name="start_datetime"/>
+                            <field name="end_datetime"/>
+                            <field name="duration_hours" readonly="1"/>
+                            <field name="is_recurring"/>
                         </group>
                     </group>
-                    <group>
-                        <field name="purpose" required="1" placeholder="Purpose of the trip..."/>
-                        <field name="justification" required="1" placeholder="Justification..."/>
+                    <group string="Locations">
+                        <field name="pickup_location"/>
+                        <field name="destination_location"/>
+                        <field name="estimated_distance"/>
+                        <field name="estimated_duration"/>
                     </group>
-                    <group string="Assignment" invisible="state not in ['approved','in_progress','completed','closed']">
-                        <field name="vehicle_id" readonly="1"/>
-                        <field name="driver_id" readonly="1"/>
+                    <group string="Assignment" invisible="state in ('draft','pending')">
+                        <field name="assigned_vehicle_id" readonly="1"/>
+                        <field name="assigned_driver_id" readonly="1"/>
+                        <field name="approved_by" readonly="1"/>
+                        <field name="approved_date" readonly="1"/>
                     </group>
                     <group string="Rejection" invisible="state != 'rejected'">
                         <field name="rejection_reason" readonly="1"/>
-                    </group>
-                    <group string="Timestamps" invisible="state == 'draft'">
-                        <field name="submitted_at" readonly="1"/>
-                        <field name="approved_at" readonly="1" invisible="not approved_at"/>
-                        <field name="rejected_at" readonly="1" invisible="not rejected_at"/>
-                        <field name="started_at" readonly="1" invisible="not started_at"/>
-                        <field name="completed_at" readonly="1" invisible="not completed_at"/>
-                        <field name="closed_at" readonly="1" invisible="not closed_at"/>
                     </group>
                 </sheet>
                 <div class="oe_chatter">
@@ -69,51 +69,23 @@
         <field name="name">mesob.trip.request.list</field>
         <field name="model">mesob.trip.request</field>
         <field name="arch" type="xml">
-            <list decoration-info="state == 'pending'"
+            <list string="Trip Requests" decoration-info="state == 'pending'"
                   decoration-success="state == 'approved'"
-                  decoration-danger="state == 'rejected'"
                   decoration-warning="state == 'in_progress'"
-                  decoration-muted="state in ['closed','draft']">
+                  decoration-muted="state in ('completed','cancelled')">
                 <field name="name"/>
                 <field name="employee_id"/>
+                <field name="vehicle_category"/>
+                <field name="start_datetime"/>
+                <field name="end_datetime"/>
                 <field name="pickup_location"/>
                 <field name="destination_location"/>
-                <field name="start_datetime"/>
-                <field name="end_datetime"/>
-                <field name="vehicle_category"/>
+                <field name="priority" widget="priority"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'pending'"
-                       decoration-success="state in ['approved','completed']"
-                       decoration-danger="state == 'rejected'"
-                       decoration-warning="state == 'in_progress'"
-                       decoration-muted="state in ['closed','draft']"/>
+                       decoration-success="state in ('approved','assigned')"
+                       decoration-warning="state == 'in_progress'"/>
             </list>
-        </field>
-    </record>
-
-    <!-- Kanban View -->
-    <record id="view_trip_request_kanban" model="ir.ui.view">
-        <field name="name">mesob.trip.request.kanban</field>
-        <field name="model">mesob.trip.request</field>
-        <field name="arch" type="xml">
-            <kanban default_group_by="state">
-                <field name="color"/>
-                <field name="state"/>
-                <field name="name"/>
-                <field name="employee_id"/>
-                <field name="start_datetime"/>
-                <field name="end_datetime"/>
-                <templates>
-                    <t t-name="card">
-                        <div class="oe_kanban_global_click">
-                            <strong><field name="name"/></strong>
-                            <div><field name="employee_id"/></div>
-                            <div><field name="start_datetime"/> → <field name="end_datetime"/></div>
-                            <div><field name="state" widget="badge"/></div>
-                        </div>
-                    </t>
-                </templates>
-            </kanban>
         </field>
     </record>
 
@@ -122,49 +94,46 @@
         <field name="name">mesob.trip.request.search</field>
         <field name="model">mesob.trip.request</field>
         <field name="arch" type="xml">
-            <search>
+            <search string="Trip Requests">
                 <field name="name"/>
                 <field name="employee_id"/>
                 <field name="vehicle_category"/>
                 <filter string="My Requests" name="my_requests"
-                        domain="[('requester_id','=',uid)]"/>
-                <filter string="Pending" name="pending"
-                        domain="[('state','=','pending')]"/>
-                <filter string="Approved" name="approved"
-                        domain="[('state','=','approved')]"/>
-                <filter string="In Progress" name="in_progress"
-                        domain="[('state','=','in_progress')]"/>
-                <group expand="0" string="Group By">
-                    <filter string="Status" name="group_state" context="{'group_by':'state'}"/>
-                    <filter string="Requester" name="group_requester" context="{'group_by':'requester_id'}"/>
-                </group>
+                        domain="[('employee_id.user_id','=',uid)]"/>
+                <filter string="Pending" name="pending" domain="[('state','=','pending')]"/>
+                <filter string="Approved" name="approved" domain="[('state','=','approved')]"/>
+                <filter string="In Progress" name="in_progress" domain="[('state','=','in_progress')]"/>
+                <separator/>
+                <filter string="By Status" name="group_state" context="{'group_by':'state'}"/>
+                <filter string="By Requester" name="group_employee" context="{'group_by':'employee_id'}"/>
+                <filter string="By Category" name="group_category" context="{'group_by':'vehicle_category'}"/>
             </search>
         </field>
     </record>
 
-    <!-- Personal Dashboard Action -->
-    <record id="action_my_trip_requests" model="ir.actions.act_window">
-        <field name="name">My Trip Requests</field>
-        <field name="res_model">mesob.trip.request</field>
-        <field name="view_mode">list,kanban,form</field>
-        <field name="domain">[('requester_id','=',uid)]</field>
-        <field name="context">{'search_default_my_requests': 1}</field>
-    </record>
-
     <!-- Dispatcher Queue Action -->
     <record id="action_dispatcher_queue" model="ir.actions.act_window">
-        <field name="name">Pending Requests Queue</field>
+        <field name="name">Dispatcher Queue</field>
         <field name="res_model">mesob.trip.request</field>
         <field name="view_mode">list,form</field>
         <field name="domain">[('state','=','pending')]</field>
-        <field name="context">{'search_default_pending': 1}</field>
+        <field name="context">{}</field>
+    </record>
+
+    <!-- My Trip Requests Action -->
+    <record id="action_my_trip_requests" model="ir.actions.act_window">
+        <field name="name">My Trip Requests</field>
+        <field name="res_model">mesob.trip.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('employee_id.user_id','=',uid)]</field>
+        <field name="context">{}</field>
     </record>
 
     <!-- All Trip Requests Action -->
     <record id="action_trip_requests" model="ir.actions.act_window">
-        <field name="name">Trip Requests</field>
+        <field name="name">All Trip Requests</field>
         <field name="res_model">mesob.trip.request</field>
-        <field name="view_mode">list,kanban,form</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
     </record>
 </odoo>
-
