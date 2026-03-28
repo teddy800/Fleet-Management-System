@@ -7,10 +7,9 @@ from collections import defaultdict
 _logger = logging.getLogger(__name__)
 
 
-class FleetAnalytics(models.Model):
+class FleetAnalytics(models.AbstractModel):
     _name = 'mesob.fleet.analytics'
     _description = 'Fleet Analytics and KPIs'
-    _auto = False  # This is a view model for analytics
 
     @api.model
     def get_comprehensive_dashboard(self):

@@ -10,19 +10,14 @@
                             class="btn-primary" invisible="state != 'draft'"/>
                     <button name="action_approve" string="Approve" type="object"
                             class="btn-success" invisible="state != 'pending'"
-                            groups="mesob_fleet_management.group_fleet_dispatcher"/>
+                            groups="mesob_fleet_customizations.group_fleet_dispatcher"/>
                     <button name="action_reject" string="Reject" type="object"
                             class="btn-danger" invisible="state != 'pending'"
-                            groups="mesob_fleet_management.group_fleet_dispatcher"/>
+                            groups="mesob_fleet_customizations.group_fleet_dispatcher"/>
                     <button name="action_cancel" string="Cancel" type="object"
                             invisible="state != 'pending'"/>
-                    <button name="action_complete" string="Mark Complete" type="object"
-                            class="btn-primary" invisible="state != 'in_progress'"/>
-                    <button name="action_close" string="Close" type="object"
-                            invisible="state != 'completed'"
-                            groups="mesob_fleet_management.group_fleet_manager"/>
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,pending,approved,in_progress,completed,closed"/>
+                           statusbar_visible="draft,pending,approved,assigned,in_progress,completed"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
@@ -30,14 +25,14 @@
                     </div>
                     <group>
                         <group string="Trip Details">
-                            <field name="requester_id" readonly="state != 'draft'"/>
-                            <field name="vehicle_category_id"/>
+                            <field name="employee_id" readonly="state != 'draft'"/>
+                            <field name="vehicle_category"/>
                             <field name="pickup_location" required="1"/>
                             <field name="destination_location" required="1"/>
                         </group>
                         <group string="Schedule">
-                            <field name="start_date" required="1"/>
-                            <field name="end_date" required="1"/>
+                            <field name="start_datetime" required="1"/>
+                            <field name="end_datetime" required="1"/>
                         </group>
                     </group>
                     <group>
@@ -80,12 +75,12 @@
                   decoration-warning="state == 'in_progress'"
                   decoration-muted="state in ['closed','draft']">
                 <field name="name"/>
-                <field name="requester_id"/>
+                <field name="employee_id"/>
                 <field name="pickup_location"/>
                 <field name="destination_location"/>
-                <field name="start_date"/>
-                <field name="end_date"/>
-                <field name="vehicle_category_id"/>
+                <field name="start_datetime"/>
+                <field name="end_datetime"/>
+                <field name="vehicle_category"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'pending'"
                        decoration-success="state in ['approved','completed']"
@@ -105,15 +100,15 @@
                 <field name="color"/>
                 <field name="state"/>
                 <field name="name"/>
-                <field name="requester_id"/>
-                <field name="start_date"/>
-                <field name="end_date"/>
+                <field name="employee_id"/>
+                <field name="start_datetime"/>
+                <field name="end_datetime"/>
                 <templates>
                     <t t-name="card">
                         <div class="oe_kanban_global_click">
                             <strong><field name="name"/></strong>
-                            <div><field name="requester_id"/></div>
-                            <div><field name="start_date"/> → <field name="end_date"/></div>
+                            <div><field name="employee_id"/></div>
+                            <div><field name="start_datetime"/> → <field name="end_datetime"/></div>
                             <div><field name="state" widget="badge"/></div>
                         </div>
                     </t>
@@ -129,8 +124,8 @@
         <field name="arch" type="xml">
             <search>
                 <field name="name"/>
-                <field name="requester_id"/>
-                <field name="vehicle_category_id"/>
+                <field name="employee_id"/>
+                <field name="vehicle_category"/>
                 <filter string="My Requests" name="my_requests"
                         domain="[('requester_id','=',uid)]"/>
                 <filter string="Pending" name="pending"
@@ -172,3 +167,4 @@
         <field name="view_mode">list,kanban,form</field>
     </record>
 </odoo>
+
