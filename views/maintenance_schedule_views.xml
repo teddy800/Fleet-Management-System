@@ -6,10 +6,21 @@
             <form>
                 <sheet>
                     <group>
-                        <field name="vehicle_id" required="1"/>
-                        <field name="interval_km"/>
-                        <field name="last_odometer"/>
-                        <field name="last_service_date"/>
+                        <group string="Vehicle &amp; Type">
+                            <field name="vehicle_id" required="1"/>
+                            <field name="maintenance_type" required="1"/>
+                        </group>
+                        <group string="Schedule">
+                            <field name="interval_km"/>
+                            <field name="interval_days"/>
+                            <field name="last_odometer"/>
+                            <field name="last_service_date"/>
+                        </group>
+                    </group>
+                    <group string="Next Due (Auto-computed)">
+                        <field name="next_due_odometer" readonly="1"/>
+                        <field name="next_due_date" readonly="1"/>
+                        <field name="is_overdue" readonly="1"/>
                     </group>
                 </sheet>
             </form>
@@ -20,11 +31,15 @@
         <field name="name">mesob.maintenance.schedule.list</field>
         <field name="model">mesob.maintenance.schedule</field>
         <field name="arch" type="xml">
-            <list>
+            <list decoration-danger="is_overdue == True">
                 <field name="vehicle_id"/>
+                <field name="maintenance_type"/>
                 <field name="interval_km"/>
-                <field name="last_odometer"/>
+                <field name="interval_days"/>
                 <field name="last_service_date"/>
+                <field name="next_due_date"/>
+                <field name="next_due_odometer"/>
+                <field name="is_overdue" widget="boolean_toggle"/>
             </list>
         </field>
     </record>

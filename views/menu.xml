@@ -46,8 +46,7 @@
     <menuitem id="mesob_maintenance_menu"
               name="Maintenance"
               parent="mesob_root"
-              sequence="30"
-              groups="mesob_fleet_customizations.group_fleet_manager"/>
+              sequence="30"/>
 
     <menuitem id="mesob_maintenance_log_menu"
               name="Maintenance Logs"
@@ -65,8 +64,7 @@
     <menuitem id="mesob_assets_menu"
               name="Assets"
               parent="mesob_root"
-              sequence="40"
-              groups="mesob_fleet_customizations.group_fleet_manager"/>
+              sequence="40"/>
 
     <menuitem id="mesob_fuel_log_menu"
               name="Fuel Logs"
