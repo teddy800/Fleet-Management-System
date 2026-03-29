@@ -69,24 +69,27 @@ class FleetVehicle(models.Model):
     def _compute_maintenance_due(self):
         for vehicle in self:
             maintenance_due = False
-            
-            # Check odometer-based maintenance
-            if vehicle.current_odometer:
-                schedules = self.env['mesob.maintenance.schedule'].search([
-                    ('vehicle_id', '=', vehicle.id),
-                    ('next_due_odometer', '<=', vehicle.current_odometer + 500)  # 500 KM warning
-                ])
-                if schedules:
-                    maintenance_due = True
-            
-            # Check date-based maintenance
-            date_schedules = self.env['mesob.maintenance.schedule'].search([
-                ('vehicle_id', '=', vehicle.id),
-                ('next_due_date', '<=', fields.Date.today() + timedelta(days=30))  # 30 days warning
+
+            schedules = self.env['mesob.maintenance.schedule'].search([
+                ('vehicle_id', '=', vehicle.id)
             ])
-            if date_schedules:
-                maintenance_due = True
-                
+
+            for schedule in schedules:
+                # Check odometer-based maintenance
+                if schedule.interval_km and vehicle.current_odometer and schedule.last_odometer:
+                    next_due_km = schedule.last_odometer + schedule.interval_km
+                    if vehicle.current_odometer >= next_due_km - 500:
+                        maintenance_due = True
+                        break
+
+                # Check date-based maintenance
+                if schedule.last_service_date and schedule.interval_km == 0:
+                    from datetime import timedelta
+                    next_due = schedule.last_service_date + timedelta(days=335)  # 30 days before 1 year
+                    if fields.Date.today() >= next_due:
+                        maintenance_due = True
+                        break
+
             vehicle.maintenance_due = maintenance_due
 
     @api.depends('current_odometer')
@@ -152,11 +155,10 @@ class FleetVehicle(models.Model):
 
     def _compute_next_maintenance(self):
         for vehicle in self:
-            next_maintenance = self.env['mesob.maintenance.schedule'].search([
+            schedule = self.env['mesob.maintenance.schedule'].search([
                 ('vehicle_id', '=', vehicle.id)
-            ], order='next_due_date asc', limit=1)
-            
-            vehicle.next_maintenance_date = next_maintenance.next_due_date if next_maintenance else False
+            ], order='last_service_date asc', limit=1)
+            vehicle.next_maintenance_date = schedule.last_service_date if schedule else False
 
     def _compute_maintenance_score(self):
         for vehicle in self:
