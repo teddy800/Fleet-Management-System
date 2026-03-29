@@ -403,7 +403,7 @@ class MobileAPIController(http.Controller):
                         'id': vehicle.id,
                         'name': vehicle.name,
                         'license_plate': vehicle.license_plate,
-                        'vehicle_category': vehicle.vehicle_category,
+                        'vehicle_category': vehicle.mesob_vehicle_category,
                         'distance': round(distance, 2),
                         'location': {
                             'latitude': vehicle.current_latitude,

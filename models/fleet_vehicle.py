@@ -44,7 +44,7 @@ class FleetVehicle(models.Model):
 
     # Fleet management fields
     assigned_driver_id = fields.Many2one('hr.employee', string="Assigned Driver")
-    vehicle_category = fields.Selection([
+    mesob_vehicle_category = fields.Selection([
         ('sedan', 'Sedan'),
         ('suv', 'SUV'),
         ('pickup', 'Pickup Truck'),

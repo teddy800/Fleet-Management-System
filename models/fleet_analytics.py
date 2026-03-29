@@ -38,7 +38,7 @@ class FleetAnalytics(models.AbstractModel):
         
         # Vehicle categories breakdown
         categories = Vehicle.read_group(
-            [], ['vehicle_category'], ['vehicle_category']
+            [], ['mesob_vehicle_category'], ['mesob_vehicle_category']
         )
         
         # Age distribution

@@ -50,7 +50,7 @@ class FleetAPIController(http.Controller):
                         'longitude': vehicle.current_longitude,
                         'last_update': vehicle.last_gps_update.isoformat() if vehicle.last_gps_update else None
                     },
-                    'vehicle_category': vehicle.vehicle_category,
+                    'vehicle_category': vehicle.mesob_vehicle_category,
                     'assigned_driver': vehicle.assigned_driver_id.name if vehicle.assigned_driver_id else None
                 })
             
