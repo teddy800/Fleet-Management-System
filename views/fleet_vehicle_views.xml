@@ -7,9 +7,11 @@
         <field name="arch" type="xml">
             <xpath expr="//sheet" position="inside">
                 <group string="MESSOB Fleet Info" col="2">
+                    <field name="vehicle_category"/>
                     <field name="availability"/>
                     <field name="maintenance_due" readonly="1"/>
                     <field name="current_odometer"/>
+                    <field name="assigned_driver_id"/>
                 </group>
             </xpath>
         </field>

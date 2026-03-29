@@ -53,7 +53,7 @@ class FleetVehicle(models.Model):
         ('minibus', 'Mini-Bus'),
         ('motorcycle', 'Motorcycle'),
         ('truck', 'Truck')
-    ], string="Vehicle Category", required=True)
+    ], string="Vehicle Category")
     
     # Insurance and documentation
     insurance_expiry = fields.Date(string="Insurance Expiry Date")
