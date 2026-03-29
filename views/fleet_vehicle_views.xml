@@ -10,8 +10,6 @@
                     <field name="availability"/>
                     <field name="current_odometer"/>
                     <field name="maintenance_due" readonly="1"/>
-                    <field name="mesob_vehicle_category"/>
-                    <field name="assigned_driver_id"/>
                 </group>
             </xpath>
         </field>
