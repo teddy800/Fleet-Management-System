@@ -19,8 +19,8 @@ class TripAssignment(models.Model):
 
     def _check_dispatcher(self):
         if not (
-            self.env.user.has_group('mesob_fleet_management.group_fleet_dispatcher') or
-            self.env.user.has_group('mesob_fleet_management.group_fleet_manager')
+            self.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
+            self.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')
         ):
             raise AccessError(_("Only Fleet Dispatchers or Managers can manage trip assignments."))
 
@@ -40,8 +40,8 @@ class TripAssignment(models.Model):
             overlap_domain = [
                 ('state', '=', 'confirmed'),
                 ('id', '!=', rec.id),
-                ('trip_id.start_date', '<', trip.end_date),
-                ('trip_id.end_date', '>', trip.start_date),
+                ('trip_id.start_datetime', '<', trip.end_datetime),
+                ('trip_id.end_datetime', '>', trip.start_datetime),
             ]
             # BR-2: vehicle conflict
             if self.search(overlap_domain + [('vehicle_id', '=', rec.vehicle_id.id)]):
