@@ -40,7 +40,7 @@ class FleetAPIController(http.Controller):
                     'id': vehicle.id,
                     'name': vehicle.name,
                     'license_plate': vehicle.license_plate,
-                    'availability': vehicle.availability,
+                    'mesob_status': vehicle.mesob_status,
                     'current_odometer': vehicle.current_odometer,
                     'maintenance_due': vehicle.maintenance_due,
                     'fuel_efficiency': vehicle.fuel_efficiency,

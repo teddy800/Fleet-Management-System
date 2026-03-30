@@ -18,7 +18,7 @@
                     <group>
                         <field name="trip_request_id"/>
                         <field name="vehicle_id"
-                               domain="[('availability','=',True)]"/>
+                               domain="[]"/>
                         <field name="driver_id"
                                domain="[('active','=',True)]"/>
                         <field name="confirmed_at" readonly="1"/>

@@ -56,13 +56,13 @@ class MaintenanceLog(models.Model):
     def action_start(self):
         for rec in self:
             rec.state = 'in_progress'
-            rec.vehicle_id.availability = False
+            rec.vehicle_id.mesob_status = 'in_use'
 
     def action_complete(self):
         for rec in self:
             rec.state = 'done'
             rec.vehicle_id.current_odometer = rec.odometer
-            rec.vehicle_id.availability = True
+            rec.vehicle_id.mesob_status = 'available'
             schedule = self.env['mesob.maintenance.schedule'].search(
                 [('vehicle_id', '=', rec.vehicle_id.id)], limit=1
             )
@@ -74,4 +74,4 @@ class MaintenanceLog(models.Model):
         for rec in self:
             rec.state = 'cancel'
             if rec.vehicle_id:
-                rec.vehicle_id.availability = True
+                rec.vehicle_id.mesob_status = 'available'

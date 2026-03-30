@@ -294,7 +294,7 @@ class TripRequest(models.Model):
         })
         
         # Update vehicle availability
-        vehicle.write({'availability': 'in_use'})
+        vehicle.write({'mesob_status': 'in_use'})
         
         # Notify driver and requester
         self._notify_assignment(vehicle, driver)
@@ -321,7 +321,7 @@ class TripRequest(models.Model):
         
         # If vehicle is assigned, make it available again
         if self.assigned_vehicle_id:
-            self.assigned_vehicle_id.write({'availability': 'available'})
+            self.assigned_vehicle_id.write({'mesob_status': 'available'})
         
         self.write({'state': 'cancelled'})
         

@@ -157,7 +157,7 @@ class MobileAPIController(http.Controller):
             
             # Update vehicle status
             assignment.vehicle_id.write({
-                'availability': 'in_use'
+                'mesob_status': 'in_use'
             })
             
             return {
@@ -214,7 +214,7 @@ class MobileAPIController(http.Controller):
             
             # Update vehicle status and odometer
             assignment.vehicle_id.write({
-                'availability': 'available',
+                'mesob_status': 'available',
                 'current_odometer': data.get('end_odometer', assignment.vehicle_id.current_odometer)
             })
             
@@ -385,7 +385,7 @@ class MobileAPIController(http.Controller):
             
             # Get all available vehicles with GPS data
             vehicles = request.env['fleet.vehicle'].search([
-                ('availability', '=', 'available'),
+                ('mesob_status', '=', 'available'),
                 ('current_latitude', '!=', 0),
                 ('current_longitude', '!=', 0)
             ])

@@ -106,7 +106,7 @@ class MesobFleetIntegration:
                 'method': 'search_read',
                 'args': [[]],
                 'kwargs': {
-                    'fields': ['name', 'license_plate', 'availability', 'current_odometer', 'maintenance_due']
+                    'fields': ['name', 'license_plate', 'mesob_status', 'current_odometer', 'maintenance_due']
                 }
             }
         }

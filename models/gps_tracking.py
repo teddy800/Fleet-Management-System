@@ -229,7 +229,7 @@ class GPSLog(models.Model):
                     'speed': latest_log.speed,
                     'heading': latest_log.heading,
                     'last_update': latest_log.timestamp.isoformat(),
-                    'status': vehicle.availability
+                    'status': vehicle.mesob_status
                 })
         
         return locations

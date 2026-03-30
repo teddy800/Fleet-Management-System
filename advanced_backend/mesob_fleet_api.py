@@ -184,7 +184,7 @@ class MesobFleetAPI:
                 {
                     'fields': [
                         'name', 'license_plate', 'model_id', 'driver_id',
-                        'current_odometer', 'availability', 'maintenance_due',
+                        'current_odometer', 'mesob_status', 'maintenance_due',
                         'fuel_type', 'acquisition_date', 'vin'
                     ]
                 }

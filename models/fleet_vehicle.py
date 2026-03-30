@@ -8,12 +8,12 @@ _logger = logging.getLogger(__name__)
 class FleetVehicle(models.Model):
     _inherit = 'fleet.vehicle'
 
-    availability = fields.Selection([
+    mesob_status = fields.Selection([
         ('available', 'Available'),
         ('in_use', 'In Use'),
         ('maintenance', 'Under Maintenance'),
         ('unavailable', 'Unavailable')
-    ], default='available', string="Availability Status")
+    ], default='available', string="Fleet Status")
 
     maintenance_due = fields.Boolean(
         string="Maintenance Due", compute="_compute_maintenance_due", store=True, default=False
@@ -102,7 +102,6 @@ class FleetVehicle(models.Model):
     @api.depends('current_odometer')
     def _compute_utilization_rate(self):
         for vehicle in self:
-            # Fetch confirmed assignments and compute hours via Python (no dotted domain)
             assignments = self.env['mesob.trip.assignment'].search([
                 ('vehicle_id', '=', vehicle.id),
                 ('state', '=', 'confirmed'),
@@ -165,4 +164,4 @@ class FleetVehicle(models.Model):
     def _cron_check_maintenance(self):
         for rec in self.search([]):
             if rec.maintenance_due:
-                rec.availability = 'maintenance'
+                rec.mesob_status = 'maintenance'

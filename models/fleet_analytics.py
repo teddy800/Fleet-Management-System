@@ -32,9 +32,9 @@ class FleetAnalytics(models.AbstractModel):
         Vehicle = self.env['fleet.vehicle']
         
         total_vehicles = Vehicle.search_count([])
-        available_vehicles = Vehicle.search_count([('availability', '=', 'available')])
-        in_use_vehicles = Vehicle.search_count([('availability', '=', 'in_use')])
-        maintenance_vehicles = Vehicle.search_count([('availability', '=', 'maintenance')])
+        available_vehicles = Vehicle.search_count([('mesob_status', '=', 'available')])
+        in_use_vehicles = Vehicle.search_count([('mesob_status', '=', 'in_use')])
+        maintenance_vehicles = Vehicle.search_count([('mesob_status', '=', 'maintenance')])
         
         # Vehicle categories breakdown
         categories = Vehicle.read_group(
@@ -543,7 +543,7 @@ class FleetAnalytics(models.AbstractModel):
         
         # Fleet availability
         total_vehicles = Vehicle.search_count([])
-        available_vehicles = Vehicle.search_count([('availability', '=', 'available')])
+        available_vehicles = Vehicle.search_count([('mesob_status', '=', 'available')])
         fleet_availability = (available_vehicles / total_vehicles * 100) if total_vehicles > 0 else 0
         
         # Request fulfillment rate
