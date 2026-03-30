@@ -7,7 +7,7 @@ class TripAssignment(models.Model):
     _name = 'mesob.trip.assignment'
     _description = 'Trip Assignment'
 
-    trip_id = fields.Many2one('mesob.trip.request', required=True, ondelete='cascade')
+    trip_request_id = fields.Many2one('mesob.trip.request', required=True, ondelete='cascade')
     vehicle_id = fields.Many2one('fleet.vehicle', required=True)
     driver_id = fields.Many2one('hr.employee', required=True)
     confirmed_at = fields.Datetime(readonly=True)
@@ -34,14 +34,14 @@ class TripAssignment(models.Model):
         for rec in self:
             if rec.state != 'confirmed':
                 continue
-            trip = rec.trip_id
+            trip = rec.trip_request_id
             if not trip:
                 continue
             overlap_domain = [
                 ('state', '=', 'confirmed'),
                 ('id', '!=', rec.id),
-                ('trip_id.start_datetime', '<', trip.end_datetime),
-                ('trip_id.end_datetime', '>', trip.start_datetime),
+                ('trip_request_id.start_datetime', '<', trip.end_datetime),
+                ('trip_request_id.end_datetime', '>', trip.start_datetime),
             ]
             # BR-2: vehicle conflict
             if self.search(overlap_domain + [('vehicle_id', '=', rec.vehicle_id.id)]):
@@ -61,8 +61,12 @@ class TripAssignment(models.Model):
         for rec in self:
             rec.state = 'confirmed'
             rec.confirmed_at = fields.Datetime.now()
-            if rec.trip_id.state == 'approved':
-                rec.trip_id.action_start()
+            if rec.trip_request_id.state == 'approved':
+                rec.trip_request_id.write({
+                    'state': 'assigned',
+                    'assigned_vehicle_id': rec.vehicle_id.id,
+                    'assigned_driver_id': rec.driver_id.id,
+                })
 
     def action_cancel(self):
         self._check_dispatcher()

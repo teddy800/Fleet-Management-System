@@ -14,6 +14,9 @@
                     <button name="action_reject" string="Reject" type="object"
                             class="btn-danger" invisible="state != 'pending'"
                             groups="mesob_fleet_customizations.group_fleet_dispatcher"/>
+                    <button name="action_open_assign_wizard" string="Assign Vehicle" type="object"
+                            class="btn-primary" invisible="state != 'approved'"
+                            groups="mesob_fleet_customizations.group_fleet_dispatcher"/>
                     <button name="action_cancel" string="Cancel" type="object"
                             invisible="state not in ('draft','pending')"/>
                     <field name="state" widget="statusbar"
@@ -135,5 +138,24 @@
         <field name="res_model">mesob.trip.request</field>
         <field name="view_mode">list,form</field>
         <field name="context">{}</field>
+    </record>
+
+    <!-- Assign Vehicle Wizard View -->
+    <record id="view_trip_assign_wizard_form" model="ir.ui.view">
+        <field name="name">mesob.trip.assign.wizard.form</field>
+        <field name="model">mesob.trip.assign.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Assign Vehicle">
+                <group>
+                    <field name="trip_request_id" readonly="1"/>
+                    <field name="vehicle_id" options="{'no_create': True}"/>
+                    <field name="driver_id" options="{'no_create': True}"/>
+                </group>
+                <footer>
+                    <button name="action_assign" string="Assign" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
     </record>
 </odoo>

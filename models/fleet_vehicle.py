@@ -110,9 +110,9 @@ class FleetVehicle(models.Model):
             thirty_days_ago = fields.Datetime.now() - timedelta(days=30)
             total_hours = 0.0
             for a in assignments:
-                if a.trip_id and a.trip_id.start_datetime and a.trip_id.end_datetime:
-                    if a.trip_id.start_datetime >= thirty_days_ago:
-                        delta = a.trip_id.end_datetime - a.trip_id.start_datetime
+                if a.trip_request_id and a.trip_request_id.start_datetime and a.trip_request_id.end_datetime:
+                    if a.trip_request_id.start_datetime >= thirty_days_ago:
+                        delta = a.trip_request_id.end_datetime - a.trip_request_id.start_datetime
                         total_hours += delta.total_seconds() / 3600
             vehicle.utilization_rate = (total_hours / (30 * 24)) * 100
 

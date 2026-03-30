@@ -16,7 +16,7 @@
                 </header>
                 <sheet>
                     <group>
-                        <field name="trip_id"/>
+                        <field name="trip_request_id"/>
                         <field name="vehicle_id"
                                domain="[('availability','=',True)]"/>
                         <field name="driver_id"
@@ -33,7 +33,7 @@
         <field name="model">mesob.trip.assignment</field>
         <field name="arch" type="xml">
             <list>
-                <field name="trip_id"/>
+                <field name="trip_request_id"/>
                 <field name="vehicle_id"/>
                 <field name="driver_id"/>
                 <field name="state" widget="badge"

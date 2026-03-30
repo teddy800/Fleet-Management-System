@@ -299,6 +299,20 @@ class TripRequest(models.Model):
         # Notify driver and requester
         self._notify_assignment(vehicle, driver)
 
+    def action_open_assign_wizard(self):
+        """Open wizard to assign vehicle and driver"""
+        self.ensure_one()
+        if self.state != 'approved':
+            raise UserError("Only approved requests can have vehicles assigned.")
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Assign Vehicle',
+            'res_model': 'mesob.trip.assign.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_trip_request_id': self.id}
+        }
+
     def action_cancel(self):
         """Cancel trip request"""
         self.ensure_one()
