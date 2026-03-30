@@ -16,7 +16,7 @@ class FleetVehicle(models.Model):
     ], default='available', string="Availability Status")
 
     maintenance_due = fields.Boolean(
-        string="Maintenance Due", compute="_compute_maintenance_due", store=True
+        string="Maintenance Due", compute="_compute_maintenance_due", store=True, default=False
     )
     current_odometer = fields.Float(string="Current Odometer (KM)")
 

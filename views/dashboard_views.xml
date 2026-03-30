@@ -9,7 +9,7 @@
                 <field name="license_plate"/>
                 <field name="availability"/>
                 <field name="current_odometer"/>
-                <field name="maintenance_due" widget="boolean_toggle"/>
+                <field name="maintenance_due"/>
             </list>
         </field>
     </record>
