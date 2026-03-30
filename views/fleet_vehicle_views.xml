@@ -9,7 +9,6 @@
                 <group string="MESSOB Fleet Info">
                     <field name="availability"/>
                     <field name="current_odometer"/>
-                    <field name="maintenance_due" readonly="1"/>
                 </group>
             </xpath>
         </field>
