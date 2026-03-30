@@ -7,7 +7,7 @@
             <list string="Fleet Status">
                 <field name="name"/>
                 <field name="license_plate"/>
-                <field name="availability"/>
+                <field name="mesob_status"/>
                 <field name="current_odometer"/>
                 <field name="maintenance_due"/>
             </list>
