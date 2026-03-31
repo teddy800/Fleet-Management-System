@@ -17,6 +17,26 @@ class TripAssignment(models.Model):
         ('cancelled', 'Cancelled'),
     ], default='draft')
 
+    # Computed fields for calendar view (FR-2.3)
+    start_datetime = fields.Datetime(
+        string="Start", related='trip_request_id.start_datetime', store=True
+    )
+    stop_datetime = fields.Datetime(
+        string="End", related='trip_request_id.end_datetime', store=True
+    )
+    display_name = fields.Char(
+        string="Display Name", compute='_compute_display_name'
+    )
+
+    @api.depends('vehicle_id', 'trip_request_id')
+    def _compute_display_name(self):
+        for rec in self:
+            if rec.vehicle_id and rec.trip_request_id:
+                purpose = rec.trip_request_id.purpose or ''
+                rec.display_name = f"{rec.vehicle_id.name} — {purpose[:30]}"
+            else:
+                rec.display_name = "Assignment"
+
     def _check_dispatcher(self):
         if not (
             self.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or

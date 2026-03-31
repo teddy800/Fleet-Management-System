@@ -36,7 +36,7 @@
               groups="mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <menuitem id="mesob_assignments_menu"
-              name="Assignments"
+              name="Fleet Availability"
               parent="mesob_trips_menu"
               action="mesob_fleet_customizations.action_trip_assignments"
               sequence="40"
