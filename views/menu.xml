@@ -25,22 +25,19 @@
               name="All Requests"
               parent="mesob_trips_menu"
               action="mesob_fleet_customizations.action_trip_requests"
-              sequence="20"
-              groups="mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
+              sequence="20"/>
 
     <menuitem id="mesob_dispatcher_queue_menu"
               name="Pending Queue"
               parent="mesob_trips_menu"
               action="mesob_fleet_customizations.action_dispatcher_queue"
-              sequence="30"
-              groups="mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
+              sequence="30"/>
 
     <menuitem id="mesob_assignments_menu"
               name="Fleet Availability"
               parent="mesob_trips_menu"
               action="mesob_fleet_customizations.action_trip_assignments"
-              sequence="40"
-              groups="mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
+              sequence="40"/>
 
     <!-- Maintenance -->
     <menuitem id="mesob_maintenance_menu"
