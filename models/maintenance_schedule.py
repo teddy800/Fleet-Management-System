@@ -13,6 +13,7 @@ class MaintenanceSchedule(models.Model):
     interval_days = fields.Integer(string="Interval (Days)", default=0)
     last_odometer = fields.Float(string="Last Service Odometer")
     last_service_date = fields.Date(string="Last Service Date")
+    notes = fields.Text(string="Notes")
 
     # Computed next due fields
     next_due_odometer = fields.Float(
