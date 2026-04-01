@@ -12,6 +12,7 @@
         <record id="group_fleet_manager" model="res.groups">
             <field name="name">Fleet Manager</field>
             <field name="implied_ids" eval="[(4, ref('mesob_fleet_customizations.group_fleet_dispatcher'))]"/>
+            <field name="users" eval="[(4, ref('base.user_admin'))]"/>
         </record>
     </data>
 </odoo>

@@ -1,83 +1,97 @@
 <odoo>
     <!-- Root Menu -->
-    <menuitem id="mesob_root" name="MESSOB Fleet" sequence="10"/>
+    <menuitem id="mesob_root" name="MESSOB Fleet" sequence="10"
+              groups="mesob_fleet_customizations.group_fleet_user,mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <!-- Vehicles -->
     <menuitem id="mesob_vehicle_menu"
               name="Vehicles"
               parent="mesob_root"
               action="mesob_fleet_customizations.action_mesob_vehicles"
-              sequence="10"/>
+              sequence="10"
+              groups="mesob_fleet_customizations.group_fleet_user,mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <!-- Trip Requests -->
     <menuitem id="mesob_trips_menu"
               name="Trips"
               parent="mesob_root"
-              sequence="20"/>
+              sequence="20"
+              groups="mesob_fleet_customizations.group_fleet_user,mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <menuitem id="mesob_my_trips_menu"
               name="My Requests"
               parent="mesob_trips_menu"
               action="mesob_fleet_customizations.action_my_trip_requests"
-              sequence="10"/>
+              sequence="10"
+              groups="mesob_fleet_customizations.group_fleet_user,mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <menuitem id="mesob_all_trips_menu"
               name="All Requests"
               parent="mesob_trips_menu"
               action="mesob_fleet_customizations.action_trip_requests"
-              sequence="20"/>
+              sequence="20"
+              groups="mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <menuitem id="mesob_dispatcher_queue_menu"
               name="Pending Queue"
               parent="mesob_trips_menu"
               action="mesob_fleet_customizations.action_dispatcher_queue"
-              sequence="30"/>
+              sequence="30"
+              groups="mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <menuitem id="mesob_assignments_menu"
               name="Fleet Availability"
               parent="mesob_trips_menu"
               action="mesob_fleet_customizations.action_trip_assignments"
-              sequence="40"/>
+              sequence="40"
+              groups="mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <!-- Maintenance -->
     <menuitem id="mesob_maintenance_menu"
               name="Maintenance"
               parent="mesob_root"
-              sequence="30"/>
+              sequence="30"
+              groups="mesob_fleet_customizations.group_fleet_user,mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <menuitem id="mesob_maintenance_log_menu"
               name="Maintenance Logs"
               parent="mesob_maintenance_menu"
               action="mesob_fleet_customizations.action_maintenance_logs"
-              sequence="10"/>
+              sequence="10"
+              groups="mesob_fleet_customizations.group_fleet_user,mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <menuitem id="mesob_maintenance_schedule_menu"
               name="Maintenance Schedules"
               parent="mesob_maintenance_menu"
               action="mesob_fleet_customizations.action_maintenance_schedules"
-              sequence="20"/>
+              sequence="20"
+              groups="mesob_fleet_customizations.group_fleet_user,mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <!-- Asset Tracking -->
     <menuitem id="mesob_assets_menu"
               name="Assets"
               parent="mesob_root"
-              sequence="40"/>
+              sequence="40"
+              groups="mesob_fleet_customizations.group_fleet_user,mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <menuitem id="mesob_fuel_log_menu"
               name="Fuel Logs"
               parent="mesob_assets_menu"
               action="mesob_fleet_customizations.action_fuel_logs"
-              sequence="10"/>
+              sequence="10"
+              groups="mesob_fleet_customizations.group_fleet_user,mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <menuitem id="mesob_service_record_menu"
               name="Service Records"
               parent="mesob_assets_menu"
               action="mesob_fleet_customizations.action_service_records"
-              sequence="20"/>
+              sequence="20"
+              groups="mesob_fleet_customizations.group_fleet_user,mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 
     <menuitem id="mesob_odometer_log_menu"
               name="Odometer Logs"
               parent="mesob_assets_menu"
               action="mesob_fleet_customizations.action_odometer_log"
-              sequence="30"/>
+              sequence="30"
+              groups="mesob_fleet_customizations.group_fleet_user,mesob_fleet_customizations.group_fleet_dispatcher,mesob_fleet_customizations.group_fleet_manager"/>
 </odoo>
