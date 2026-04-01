@@ -123,11 +123,15 @@ class TripRequest(models.Model):
     can_cancel = fields.Boolean(string="Can Cancel", compute="_compute_can_cancel")
     can_modify = fields.Boolean(string="Can Modify", compute="_compute_can_modify")
 
-    @api.model
-    def create(self, vals):
-        if vals.get('name', 'New') == 'New':
-            vals['name'] = self.env['ir.sequence'].next_by_code('mesob.trip.request') or 'New'
-        return super().create(vals)
+    @api.model_create_multi
+    def create(self, vals_list):
+        # Odoo 19 compatibility: flatten if nested list
+        if vals_list and isinstance(vals_list[0], list):
+            vals_list = vals_list[0]
+        for vals in vals_list:
+            if vals.get('name', 'New') == 'New':
+                vals['name'] = self.env['ir.sequence'].next_by_code('mesob.trip.request') or 'New'
+        return super().create(vals_list)
 
     @api.depends('name', 'purpose', 'employee_id')
     def _compute_display_name(self):
@@ -396,9 +400,8 @@ class TripRequest(models.Model):
 
     def _notify_dispatchers(self):
         """Send notification to dispatchers about new request"""
-        dispatchers = self.env['res.users'].search([
-            ('groups_id', 'in', self.env.ref('mesob_fleet_customizations.group_fleet_dispatcher').id)
-        ])
+        group = self.env.ref('mesob_fleet_customizations.group_fleet_dispatcher')
+        dispatchers = group.users
         
         for dispatcher in dispatchers:
             self.message_post(
