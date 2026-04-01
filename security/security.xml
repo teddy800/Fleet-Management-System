@@ -1,25 +1,17 @@
 <odoo>
-    <data>
-        <record id="module_category_mesob_fleet" model="ir.module.category">
-            <field name="name">MESSOB Fleet</field>
-            <field name="sequence">20</field>
-        </record>
-
+    <data noupdate="0">
         <record id="group_fleet_user" model="res.groups">
             <field name="name">Fleet User</field>
-            <field name="category_id" ref="module_category_mesob_fleet"/>
         </record>
 
         <record id="group_fleet_dispatcher" model="res.groups">
             <field name="name">Fleet Dispatcher</field>
-            <field name="category_id" ref="module_category_mesob_fleet"/>
-            <field name="implied_ids" eval="[(4, ref('group_fleet_user'))]"/>
+            <field name="implied_ids" eval="[(4, ref('mesob_fleet_customizations.group_fleet_user'))]"/>
         </record>
 
         <record id="group_fleet_manager" model="res.groups">
             <field name="name">Fleet Manager</field>
-            <field name="category_id" ref="module_category_mesob_fleet"/>
-            <field name="implied_ids" eval="[(4, ref('group_fleet_dispatcher'))]"/>
+            <field name="implied_ids" eval="[(4, ref('mesob_fleet_customizations.group_fleet_dispatcher'))]"/>
         </record>
     </data>
 </odoo>
