@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="action_mesob_vehicles" model="ir.actions.act_window">
+        <field name="name">Vehicles</field>
+        <field name="res_model">fleet.vehicle</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="context">{}</field>
+    </record>
+
     <record id="fleet_vehicle_form_mesob" model="ir.ui.view">
         <field name="name">fleet.vehicle.form.mesob</field>
         <field name="model">fleet.vehicle</field>

@@ -6,7 +6,7 @@
     <menuitem id="mesob_vehicle_menu"
               name="Vehicles"
               parent="mesob_root"
-              action="fleet.fleet_vehicle_action"
+              action="mesob_fleet_customizations.action_mesob_vehicles"
               sequence="10"/>
 
     <!-- Trip Requests -->
