@@ -121,6 +121,25 @@ class FleetVehicle(models.Model):
             logs = self.env['mesob.maintenance.log'].search([('vehicle_id', '=', vehicle.id)])
             vehicle.total_maintenance_cost = sum(logs.mapped('cost'))
 
+    # Computed map URL for GPS tab
+    gps_map_url = fields.Char(
+        string="GPS Map URL", compute="_compute_gps_map_url"
+    )
+
+    @api.depends('current_latitude', 'current_longitude')
+    def _compute_gps_map_url(self):
+        for v in self:
+            lat = v.current_latitude or 0.0
+            lng = v.current_longitude or 0.0
+            if lat and lng:
+                v.gps_map_url = (
+                    f"https://www.openstreetmap.org/export/embed.html"
+                    f"?bbox={lng-0.01}%2C{lat-0.01}%2C{lng+0.01}%2C{lat+0.01}"
+                    f"&layer=mapnik&marker={lat}%2C{lng}"
+                )
+            else:
+                v.gps_map_url = ""
+
     def update_gps_location(self, latitude, longitude, speed=0, heading=0, accuracy=0):
         self.ensure_one()
         self.write({

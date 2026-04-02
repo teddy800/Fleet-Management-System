@@ -21,6 +21,7 @@
         'views/trip_request_views.xml',
         'views/trip_assignment_views.xml',
         'views/dashboard_views.xml',
+        'views/gps_tracking_views.xml',
         'views/menu.xml',
     ],
     'installable': True,

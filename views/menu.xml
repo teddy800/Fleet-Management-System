@@ -82,4 +82,28 @@
               parent="mesob_assets_menu"
               action="mesob_fleet_customizations.action_odometer_log"
               sequence="30"/>
+
+    <!-- GPS Tracking -->
+    <menuitem id="mesob_tracking_menu"
+              name="Tracking"
+              parent="mesob_root"
+              sequence="50"/>
+
+    <menuitem id="mesob_gps_logs_menu"
+              name="GPS Logs"
+              parent="mesob_tracking_menu"
+              action="mesob_fleet_customizations.action_gps_logs"
+              sequence="10"/>
+
+    <menuitem id="mesob_fleet_alerts_menu"
+              name="Fleet Alerts"
+              parent="mesob_tracking_menu"
+              action="mesob_fleet_customizations.action_fleet_alerts"
+              sequence="20"/>
+
+    <menuitem id="mesob_geofences_menu"
+              name="Geofences"
+              parent="mesob_tracking_menu"
+              action="mesob_fleet_customizations.action_geofences"
+              sequence="30"/>
 </odoo>

@@ -122,6 +122,7 @@ class TripRequest(models.Model):
     is_overdue = fields.Boolean(string="Is Overdue", compute="_compute_overdue")
     can_cancel = fields.Boolean(string="Can Cancel", compute="_compute_can_cancel")
     can_modify = fields.Boolean(string="Can Modify", compute="_compute_can_modify")
+    route_map_url = fields.Char(string="Route Map URL", compute="_compute_route_map_url")
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -460,6 +461,46 @@ class TripRequest(models.Model):
                 partner_ids=partners_to_notify,
                 message_type='notification'
             )
+
+    @api.depends('pickup_latitude', 'pickup_longitude', 'destination_latitude', 'destination_longitude')
+    def _compute_route_map_url(self):
+        for rec in self:
+            plat = rec.pickup_latitude or 0.0
+            plng = rec.pickup_longitude or 0.0
+            dlat = rec.destination_latitude or 0.0
+            dlng = rec.destination_longitude or 0.0
+            if plat and plng and dlat and dlng:
+                min_lng = min(plng, dlng) - 0.02
+                min_lat = min(plat, dlat) - 0.02
+                max_lng = max(plng, dlng) + 0.02
+                max_lat = max(plat, dlat) + 0.02
+                rec.route_map_url = (
+                    f"https://www.openstreetmap.org/export/embed.html"
+                    f"?bbox={min_lng}%2C{min_lat}%2C{max_lng}%2C{max_lat}"
+                    f"&layer=mapnik"
+                )
+            elif plat and plng:
+                rec.route_map_url = (
+                    f"https://www.openstreetmap.org/export/embed.html"
+                    f"?bbox={plng-0.01}%2C{plat-0.01}%2C{plng+0.01}%2C{plat+0.01}"
+                    f"&layer=mapnik&marker={plat}%2C{plng}"
+                )
+            else:
+                rec.route_map_url = ""
+
+    def action_view_vehicle_location(self):
+        """Open the assigned vehicle form to show live GPS location (FR-3.2)"""
+        self.ensure_one()
+        if not self.assigned_vehicle_id:
+            raise UserError("No vehicle assigned to this trip yet.")
+        return {
+            'type': 'ir.actions.act_window',
+            'name': f'Live Location — {self.assigned_vehicle_id.name}',
+            'res_model': 'fleet.vehicle',
+            'res_id': self.assigned_vehicle_id.id,
+            'view_mode': 'form',
+            'target': 'new',
+        }
 
     @api.model
     def get_dashboard_stats(self):

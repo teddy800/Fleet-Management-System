@@ -1,0 +1,212 @@
+<odoo>
+    <!-- GPS Log List View -->
+    <record id="view_gps_log_list" model="ir.ui.view">
+        <field name="name">mesob.gps.log.list</field>
+        <field name="model">mesob.gps.log</field>
+        <field name="arch" type="xml">
+            <list string="GPS Logs" decoration-info="speed &gt; 0" default_order="timestamp desc">
+                <field name="timestamp"/>
+                <field name="vehicle_id"/>
+                <field name="latitude"/>
+                <field name="longitude"/>
+                <field name="speed"/>
+                <field name="engine_status" widget="boolean_toggle"/>
+                <field name="fuel_level"/>
+                <field name="odometer_reading"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- GPS Log Form View -->
+    <record id="view_gps_log_form" model="ir.ui.view">
+        <field name="name">mesob.gps.log.form</field>
+        <field name="model">mesob.gps.log</field>
+        <field name="arch" type="xml">
+            <form string="GPS Log">
+                <sheet>
+                    <group>
+                        <group string="Location">
+                            <field name="vehicle_id"/>
+                            <field name="timestamp"/>
+                            <field name="latitude"/>
+                            <field name="longitude"/>
+                            <field name="location_address"/>
+                        </group>
+                        <group string="Vehicle State">
+                            <field name="speed"/>
+                            <field name="heading"/>
+                            <field name="accuracy"/>
+                            <field name="altitude"/>
+                            <field name="engine_status"/>
+                            <field name="fuel_level"/>
+                            <field name="odometer_reading"/>
+                        </group>
+                    </group>
+                    <!-- Link to OpenStreetMap for this GPS point -->
+                    <group string="Map">
+                        <field name="location_address" readonly="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- GPS Log Search View -->
+    <record id="view_gps_log_search" model="ir.ui.view">
+        <field name="name">mesob.gps.log.search</field>
+        <field name="model">mesob.gps.log</field>
+        <field name="arch" type="xml">
+            <search string="GPS Logs">
+                <field name="vehicle_id"/>
+                <filter string="Engine On" name="engine_on" domain="[('engine_status','=',True)]"/>
+                <filter string="Moving" name="moving" domain="[('speed','&gt;',0)]"/>
+                <filter string="Today" name="today"
+                        domain="[('timestamp','&gt;=',datetime.datetime.combine(context_today(), datetime.time(0,0,0)))]"/>
+                <separator/>
+                <filter string="By Vehicle" name="group_vehicle" context="{'group_by':'vehicle_id'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- GPS Log Action -->
+    <record id="action_gps_logs" model="ir.actions.act_window">
+        <field name="name">GPS Logs</field>
+        <field name="res_model">mesob.gps.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+    </record>
+
+    <!-- Fleet Alerts List View -->
+    <record id="view_fleet_alert_list" model="ir.ui.view">
+        <field name="name">mesob.fleet.alert.list</field>
+        <field name="model">mesob.fleet.alert</field>
+        <field name="arch" type="xml">
+            <list string="Fleet Alerts"
+                  decoration-danger="severity == 'critical'"
+                  decoration-warning="severity == 'high'"
+                  decoration-info="severity == 'medium'"
+                  decoration-muted="resolved == True">
+                <field name="timestamp"/>
+                <field name="alert_type"/>
+                <field name="vehicle_id"/>
+                <field name="message"/>
+                <field name="severity" widget="badge"
+                       decoration-danger="severity == 'critical'"
+                       decoration-warning="severity == 'high'"
+                       decoration-info="severity == 'medium'"/>
+                <field name="acknowledged" widget="boolean_toggle"/>
+                <field name="resolved" widget="boolean_toggle"/>
+                <button name="action_acknowledge" string="Acknowledge" type="object"
+                        invisible="acknowledged == True" class="btn-sm btn-warning"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Fleet Alerts Form View -->
+    <record id="view_fleet_alert_form" model="ir.ui.view">
+        <field name="name">mesob.fleet.alert.form</field>
+        <field name="model">mesob.fleet.alert</field>
+        <field name="arch" type="xml">
+            <form string="Fleet Alert">
+                <header>
+                    <button name="action_acknowledge" string="Acknowledge" type="object"
+                            class="btn-warning" invisible="acknowledged == True"/>
+                    <button name="action_resolve" string="Resolve" type="object"
+                            class="btn-success" invisible="resolved == True"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Alert Details">
+                            <field name="alert_type"/>
+                            <field name="severity"/>
+                            <field name="vehicle_id"/>
+                            <field name="driver_id"/>
+                            <field name="timestamp"/>
+                            <field name="message"/>
+                        </group>
+                        <group string="Resolution">
+                            <field name="acknowledged"/>
+                            <field name="acknowledged_by" readonly="1"/>
+                            <field name="acknowledged_date" readonly="1"/>
+                            <field name="resolved"/>
+                            <field name="resolved_by" readonly="1"/>
+                            <field name="resolved_date" readonly="1"/>
+                            <field name="resolution_notes"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Fleet Alerts Action -->
+    <record id="action_fleet_alerts" model="ir.actions.act_window">
+        <field name="name">Fleet Alerts</field>
+        <field name="res_model">mesob.fleet.alert</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('resolved','=',False)]</field>
+        <field name="context">{}</field>
+    </record>
+
+    <!-- Geofence List View -->
+    <record id="view_geofence_list" model="ir.ui.view">
+        <field name="name">mesob.geofence.list</field>
+        <field name="model">mesob.geofence</field>
+        <field name="arch" type="xml">
+            <list string="Geofences">
+                <field name="name"/>
+                <field name="fence_type"/>
+                <field name="active" widget="boolean_toggle"/>
+                <field name="entry_alert" widget="boolean_toggle"/>
+                <field name="exit_alert" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Geofence Form View -->
+    <record id="view_geofence_form" model="ir.ui.view">
+        <field name="name">mesob.geofence.form</field>
+        <field name="model">mesob.geofence</field>
+        <field name="arch" type="xml">
+            <form string="Geofence">
+                <sheet>
+                    <group>
+                        <group string="General">
+                            <field name="name"/>
+                            <field name="fence_type"/>
+                            <field name="active"/>
+                            <field name="description"/>
+                        </group>
+                        <group string="Alerts">
+                            <field name="entry_alert"/>
+                            <field name="exit_alert"/>
+                            <field name="allowed_vehicles" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <group string="Circular Fence" invisible="fence_type != 'circular'">
+                        <field name="center_latitude"/>
+                        <field name="center_longitude"/>
+                        <field name="radius"/>
+                    </group>
+                    <group string="Rectangular Fence" invisible="fence_type != 'rectangular'">
+                        <field name="north_latitude"/>
+                        <field name="south_latitude"/>
+                        <field name="east_longitude"/>
+                        <field name="west_longitude"/>
+                    </group>
+                    <group string="Polygon Fence" invisible="fence_type != 'polygon'">
+                        <field name="polygon_coordinates" widget="text"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Geofence Action -->
+    <record id="action_geofences" model="ir.actions.act_window">
+        <field name="name">Geofences</field>
+        <field name="res_model">mesob.geofence</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+    </record>
+</odoo>
