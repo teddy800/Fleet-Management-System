@@ -402,8 +402,7 @@ class TripRequest(models.Model):
         """Send notification to dispatchers about new request"""
         try:
             group = self.env.ref('mesob_fleet_customizations.group_fleet_dispatcher')
-            dispatchers = group.users
-            for dispatcher in dispatchers:
+            for dispatcher in group.users:
                 self.message_post(
                     body=f"New trip request requires approval: {self.display_name}",
                     partner_ids=[dispatcher.partner_id.id],
@@ -411,13 +410,6 @@ class TripRequest(models.Model):
                 )
         except Exception:
             pass  # Notification failure should not block submission
-        
-        for dispatcher in dispatchers:
-            self.message_post(
-                body=f"New trip request requires approval: {self.display_name}",
-                partner_ids=[dispatcher.partner_id.id],
-                message_type='notification'
-            )
 
     def _notify_requester(self, action):
         """Send notification to requester about request status"""
