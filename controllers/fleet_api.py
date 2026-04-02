@@ -69,7 +69,7 @@ class FleetAPIController(http.Controller):
     def create_trip_request(self, **kwargs):
         """Create a new trip request"""
         try:
-            data = request.jsonrequest
+            data = request.params
             
             # Get current employee
             employee = request.env['hr.employee'].search([
@@ -148,7 +148,7 @@ class FleetAPIController(http.Controller):
     def assign_vehicle(self, request_id):
         """Assign vehicle and driver to trip request"""
         try:
-            data = request.jsonrequest
+            data = request.params
             
             # Check dispatcher permissions
             if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher'):
@@ -191,7 +191,7 @@ class FleetAPIController(http.Controller):
     def update_gps_location(self):
         """Update GPS location from external service"""
         try:
-            data = request.jsonrequest
+            data = request.params
             
             # Validate API key (implement your authentication logic)
             api_key = request.httprequest.headers.get('X-API-Key')

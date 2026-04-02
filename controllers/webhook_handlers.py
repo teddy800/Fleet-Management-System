@@ -19,7 +19,7 @@ class WebhookController(http.Controller):
             if not self._validate_webhook_signature('hr_sync'):
                 return {'success': False, 'error': 'Invalid webhook signature'}
 
-            data = request.jsonrequest
+            data = request.params
             if not data:
                 return {'success': False, 'error': 'No data received'}
 
@@ -61,7 +61,7 @@ class WebhookController(http.Controller):
             if api_key != valid_key:
                 return {'success': False, 'error': 'Invalid API key'}
 
-            data = request.jsonrequest
+            data = request.params  # type='json' puts parsed params here in Odoo 19
             if not data:
                 return {'success': False, 'error': 'No data received'}
 
@@ -90,7 +90,7 @@ class WebhookController(http.Controller):
             if api_key != valid_key:
                 return {'success': False, 'error': 'Invalid API key'}
 
-            data = request.jsonrequest
+            data = request.params
             vehicle_plate = data.get('vehicle_plate')
             alert_type = data.get('alert_type', 'system_error')
             message = data.get('message', 'External alert received')
