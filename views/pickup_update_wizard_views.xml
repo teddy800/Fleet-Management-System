@@ -1,0 +1,26 @@
+<odoo>
+    <record id="view_pickup_update_wizard_form" model="ir.ui.view">
+        <field name="name">mesob.pickup.update.wizard.form</field>
+        <field name="model">mesob.pickup.update.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Update Pickup Point">
+                <sheet>
+                    <group string="Current Pickup">
+                        <field name="current_pickup" readonly="1"/>
+                        <field name="trip_request_id" readonly="1"/>
+                    </group>
+                    <group string="New Pickup Point">
+                        <field name="pickup_location"/>
+                        <field name="pickup_latitude"/>
+                        <field name="pickup_longitude"/>
+                        <field name="update_note" placeholder="e.g. Gate B entrance, Building 3 lobby"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_confirm_update" string="Update Pickup" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

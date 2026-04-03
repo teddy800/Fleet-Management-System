@@ -12,3 +12,4 @@ from . import inventory_allocation
 from . import gps_tracking
 from . import fleet_analytics
 from . import trip_assign_wizard
+from . import pickup_update_wizard

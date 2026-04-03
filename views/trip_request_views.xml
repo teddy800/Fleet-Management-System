@@ -93,6 +93,28 @@
                                     invisible="not assigned_vehicle_id"/>
                         </div>
                     </group>
+                    <!-- FR-3.4: Dynamic pickup update — available on active trips -->
+                    <group string="Update Pickup Point"
+                           invisible="state not in ('approved','assigned','in_progress')">
+                        <field name="pickup_updated" readonly="1"/>
+                        <field name="pickup_update_note" readonly="1"
+                               invisible="not pickup_updated"/>
+                        <button name="action_update_pickup_point"
+                                string="Update My Pickup Location"
+                                type="object" class="btn-warning"
+                                help="Adjust your exact pickup point (e.g. specific building entrance)"/>
+                    </group>
+                    <!-- FR-3.3: Collaborative pickup — show co-passengers on same vehicle -->
+                    <group string="Co-Passengers on This Trip"
+                           invisible="state not in ('assigned','in_progress')">
+                        <field name="co_passenger_ids" readonly="1"
+                               widget="many2many_tags"
+                               options="{'no_create': True}"
+                               invisible="not co_passenger_ids"/>
+                        <div invisible="co_passenger_ids">
+                            <p class="text-muted">No other passengers assigned to this vehicle yet.</p>
+                        </div>
+                    </group>
                 </sheet>
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>

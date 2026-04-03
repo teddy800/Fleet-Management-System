@@ -124,6 +124,19 @@ class TripRequest(models.Model):
     can_modify = fields.Boolean(string="Can Modify", compute="_compute_can_modify")
     route_map_url = fields.Char(string="Route Map URL", compute="_compute_route_map_url")
 
+    # FR-3.4: Dynamic pickup point update — user can adjust pickup on active trip
+    pickup_updated = fields.Boolean(string="Pickup Point Updated", default=False)
+    pickup_update_note = fields.Char(string="Pickup Update Note")
+
+    # FR-3.3: Collaborative pickup — co-passengers on same assignment
+    co_passenger_ids = fields.Many2many(
+        'mesob.trip.request',
+        'trip_request_co_passenger_rel',
+        'request_id', 'co_request_id',
+        string="Co-Passengers",
+        compute="_compute_co_passengers"
+    )
+
     @api.model_create_multi
     def create(self, vals_list):
         # Odoo 19 compatibility: flatten if nested list
@@ -487,6 +500,39 @@ class TripRequest(models.Model):
                 )
             else:
                 rec.route_map_url = ""
+
+    @api.depends('trip_assignment_id', 'trip_assignment_id.trip_request_id')
+    def _compute_co_passengers(self):
+        """FR-3.3: Find other requests sharing the same trip assignment"""
+        for rec in self:
+            if rec.trip_assignment_id:
+                others = self.search([
+                    ('trip_assignment_id', '=', rec.trip_assignment_id.id),
+                    ('id', '!=', rec.id),
+                    ('state', 'in', ['approved', 'assigned', 'in_progress'])
+                ])
+                rec.co_passenger_ids = others
+            else:
+                rec.co_passenger_ids = self.env['mesob.trip.request']
+
+    def action_update_pickup_point(self):
+        """FR-3.4: Open wizard to update pickup coordinates dynamically"""
+        self.ensure_one()
+        if self.state not in ['approved', 'assigned', 'in_progress']:
+            raise UserError("Pickup point can only be updated on active trips.")
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Update Pickup Point',
+            'res_model': 'mesob.pickup.update.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_trip_request_id': self.id,
+                'default_pickup_location': self.pickup_location,
+                'default_pickup_latitude': self.pickup_latitude,
+                'default_pickup_longitude': self.pickup_longitude,
+            }
+        }
 
     def action_view_vehicle_location(self):
         """Open the assigned vehicle form to show live GPS location (FR-3.2)"""
