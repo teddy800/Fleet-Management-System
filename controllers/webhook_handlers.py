@@ -81,6 +81,64 @@ class WebhookController(http.Controller):
             _logger.error("GPS webhook error: %s", e)
             return {'success': False, 'error': str(e)}
 
+    @http.route('/webhook/fuel-pump/dispense', type='json', auth='public', methods=['POST'], csrf=False)
+    def fuel_pump_webhook(self):
+        """HW-2: Webhook for automatic fuel pump hardware integration.
+        Accepts fuel dispense events from pump hardware and auto-creates fuel logs.
+        Payload: {vehicle_plate, volume, cost, odometer, station, timestamp, pump_id}
+        """
+        try:
+            api_key = request.httprequest.headers.get('X-API-Key')
+            valid_key = request.env['ir.config_parameter'].sudo().get_param('mesob.api_key')
+            if api_key != valid_key:
+                return {'success': False, 'error': 'Invalid API key'}
+
+            data = request.params
+            if not data:
+                return {'success': False, 'error': 'No data received'}
+
+            vehicle_plate = data.get('vehicle_plate')
+            volume = float(data.get('volume', 0))
+            cost = float(data.get('cost', 0))
+
+            if not vehicle_plate or volume <= 0:
+                return {'success': False, 'error': 'vehicle_plate and volume are required'}
+
+            # Find vehicle by plate
+            vehicle = request.env['fleet.vehicle'].sudo().search(
+                [('license_plate', '=', vehicle_plate)], limit=1
+            )
+            if not vehicle:
+                return {'success': False, 'error': f'Vehicle not found: {vehicle_plate}'}
+
+            # Find assigned driver
+            driver = vehicle.assigned_driver_id or False
+
+            # Auto-create fuel log
+            fuel_log = request.env['mesob.fuel.log'].sudo().create({
+                'vehicle_id': vehicle.id,
+                'driver_id': driver.id if driver else False,
+                'date': data.get('timestamp', str(request.env['fields.Date'].today()))[:10],
+                'volume': volume,
+                'cost': cost,
+                'odometer': float(data.get('odometer', 0)),
+                'fuel_station': data.get('station', data.get('pump_id', 'Auto-recorded')),
+            })
+
+            # Update vehicle odometer if provided
+            if data.get('odometer') and float(data.get('odometer', 0)) > 0:
+                vehicle.sudo().write({'current_odometer': float(data['odometer'])})
+
+            return {
+                'success': True,
+                'fuel_log_id': fuel_log.id,
+                'message': f'Fuel log created: {volume}L for {vehicle_plate}'
+            }
+
+        except Exception as e:
+            _logger.error("Fuel pump webhook error: %s", e)
+            return {'success': False, 'error': str(e)}
+
     @http.route('/webhook/fleet/alert', type='json', auth='public', methods=['POST'], csrf=False)
     def fleet_alert_webhook(self):
         """Webhook for external fleet alerts (e.g. from OBD device)"""
