@@ -1,5 +1,5 @@
 <odoo>
-    <!-- Form View -->
+    <!-- Form View — compact tabbed layout -->
     <record id="view_trip_request_form" model="ir.ui.view">
         <field name="name">mesob.trip.request.form</field>
         <field name="model">mesob.trip.request</field>
@@ -26,95 +26,128 @@
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
-                    <group>
-                        <group string="Request Details">
-                            <field name="employee_id" options="{'no_create': True}"/>
-                            <field name="purpose"/>
-                            <field name="vehicle_category"/>
-                            <field name="trip_type"/>
-                            <field name="priority" widget="priority"/>
-                            <field name="passenger_count"/>
-                        </group>
-                        <group string="Schedule">
-                            <field name="start_datetime"/>
-                            <field name="end_datetime"/>
-                            <field name="duration_hours" readonly="1"/>
-                            <field name="is_recurring"/>
-                        </group>
-                    </group>
-                    <group string="Locations">
-                        <field name="pickup_location"/>
-                        <field name="destination_location"/>
-                        <field name="estimated_distance"/>
-                        <field name="estimated_duration"/>
-                    </group>
-                    <group string="Assignment" invisible="state in ('draft','pending')">
-                        <field name="assigned_vehicle_id" readonly="1"/>
-                        <field name="assigned_driver_id" readonly="1"/>
-                        <field name="approved_by" readonly="1"/>
-                        <field name="approved_date" readonly="1"/>
-                    </group>
-                    <group string="Rejection" invisible="state != 'rejected'">
-                        <field name="rejection_reason" readonly="1"/>
-                    </group>
-                    <!-- FR-3.1: Route map — shown once request is approved/assigned/in_progress -->
-                    <group string="Route Map" invisible="state in ('draft','pending','cancelled','rejected')">
-                        <group>
-                            <group string="Pickup">
-                                <field name="pickup_location" readonly="1"/>
-                                <field name="pickup_latitude" readonly="1"/>
-                                <field name="pickup_longitude" readonly="1"/>
+                    <notebook>
+                        <!-- Tab 1: Request Details -->
+                        <page string="Request Details" name="request_details">
+                            <group>
+                                <group string="REQUEST DETAILS">
+                                    <field name="employee_id" options="{'no_create': True}"/>
+                                    <field name="purpose"/>
+                                    <field name="vehicle_category"/>
+                                    <field name="trip_type"/>
+                                    <field name="priority" widget="priority"/>
+                                    <field name="passenger_count"/>
+                                </group>
+                                <group string="SCHEDULE">
+                                    <field name="start_datetime"/>
+                                    <field name="end_datetime"/>
+                                    <field name="duration_hours" readonly="1"/>
+                                    <field name="is_recurring"/>
+                                </group>
                             </group>
-                            <group string="Destination">
-                                <field name="destination_location" readonly="1"/>
-                                <field name="destination_latitude" readonly="1"/>
-                                <field name="destination_longitude" readonly="1"/>
+                            <group string="LOCATIONS">
+                                <group>
+                                    <field name="pickup_location"/>
+                                    <field name="pickup_latitude"/>
+                                    <field name="pickup_longitude"/>
+                                </group>
+                                <group>
+                                    <field name="destination_location"/>
+                                    <field name="destination_latitude"/>
+                                    <field name="destination_longitude"/>
+                                </group>
                             </group>
-                        </group>
-                        <field name="route_map_url" invisible="1"/>
-                        <div invisible="not route_map_url" style="margin-top:8px;">
-                            <h4 style="margin-bottom:4px;">Planned Route</h4>
-                            <field name="route_map_url" widget="url" string="Open Route in OpenStreetMap"/>
-                        </div>
-                        <div invisible="route_map_url" class="alert alert-info" style="margin-top:8px;">
-                            Map will display once GPS coordinates are set for pickup and destination.
-                        </div>
-                    </group>
-                    <!-- FR-3.2: Live vehicle location — shown when vehicle is assigned -->
-                    <group string="Live Vehicle Location"
-                           invisible="state not in ('assigned','in_progress')">
-                        <div style="margin-top:4px;">
-                            <p class="text-muted">
-                                Vehicle assigned — live GPS position updates each time the vehicle transmits.
-                            </p>
-                            <button name="action_view_vehicle_location"
-                                    string="View Live Location on Map"
-                                    type="object" class="btn-primary"
-                                    invisible="not assigned_vehicle_id"/>
-                        </div>
-                    </group>
-                    <!-- FR-3.4: Dynamic pickup update — available on active trips -->
-                    <group string="Update Pickup Point"
-                           invisible="state not in ('approved','assigned','in_progress')">
-                        <field name="pickup_updated" readonly="1"/>
-                        <field name="pickup_update_note" readonly="1"
-                               invisible="not pickup_updated"/>
-                        <button name="action_update_pickup_point"
-                                string="Update My Pickup Location"
-                                type="object" class="btn-warning"
-                                help="Adjust your exact pickup point (e.g. specific building entrance)"/>
-                    </group>
-                    <!-- FR-3.3: Collaborative pickup — show co-passengers on same vehicle -->
-                    <group string="Co-Passengers on This Trip"
-                           invisible="state not in ('assigned','in_progress')">
-                        <field name="co_passenger_ids" readonly="1"
-                               widget="many2many_tags"
-                               options="{'no_create': True}"
-                               invisible="not co_passenger_ids"/>
-                        <div invisible="co_passenger_ids">
-                            <p class="text-muted">No other passengers assigned to this vehicle yet.</p>
-                        </div>
-                    </group>
+                            <group string="ESTIMATES">
+                                <field name="estimated_distance"/>
+                                <field name="estimated_duration"/>
+                                <field name="estimated_cost"/>
+                            </group>
+                        </page>
+
+                        <!-- Tab 2: Assignment & Tracking -->
+                        <page string="Assignment &amp; Tracking" name="assignment"
+                              invisible="state in ('draft','pending')">
+                            <group>
+                                <group string="ASSIGNMENT">
+                                    <field name="assigned_vehicle_id" readonly="1"/>
+                                    <field name="assigned_driver_id" readonly="1"/>
+                                    <field name="approved_by" readonly="1"/>
+                                    <field name="approved_date" readonly="1"/>
+                                    <field name="dispatcher_id" readonly="1"/>
+                                </group>
+                                <group string="REJECTION" invisible="state != 'rejected'">
+                                    <field name="rejection_reason" readonly="1"/>
+                                </group>
+                            </group>
+                            <!-- FR-3.2: Live vehicle location -->
+                            <group string="LIVE VEHICLE LOCATION"
+                                   invisible="state not in ('assigned','in_progress')">
+                                <button name="action_view_vehicle_location"
+                                        string="View Live Location on Map"
+                                        type="object" class="btn-primary"
+                                        invisible="not assigned_vehicle_id"/>
+                            </group>
+                            <!-- FR-3.4: Dynamic pickup update -->
+                            <group string="UPDATE PICKUP POINT"
+                                   invisible="state not in ('approved','assigned','in_progress')">
+                                <field name="pickup_updated" readonly="1"/>
+                                <field name="pickup_update_note" readonly="1"
+                                       invisible="not pickup_updated"/>
+                                <button name="action_update_pickup_point"
+                                        string="Update My Pickup Location"
+                                        type="object" class="btn-warning"/>
+                            </group>
+                            <!-- FR-3.3: Co-passengers -->
+                            <group string="CO-PASSENGERS"
+                                   invisible="state not in ('assigned','in_progress')">
+                                <field name="co_passenger_ids" readonly="1"
+                                       widget="many2many_tags"
+                                       options="{'no_create': True}"
+                                       nolabel="1"/>
+                            </group>
+                        </page>
+
+                        <!-- Tab 3: Route Map -->
+                        <page string="Route Map" name="route_map"
+                              invisible="state in ('draft','pending','cancelled','rejected')">
+                            <group>
+                                <group string="PICKUP">
+                                    <field name="pickup_location" readonly="1"/>
+                                    <field name="pickup_latitude" readonly="1"/>
+                                    <field name="pickup_longitude" readonly="1"/>
+                                </group>
+                                <group string="DESTINATION">
+                                    <field name="destination_location" readonly="1"/>
+                                    <field name="destination_latitude" readonly="1"/>
+                                    <field name="destination_longitude" readonly="1"/>
+                                </group>
+                            </group>
+                            <field name="route_map_url" invisible="1"/>
+                            <div invisible="not route_map_url" style="margin-top:12px;">
+                                <field name="route_map_url" widget="url"
+                                       string="Open Route in OpenStreetMap"/>
+                            </div>
+                            <div invisible="route_map_url"
+                                 class="alert alert-info" style="margin-top:8px;">
+                                Map will display once GPS coordinates are set.
+                            </div>
+                        </page>
+
+                        <!-- Tab 4: Fuel Logs -->
+                        <page string="Fuel Logs" name="fuel_logs"
+                              invisible="state not in ('assigned','in_progress','completed')">
+                            <field name="fuel_log_ids">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="volume"/>
+                                    <field name="cost"/>
+                                    <field name="odometer"/>
+                                    <field name="fuel_station"/>
+                                    <field name="efficiency"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
                 <div class="oe_chatter">
                     <field name="message_follower_ids"/>
@@ -130,7 +163,8 @@
         <field name="name">mesob.trip.request.list</field>
         <field name="model">mesob.trip.request</field>
         <field name="arch" type="xml">
-            <list string="Trip Requests" decoration-info="state == 'pending'"
+            <list string="Trip Requests"
+                  decoration-info="state == 'pending'"
                   decoration-success="state == 'approved'"
                   decoration-warning="state == 'in_progress'"
                   decoration-muted="state in ('completed','cancelled')">
