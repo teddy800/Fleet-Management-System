@@ -112,7 +112,7 @@ export default function DashboardHome() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-brand-blue">
-            {isAdmin ? "Fleet Command Center" : `Welcome back, ${user?.name?.split(" ")[0]}`}
+            {isAdmin ? "Fleet Command Center" : `Welcome back, ${user?.name?.split(" ")[0] || "User"}`}
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {lastUpdated ? `Last updated ${lastUpdated.toLocaleTimeString()}` : "Loading live data..."}
