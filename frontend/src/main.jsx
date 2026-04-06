@@ -4,10 +4,9 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App.jsx'
 import './index.css'
 
-// UI-3: Apply saved theme preference on load
+// UI-3: Apply saved theme preference on load (only if user previously chose dark)
 const savedTheme = localStorage.getItem("theme");
-const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-if (savedTheme === "dark" || (!savedTheme && prefersDark)) {
+if (savedTheme === "dark") {
   document.documentElement.classList.add("dark");
 }
 
