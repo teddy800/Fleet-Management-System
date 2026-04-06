@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Car, MapPin, Users, CheckCircle2, ChevronRight, ChevronLeft } from "lucide-react";
+import { Calendar as CalendarIcon, Car, MapPin, Users, CheckCircle2, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { tripApi } from "@/lib/api";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 const BG_URL = "https://www.ena.et/o/adaptive-media/image/6826100/Preview-1000x0/Moseb%20ethiopian%20service.jpg";
 
 export default function RequestWizard() {
   const [step, setStep] = useState(1);
   const [date, setDate] = useState(new Date());
+  const [submitting, setSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   const { register, watch, setValue, handleSubmit, formState: { errors } } = useForm({
     defaultValues: {
@@ -24,7 +29,8 @@ export default function RequestWizard() {
       passengers: "1",
       startPoint: "MESSOB Center HQ",
       destination: "",
-      tripType: "One-Way"
+      tripType: "One-Way",
+      vehicleCategory: "sedan",
     }
   });
 
@@ -33,11 +39,34 @@ export default function RequestWizard() {
   const nextStep = () => setStep((s) => Math.min(s + 1, 4));
   const prevStep = () => setStep((s) => Math.max(s - 1, 1));
 
-  const onSubmit = (data) => {
-    const finalData = { ...data, date: format(date, "PPP") };
-    console.log("Submitting:", finalData);
-    alert("Request Submitted Successfully!");
-    setStep(1);
+  const onSubmit = async (data) => {
+    setSubmitting(true);
+    try {
+      const startDt = new Date(date);
+      startDt.setHours(8, 0, 0);
+      const endDt = new Date(date);
+      endDt.setHours(17, 0, 0);
+
+      const payload = {
+        purpose: data.purpose,
+        vehicle_category: data.vehicleCategory,
+        start_datetime: startDt.toISOString(),
+        end_datetime: endDt.toISOString(),
+        pickup_location: data.startPoint,
+        destination_location: data.destination,
+        passenger_count: parseInt(data.passengers) || 1,
+        priority: "normal",
+        trip_type: data.tripType === "Round Trip" ? "round_trip" : "official",
+      };
+
+      const res = await tripApi.create(payload);
+      toast.success(`Request #${res.trip_request_id} submitted successfully!`);
+      navigate("/dashboard");
+    } catch (err) {
+      toast.error(err.message || "Failed to submit request");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -208,8 +237,16 @@ export default function RequestWizard() {
                 Continue <ChevronRight className="ml-3 h-5 w-5" />
               </Button>
             ) : (
-              <Button onClick={handleSubmit(onSubmit)} className="bg-green-600 hover:bg-green-700 px-10 h-14 font-black shadow-xl rounded-2xl text-white transition-all active:scale-95">
-                Send Request <CheckCircle2 className="ml-3 h-5 w-5" />
+              <Button
+                onClick={handleSubmit(onSubmit)}
+                disabled={submitting}
+                className="bg-green-600 hover:bg-green-700 px-10 h-14 font-black shadow-xl rounded-2xl text-white transition-all active:scale-95"
+              >
+                {submitting ? (
+                  <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Submitting...</>
+                ) : (
+                  <>Send Request <CheckCircle2 className="ml-3 h-5 w-5" /></>
+                )}
               </Button>
             )}
           </div>

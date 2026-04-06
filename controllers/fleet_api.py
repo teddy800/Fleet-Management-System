@@ -65,9 +65,53 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/trip-requests', type='json', auth='user', methods=['POST'], cors='*')
-    def create_trip_request(self, **kwargs):
-        """Create a new trip request"""
+    @http.route('/api/fleet/trip-requests', type='json', auth='user', methods=['GET', 'POST'], cors='*')
+    def trip_requests(self, **kwargs):
+        """GET: list all pending trip requests (dispatcher). POST: create a new trip request."""
+        if request.httprequest.method == 'GET':
+            return self._list_trip_requests()
+        return self._create_trip_request()
+
+    def _list_trip_requests(self):
+        """List trip requests - all pending for dispatcher, own for staff"""
+        try:
+            is_dispatcher = request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or \
+                            request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')
+            if is_dispatcher:
+                trip_requests = request.env['mesob.trip.request'].search([], order='create_date desc', limit=100)
+            else:
+                employee = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
+                if not employee:
+                    return {'success': False, 'error': 'Employee record not found'}
+                trip_requests = request.env['mesob.trip.request'].search(
+                    [('employee_id', '=', employee.id)], order='create_date desc', limit=50)
+
+            data = []
+            for tr in trip_requests:
+                data.append({
+                    'id': tr.id,
+                    'name': tr.name,
+                    'purpose': tr.purpose,
+                    'state': tr.state,
+                    'employee_name': tr.employee_id.name if tr.employee_id else '',
+                    'vehicle_category': tr.vehicle_category,
+                    'start_datetime': tr.start_datetime.isoformat() if tr.start_datetime else None,
+                    'end_datetime': tr.end_datetime.isoformat() if tr.end_datetime else None,
+                    'pickup_location': tr.pickup_location,
+                    'destination_location': tr.destination_location,
+                    'passenger_count': tr.passenger_count,
+                    'priority': tr.priority,
+                    'trip_type': tr.trip_type,
+                    'assigned_vehicle': tr.assigned_vehicle_id.name if tr.assigned_vehicle_id else None,
+                    'assigned_driver': tr.assigned_driver_id.name if tr.assigned_driver_id else None,
+                    'create_date': tr.create_date.isoformat() if tr.create_date else None,
+                })
+            return {'success': True, 'trip_requests': data}
+        except Exception as e:
+            _logger.error(f"List trip requests error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    def _create_trip_request(self, **kwargs):
         try:
             data = request.params
             
@@ -187,6 +231,70 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
+    @http.route('/api/fleet/trip-requests/<int:request_id>/reject', type='json', auth='user', methods=['POST'], cors='*')
+    def reject_trip_request(self, request_id):
+        """Reject a trip request"""
+        try:
+            if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher'):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            trip_request = request.env['mesob.trip.request'].browse(request_id)
+            if not trip_request.exists():
+                return {'success': False, 'error': 'Trip request not found'}
+            data = request.jsonrequest or {}
+            trip_request.action_reject()
+            if data.get('reason'):
+                trip_request.write({'rejection_reason': data.get('reason')})
+            return {'success': True, 'message': 'Trip request rejected'}
+        except Exception as e:
+            _logger.error(f"Reject trip request error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/fuel-logs', type='json', auth='user', methods=['GET'], cors='*')
+    def get_fuel_logs(self):
+        """Get fuel logs"""
+        try:
+            logs = request.env['mesob.fuel.log'].search([], order='date desc', limit=100)
+            data = []
+            for log in logs:
+                data.append({
+                    'id': log.id,
+                    'vehicle_name': log.vehicle_id.name if log.vehicle_id else '',
+                    'driver_name': log.driver_id.name if log.driver_id else '',
+                    'date': log.date.isoformat() if log.date else None,
+                    'fuel_station': log.fuel_station,
+                    'volume': log.volume,
+                    'cost': log.cost,
+                    'odometer': log.odometer,
+                    'fuel_efficiency': log.fuel_efficiency,
+                })
+            return {'success': True, 'fuel_logs': data}
+        except Exception as e:
+            _logger.error(f"Fuel logs error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/maintenance-logs', type='json', auth='user', methods=['GET'], cors='*')
+    def get_maintenance_logs(self):
+        """Get maintenance logs"""
+        try:
+            logs = request.env['mesob.maintenance.log'].search([], order='date desc', limit=100)
+            data = []
+            for log in logs:
+                data.append({
+                    'id': log.id,
+                    'vehicle_name': log.vehicle_id.name if log.vehicle_id else '',
+                    'maintenance_type': log.maintenance_type,
+                    'state': log.state,
+                    'date': log.date.isoformat() if log.date else None,
+                    'technician': log.technician_id.name if log.technician_id else '',
+                    'cost': log.cost,
+                    'description': log.description,
+                    'odometer': log.odometer,
+                })
+            return {'success': True, 'maintenance_logs': data}
+        except Exception as e:
+            _logger.error(f"Maintenance logs error: {e}")
+            return {'success': False, 'error': str(e)}
+
     @http.route('/api/fleet/gps/update', type='json', auth='public', methods=['POST'])
     def update_gps_location(self):
         """Update GPS location from external service"""

@@ -42,24 +42,17 @@ export const useUserStore = create((set) => ({
       Dispatcher: { name: "Abebe (Dispatcher)", role: "Dispatcher", email: "dispatch@messob.et" },
       Admin: { name: "Admin User", role: "Admin", email: "admin@messob.et" }
     };
-
     const selectedUser = mockUsers[role] || mockUsers.Staff;
-
-    set({ 
-      user: selectedUser, 
-      isAuthenticated: true 
-    });
-    
+    set({ user: selectedUser, isAuthenticated: true });
     localStorage.setItem("user-role", role);
-    localStorage.setItem("messob_token", "dev-mock-token");
   },
 
   /**
    * Logout: Clears everything
    */
-  logout: () => {
+  logout: async () => {
+    try { await authApi.logout(); } catch (_) { /* ignore */ }
     set({ user: null, isAuthenticated: false });
-    localStorage.removeItem("messob_token");
     localStorage.removeItem("user-role");
   },
 }));
