@@ -45,9 +45,9 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-white">
+    <div className="h-screen w-screen flex overflow-hidden bg-white">
       {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-[45%] bg-brand-blue flex-col justify-between p-10 relative overflow-hidden min-h-screen">
+      <div className="hidden lg:flex lg:w-[45%] bg-brand-blue flex-col justify-between p-10 relative overflow-hidden h-full">
         {/* Background pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-white" />
@@ -89,7 +89,7 @@ export default function Login() {
       </div>
 
       {/* Right panel — login form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white min-h-screen">
+      <div className="flex-1 flex items-center justify-center p-8 bg-white h-full overflow-y-auto">
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
