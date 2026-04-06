@@ -19,4 +19,5 @@ from sqlalchemy.orm import sessionmaker
 import geopy.distance
 from geopy.geocoders import Nominatim
 import smtplib
-from email.mime.
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText

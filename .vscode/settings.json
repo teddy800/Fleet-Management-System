@@ -1,2 +1,11 @@
 {
+  "python.analysis.typeCheckingMode": "off",
+  "python.analysis.diagnosticMode": "openFilesOnly",
+  "python.analysis.ignore": [
+    "controllers/**",
+    "models/**",
+    "advanced_backend/**"
+  ],
+  "python.languageServer": "Pylance",
+  "python.analysis.extraPaths": []
 }

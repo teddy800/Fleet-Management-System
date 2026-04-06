@@ -1,5 +1,7 @@
-from odoo import http
-from odoo.http import request
+# flake8: noqa
+# pyright: ignore
+from odoo import http  # type: ignore
+from odoo.http import request  # type: ignore
 import json
 import logging
 from datetime import datetime

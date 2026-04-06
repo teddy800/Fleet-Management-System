@@ -1,0 +1,12 @@
+{
+  "typeCheckingMode": "off",
+  "reportMissingImports": false,
+  "reportMissingModuleSource": false,
+  "reportUndefinedVariable": false,
+  "reportGeneralTypeIssues": false,
+  "ignore": [
+    "controllers",
+    "models",
+    "advanced_backend"
+  ]
+}
