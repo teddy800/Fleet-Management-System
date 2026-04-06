@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { authApi } from '@/lib/api';
 
 export const useUserStore = create((set) => ({
-  // --- STATE ---
   user: null,
   isAuthenticated: false,
   loginError: null,

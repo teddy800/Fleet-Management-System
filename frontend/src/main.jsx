@@ -10,6 +10,9 @@ if (savedTheme === "dark") {
   document.documentElement.classList.add("dark");
 }
 
+// Clear any stale auth state from previous sessions
+localStorage.removeItem("user-role");
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>

@@ -8,6 +8,23 @@ export default defineConfig({
   server: {
     port: 3000,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8069',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/web': {
+        target: 'http://localhost:8069',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/webhook': {
+        target: 'http://localhost:8069',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   resolve: {
     alias: {
