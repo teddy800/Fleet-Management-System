@@ -45,9 +45,9 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-white">
       {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-brand-blue flex-col justify-between p-12 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-[45%] bg-brand-blue flex-col justify-between p-10 relative overflow-hidden min-h-screen">
         {/* Background pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-white" />
@@ -89,8 +89,8 @@ export default function Login() {
       </div>
 
       {/* Right panel — login form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
-        <div className="w-full max-w-md">
+      <div className="flex-1 flex items-center justify-center p-8 bg-white min-h-screen">
+        <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="lg:hidden flex items-center gap-3 mb-8">
             <div className="bg-brand-blue p-2 rounded-2xl">
@@ -103,8 +103,8 @@ export default function Login() {
           </div>
 
           <div className="mb-8">
-            <h2 className="text-2xl font-black text-gray-900">Welcome back</h2>
-            <p className="text-gray-500 mt-1">Sign in to your MESSOB account</p>
+            <h2 className="text-3xl font-black text-gray-900">Welcome back</h2>
+            <p className="text-gray-500 mt-1.5 text-sm">Sign in to your MESSOB account to continue</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -114,15 +114,15 @@ export default function Login() {
                 Email or Username
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-gray-400" />
+                <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-400" />
                 <Input
                   id="email"
                   type="text"
                   placeholder="admin or name@messob.et"
                   {...register("email")}
                   className={cn(
-                    "pl-10 h-12 border-2 rounded-xl text-sm transition-all",
-                    errors.email ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-brand-blue"
+                    "pl-10 h-12 border-2 rounded-xl text-sm transition-all bg-gray-50 focus:bg-white",
+                    errors.email ? "border-red-400" : "border-gray-200 focus:border-brand-blue"
                   )}
                 />
               </div>
@@ -131,24 +131,22 @@ export default function Login() {
 
             {/* Password */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-bold text-gray-700">Password</Label>
-              </div>
+              <Label htmlFor="password" className="text-sm font-bold text-gray-700">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-gray-400" />
+                <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-400" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   {...register("password")}
                   className={cn(
-                    "pl-10 pr-10 h-12 border-2 rounded-xl text-sm transition-all",
-                    errors.password ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-brand-blue"
+                    "pl-10 pr-10 h-12 border-2 rounded-xl text-sm transition-all bg-gray-50 focus:bg-white",
+                    errors.password ? "border-red-400" : "border-gray-200 focus:border-brand-blue"
                   )}
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3.5 top-3.5 text-gray-400 hover:text-gray-600">
-                  {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
               {errors.password && <p className="text-xs text-red-500 font-medium">{errors.password.message}</p>}
@@ -165,19 +163,26 @@ export default function Login() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-12 bg-brand-blue hover:bg-blue-800 text-white font-bold rounded-xl text-sm shadow-lg transition-all active:scale-[0.98]"
+              className="w-full h-12 bg-brand-blue hover:bg-blue-800 text-white font-bold rounded-xl text-sm shadow-lg transition-all active:scale-[0.98] mt-2"
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Signing in...
                 </span>
-              ) : "Sign In"}
+              ) : "Sign In →"}
             </Button>
           </form>
 
-          <p className="text-center text-xs text-gray-400 mt-8">
-            &copy; {new Date().getFullYear()} MESSOB Center Logistics. All rights reserved.
+          {/* Divider with hint */}
+          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+            <p className="text-xs text-gray-400">
+              Use your Odoo admin credentials to sign in
+            </p>
+          </div>
+
+          <p className="text-center text-xs text-gray-300 mt-4">
+            &copy; {new Date().getFullYear()} MESSOB Center Logistics
           </p>
         </div>
       </div>
