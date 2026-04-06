@@ -1,13 +1,20 @@
 import { useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, Navigate } from "react-router-dom";
 import { Menu } from "lucide-react";
 import Sidebar from "../shared/Sidebar";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Toaster } from "@/components/ui/sonner"; // For the "Check" notifications
+import { Toaster } from "@/components/ui/sonner";
+import { useUserStore } from "@/store/useUserStore";
 
 export default function DashboardLayout() {
   const [open, setOpen] = useState(false);
+  const isAuthenticated = useUserStore((s) => s.isAuthenticated);
+
+  // Redirect to login if not authenticated
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   return (
     <div className="flex h-screen bg-gray-100 overflow-hidden">
