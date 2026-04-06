@@ -59,7 +59,7 @@ function KpiBar({ label, value, max = 100, color = "bg-brand-blue" }) {
   );
 }
 
-function AlertItem({ type, message, severity }) {
+function AlertItem({ message, severity }) {
   const colors = { critical: "bg-red-50 border-red-200 text-red-700", warning: "bg-yellow-50 border-yellow-200 text-yellow-700", info: "bg-blue-50 border-blue-200 text-blue-700" };
   return (
     <div className={`flex items-start gap-2 p-3 rounded-lg border text-xs font-medium ${colors[severity] || colors.info}`}>

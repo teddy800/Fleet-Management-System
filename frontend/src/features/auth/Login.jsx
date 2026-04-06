@@ -4,37 +4,34 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useNavigate } from "react-router-dom";
 import { useUserStore } from "@/store/useUserStore";
-
-// UI Components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, Lock, Mail, ShieldCheck, UserCircle } from "lucide-react";
-
-// Utilities
+import { Eye, EyeOff, Lock, Mail, Car, MapPin, Gauge, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
 
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid MESSOB email"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  email: z.string().min(1, "Email or username is required"),
+  password: z.string().min(1, "Password is required"),
 });
+
+const FEATURES = [
+  { icon: Car, label: "Fleet Management", desc: "Track and manage your entire vehicle fleet" },
+  { icon: MapPin, label: "Real-Time GPS", desc: "Live vehicle tracking and route monitoring" },
+  { icon: Gauge, label: "Analytics", desc: "KPIs, fuel efficiency, and cost analysis" },
+  { icon: Users, label: "Driver Management", desc: "Assignments, performance, and scheduling" },
+];
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [apiError, setApiError] = useState(null);
   const navigate = useNavigate();
-  
-  // Get functions from your Zustand store
   const loginUser = useUserStore((state) => state.login);
 
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "staff@mesobcenter.et", // Pre-filled for easier testing
-      password: "password123"
-    }
+    defaultValues: { email: "", password: "" }
   });
 
   const onSubmit = async (data) => {
@@ -43,107 +40,147 @@ export default function Login() {
     if (result.success) {
       navigate("/dashboard");
     } else {
-      setApiError(result.error || "Login failed. Check your credentials.");
+      setApiError(result.error || "Invalid credentials. Please try again.");
     }
   };
 
-  // Helper for one-click testing
-  const handleQuickLogin = (role, name) => {
-    loginUser({ name: name, role: role }, "dev-token-123");
-    navigate("/dashboard");
-  };
-
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md shadow-2xl border-t-8 border-brand-blue bg-white rounded-2xl overflow-hidden">
-        <CardHeader className="space-y-2 flex flex-col items-center pb-8">
-          <div className="bg-white p-3 rounded-full shadow-md border-2 border-gray-100 mb-2">
-            <img src={logo} alt="MESSOB Logo" className="h-16 w-16 object-contain rounded-full" />
-          </div>
-          <CardTitle className="text-2xl font-black text-brand-blue tracking-tight">MESSOB-FMS</CardTitle>
-          <CardDescription className="text-center font-medium text-gray-500">
-            Fleet Management & Logistics Portal
-          </CardDescription>
-        </CardHeader>
+    <div className="min-h-screen flex">
+      {/* Left panel — branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-brand-blue flex-col justify-between p-12 relative overflow-hidden">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-white" />
+          <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-brand-gold" />
+          <div className="absolute top-1/2 left-1/3 w-32 h-32 rounded-full bg-white" />
+        </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="grid gap-6 pb-2">
-            
-            {/* Email Input */}
-            <div className="grid gap-2">
-              <Label htmlFor="email" className="text-sm font-bold text-gray-700 ml-1">
-                Official Email
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-16">
+            <div className="bg-white p-2 rounded-2xl shadow-lg">
+              <img src={logo} alt="MESSOB" className="h-10 w-10 object-contain rounded-xl" />
+            </div>
+            <div>
+              <h1 className="text-white font-black text-xl tracking-tight">MESSOB-FMS</h1>
+              <p className="text-white/60 text-xs">Fleet Management System</p>
+            </div>
+          </div>
+
+          <h2 className="text-white font-black text-4xl leading-tight mb-4">
+            Manage your fleet<br />
+            <span className="text-brand-gold">smarter, faster.</span>
+          </h2>
+          <p className="text-white/70 text-base leading-relaxed max-w-sm">
+            A complete fleet management solution for MESSOB — from trip requests to real-time GPS tracking.
+          </p>
+        </div>
+
+        <div className="relative z-10 grid grid-cols-2 gap-4">
+          {FEATURES.map(({ icon: Icon, label, desc }) => (
+            <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
+              <div className="w-8 h-8 rounded-xl bg-brand-gold/20 flex items-center justify-center mb-2">
+                <Icon className="h-4 w-4 text-brand-gold" />
+              </div>
+              <p className="text-white font-bold text-sm">{label}</p>
+              <p className="text-white/50 text-xs mt-0.5">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right panel — login form */}
+      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
+        <div className="w-full max-w-md">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex items-center gap-3 mb-8">
+            <div className="bg-brand-blue p-2 rounded-2xl">
+              <img src={logo} alt="MESSOB" className="h-8 w-8 object-contain rounded-xl" />
+            </div>
+            <div>
+              <h1 className="text-brand-blue font-black text-lg">MESSOB-FMS</h1>
+              <p className="text-gray-400 text-xs">Fleet Management System</p>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-2xl font-black text-gray-900">Welcome back</h2>
+            <p className="text-gray-500 mt-1">Sign in to your MESSOB account</p>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Email/Username */}
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-sm font-bold text-gray-700">
+                Email or Username
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="name@mesobcenter.et" 
+                <Mail className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-gray-400" />
+                <Input
+                  id="email"
+                  type="text"
+                  placeholder="admin or name@messob.et"
                   {...register("email")}
                   className={cn(
-                    "pl-10 h-12 border-2 transition-all duration-200 outline-none rounded-xl",
-                    "focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-0",
-                    errors.email 
-                      ? "border-red-500" 
-                      : "border-gray-200 focus:border-brand-blue"
+                    "pl-10 h-12 border-2 rounded-xl text-sm transition-all",
+                    errors.email ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-brand-blue"
                   )}
                 />
               </div>
-              {errors.email && <p className="text-xs font-semibold text-red-500 ml-1">{errors.email.message}</p>}
+              {errors.email && <p className="text-xs text-red-500 font-medium">{errors.email.message}</p>}
             </div>
 
-            {/* Password Input */}
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between ml-1">
+            {/* Password */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-sm font-bold text-gray-700">Password</Label>
-                <a href="#" className="text-xs text-brand-blue hover:underline font-bold">Forgot?</a>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <Input 
-                  id="password" 
-                  type={showPassword ? "text" : "password"} 
+                <Lock className="absolute left-3.5 top-3.5 h-4.5 w-4.5 text-gray-400" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
                   {...register("password")}
                   className={cn(
-                    "pl-10 pr-10 h-12 border-2 transition-all duration-200 outline-none rounded-xl",
-                    "focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-0",
-                    errors.password 
-                      ? "border-red-500" 
-                      : "border-gray-200 focus:border-brand-blue"
+                    "pl-10 pr-10 h-12 border-2 rounded-xl text-sm transition-all",
+                    errors.password ? "border-red-400 focus:border-red-400" : "border-gray-200 focus:border-brand-blue"
                   )}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-brand-blue"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-3.5 text-gray-400 hover:text-gray-600">
+                  {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
                 </button>
               </div>
-              {errors.password && <p className="text-xs font-semibold text-red-500 ml-1">{errors.password.message}</p>}
+              {errors.password && <p className="text-xs text-red-500 font-medium">{errors.password.message}</p>}
             </div>
-          </CardContent>
 
-          <CardFooter className="flex flex-col gap-4 pt-4">
-          <Button 
-              type="submit" 
-              className="w-full bg-brand-blue hover:bg-blue-800 text-white h-14 text-lg font-bold shadow-lg transition-transform active:scale-95 rounded-xl"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Authenticating..." : "Login"}
-            </Button>
+            {/* API Error */}
             {apiError && (
-              <p className="text-sm font-semibold text-red-500 text-center">{apiError}</p>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 font-medium">
+                {apiError}
+              </div>
             )}
 
-            
-            <p className="text-xs text-gray-400 font-medium text-center mt-2">
-              &copy; {new Date().getFullYear()} MESSOB Center Logistics.
-            </p>
-          </CardFooter>
-        </form>
-      </Card>
+            {/* Submit */}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full h-12 bg-brand-blue hover:bg-blue-800 text-white font-bold rounded-xl text-sm shadow-lg transition-all active:scale-[0.98]"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Signing in...
+                </span>
+              ) : "Sign In"}
+            </Button>
+          </form>
+
+          <p className="text-center text-xs text-gray-400 mt-8">
+            &copy; {new Date().getFullYear()} MESSOB Center Logistics. All rights reserved.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
