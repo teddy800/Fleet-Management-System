@@ -403,7 +403,83 @@ class FleetAPIController(http.Controller):
     
     def _validate_api_key(self, api_key):
         """Validate API key for external services"""
-        # Implement your API key validation logic
-        # For now, using a simple check
         valid_key = request.env['ir.config_parameter'].sudo().get_param('mesob.api_key')
         return api_key == valid_key
+
+    @http.route('/api/fleet/drivers', type='json', auth='user', methods=['GET'], cors='*')
+    def get_drivers(self):
+        """Get all available drivers (is_driver=True employees)"""
+        try:
+            drivers = request.env['hr.employee'].search([('is_driver', '=', True)])
+            data = []
+            for d in drivers:
+                data.append({
+                    'id': d.id,
+                    'name': d.name,
+                    'license_number': d.driver_license_number,
+                    'license_expiry': d.license_expiry_date.isoformat() if d.license_expiry_date else None,
+                    'active_trips': d.active_trip_count,
+                })
+            return {'success': True, 'drivers': data}
+        except Exception as e:
+            _logger.error(f"Get drivers error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/trip-requests/<int:request_id>/cancel', type='json', auth='user', methods=['POST'], cors='*')
+    def cancel_trip_request(self, request_id):
+        """Cancel own trip request (FR-1.3: only if pending)"""
+        try:
+            trip_request = request.env['mesob.trip.request'].browse(request_id)
+            if not trip_request.exists():
+                return {'success': False, 'error': 'Trip request not found'}
+            if not trip_request.can_cancel:
+                return {'success': False, 'error': 'This request cannot be cancelled'}
+            trip_request.action_cancel()
+            return {'success': True, 'message': 'Trip request cancelled'}
+        except Exception as e:
+            _logger.error(f"Cancel trip request error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/trip-requests/<int:request_id>/update-pickup', type='json', auth='user', methods=['POST'], cors='*')
+    def update_pickup_point(self, request_id):
+        """FR-3.4: Update pickup point on active trip"""
+        try:
+            data = request.jsonrequest or {}
+            trip_request = request.env['mesob.trip.request'].browse(request_id)
+            if not trip_request.exists():
+                return {'success': False, 'error': 'Trip request not found'}
+            if trip_request.state not in ['approved', 'assigned', 'in_progress']:
+                return {'success': False, 'error': 'Pickup can only be updated on active trips'}
+            trip_request.write({
+                'pickup_location': data.get('pickup_location', trip_request.pickup_location),
+                'pickup_updated': True,
+                'pickup_update_note': data.get('note', ''),
+            })
+            return {'success': True, 'message': 'Pickup point updated'}
+        except Exception as e:
+            _logger.error(f"Update pickup error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/maintenance-schedules', type='json', auth='user', methods=['GET'], cors='*')
+    def get_maintenance_schedules(self):
+        """FR-4.3: Get maintenance schedules with overdue status"""
+        try:
+            schedules = request.env['mesob.maintenance.schedule'].search([])
+            data = []
+            for s in schedules:
+                data.append({
+                    'id': s.id,
+                    'vehicle_name': s.vehicle_id.name if s.vehicle_id else '',
+                    'maintenance_type': s.maintenance_type,
+                    'interval_km': s.interval_km,
+                    'interval_days': s.interval_days,
+                    'last_odometer': s.last_odometer,
+                    'last_service_date': s.last_service_date.isoformat() if s.last_service_date else None,
+                    'next_due_odometer': s.next_due_odometer,
+                    'next_due_date': s.next_due_date.isoformat() if s.next_due_date else None,
+                    'is_overdue': s.is_overdue,
+                })
+            return {'success': True, 'schedules': data}
+        except Exception as e:
+            _logger.error(f"Maintenance schedules error: {e}")
+            return {'success': False, 'error': str(e)}

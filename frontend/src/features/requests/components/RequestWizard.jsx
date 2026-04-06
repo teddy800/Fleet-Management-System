@@ -1,7 +1,20 @@
+/**
+ * FR-1.1: 4-Step Request Wizard
+ * Step 1: Trip purpose + vehicle category (min 10 chars validation)
+ * Step 2: Start/end datetime with end-before-start validation
+ * Step 3: Pickup + destination locations
+ * Step 4: Review & Submit
+ * UI-4: All forms provide clear validation messages
+ */
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Car, MapPin, Users, CheckCircle2, ChevronRight, ChevronLeft, Loader2 } from "lucide-react";
+import {
+  Calendar as CalendarIcon, Car, MapPin, Users, CheckCircle2,
+  ChevronRight, ChevronLeft, Loader2, AlertCircle,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,57 +24,118 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { tripApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 const BG_URL = "https://www.ena.et/o/adaptive-media/image/6826100/Preview-1000x0/Moseb%20ethiopian%20service.jpg";
 
+const VEHICLE_CATEGORIES = [
+  { value: "sedan",     label: "Sedan" },
+  { value: "suv",       label: "SUV" },
+  { value: "pickup",    label: "Pickup Truck" },
+  { value: "bus",       label: "Bus" },
+  { value: "minibus",   label: "Mini-Bus" },
+  { value: "motorcycle",label: "Motorcycle" },
+  { value: "truck",     label: "Truck" },
+];
+
+// Per-step validation schemas
+const step1Schema = z.object({
+  purpose: z.string().min(10, "Trip purpose must be at least 10 characters"),
+  vehicleCategory: z.string().min(1, "Please select a vehicle category"),
+});
+
+const step2Schema = z.object({
+  startDate: z.string().min(1, "Start date is required"),
+  startTime: z.string().min(1, "Start time is required"),
+  endDate: z.string().min(1, "End date is required"),
+  endTime: z.string().min(1, "End time is required"),
+}).refine(data => {
+  const start = new Date(`${data.startDate}T${data.startTime}`);
+  const end = new Date(`${data.endDate}T${data.endTime}`);
+  return end > start;
+}, { message: "End date/time must be after start date/time", path: ["endTime"] });
+
+const step3Schema = z.object({
+  pickupLocation: z.string().min(3, "Pickup location is required"),
+  destinationLocation: z.string().min(3, "Destination is required"),
+  passengerCount: z.coerce.number().min(1, "At least 1 passenger required"),
+  tripType: z.string().min(1, "Select trip type"),
+});
+
+function FieldError({ message }) {
+  if (!message) return null;
+  return (
+    <p className="flex items-center gap-1 text-xs font-semibold text-red-500 mt-1">
+      <AlertCircle className="h-3 w-3" /> {message}
+    </p>
+  );
+}
+
 export default function RequestWizard() {
   const [step, setStep] = useState(1);
-  const [date, setDate] = useState(new Date());
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  const { register, watch, setValue, handleSubmit, formState: { errors } } = useForm({
-    defaultValues: {
-      purpose: "",
-      passengers: "1",
-      startPoint: "MESSOB Center HQ",
-      destination: "",
-      tripType: "One-Way",
-      vehicleCategory: "sedan",
-    }
+  // Unified form state across all steps
+  const [formData, setFormData] = useState({
+    purpose: "", vehicleCategory: "",
+    startDate: format(new Date(), "yyyy-MM-dd"), startTime: "08:00",
+    endDate: format(new Date(), "yyyy-MM-dd"), endTime: "17:00",
+    pickupLocation: "MESSOB Center HQ", destinationLocation: "",
+    passengerCount: 1, tripType: "official",
   });
 
-  const formData = watch();
+  const [errors, setErrors] = useState({});
 
-  const nextStep = () => setStep((s) => Math.min(s + 1, 4));
-  const prevStep = () => setStep((s) => Math.max(s - 1, 1));
+  const update = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: undefined }));
+  };
 
-  const onSubmit = async (data) => {
+  const validateStep = (stepNum) => {
+    try {
+      if (stepNum === 1) step1Schema.parse(formData);
+      if (stepNum === 2) step2Schema.parse(formData);
+      if (stepNum === 3) step3Schema.parse(formData);
+      setErrors({});
+      return true;
+    } catch (err) {
+      const fieldErrors = {};
+      err.errors?.forEach(e => { fieldErrors[e.path[0]] = e.message; });
+      setErrors(fieldErrors);
+      return false;
+    }
+  };
+
+  const nextStep = () => {
+    if (validateStep(step)) setStep(s => Math.min(s + 1, 4));
+  };
+  const prevStep = () => { setErrors({}); setStep(s => Math.max(s - 1, 1)); };
+
+  const onSubmit = async () => {
     setSubmitting(true);
     try {
-      const startDt = new Date(date);
-      startDt.setHours(8, 0, 0);
-      const endDt = new Date(date);
-      endDt.setHours(17, 0, 0);
+      const startDt = new Date(`${formData.startDate}T${formData.startTime}`);
+      const endDt = new Date(`${formData.endDate}T${formData.endTime}`);
 
       const payload = {
-        purpose: data.purpose,
-        vehicle_category: data.vehicleCategory,
+        purpose: formData.purpose,
+        vehicle_category: formData.vehicleCategory,
         start_datetime: startDt.toISOString(),
         end_datetime: endDt.toISOString(),
-        pickup_location: data.startPoint,
-        destination_location: data.destination,
-        passenger_count: parseInt(data.passengers) || 1,
+        pickup_location: formData.pickupLocation,
+        destination_location: formData.destinationLocation,
+        passenger_count: formData.passengerCount,
         priority: "normal",
-        trip_type: data.tripType === "Round Trip" ? "round_trip" : "official",
+        trip_type: formData.tripType,
       };
 
       const res = await tripApi.create(payload);
       toast.success(`Request #${res.trip_request_id} submitted successfully!`);
-      navigate("/dashboard");
+      navigate("/my-requests");
     } catch (err) {
       toast.error(err.message || "Failed to submit request");
     } finally {
@@ -69,184 +143,207 @@ export default function RequestWizard() {
     }
   };
 
+  const stepLabels = ["Basics", "Schedule", "Locations", "Review"];
+  const stepIcons = [Car, CalendarIcon, MapPin, CheckCircle2];
+
   return (
     <div className="relative -m-4 md:-m-8 min-h-screen overflow-hidden bg-brand-blue">
-      
-      {/* 1. BACKGROUND IMAGE LAYER (Fixed Opacity here only) */}
-      <div 
-        className="absolute inset-0 z-0"
-        style={{ 
-          backgroundImage: `url(${BG_URL})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        }}
-      >
-        {/* Dark overlay for better form contrast */}
+      <div className="absolute inset-0 z-0" style={{ backgroundImage: `url(${BG_URL})`, backgroundSize: "cover", backgroundPosition: "center" }}>
         <div className="absolute inset-0 backdrop-blur-[2px]" />
       </div>
 
-      {/* 2. CONTENT LAYER (relative z-10 makes text 100% visible) */}
-      <div className="relative z-10 max-w-4xl mx-auto py-12 px-4 animate-in fade-in duration-700">
-        
-        {/* --- STEP PROGRESS BAR --- */}
-        <div className="flex items-center justify-between my-12 relative">
-          <div className="absolute top-1/2 left-0 w-full h-1 bg-white/20 -translate-y-1/2 z-0"></div>
-          <div 
-              className="absolute top-1/2 left-0 h-1 bg-brand-gold -translate-y-1/2 z-0 transition-all duration-500" 
-              style={{ width: `${((step - 1) / 3) * 100}%` }}
-          ></div>
-          
-          {[1, 2, 3, 4].map((item) => (
-            <div key={item} className="z-10 flex flex-col items-center">
-              <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center font-black transition-all border-4 shadow-xl",
-                step >= item ? "bg-brand-gold text-brand-blue border-white scale-110" : "bg-brand-blue text-blue-200 border-blue-800"
-              )}>
-                {step > item ? <CheckCircle2 className="h-6 w-6" /> : item}
+      <div className="relative z-10 max-w-3xl mx-auto py-12 px-4">
+        {/* Progress Bar */}
+        <div className="flex items-center justify-between my-10 relative">
+          <div className="absolute top-1/2 left-0 w-full h-1 bg-white/20 -translate-y-1/2 z-0" />
+          <div className="absolute top-1/2 left-0 h-1 bg-brand-gold -translate-y-1/2 z-0 transition-all duration-500" style={{ width: `${((step - 1) / 3) * 100}%` }} />
+          {[1, 2, 3, 4].map(item => {
+            const Icon = stepIcons[item - 1];
+            return (
+              <div key={item} className="z-10 flex flex-col items-center">
+                <div className={cn("w-10 h-10 rounded-full flex items-center justify-center font-black transition-all border-4 shadow-xl",
+                  step >= item ? "bg-brand-gold text-brand-blue border-white scale-110" : "bg-brand-blue text-blue-200 border-blue-800")}>
+                  {step > item ? <CheckCircle2 className="h-6 w-6" /> : <Icon className="h-5 w-5" />}
+                </div>
+                <span className={cn("text-[10px] mt-2 font-black uppercase tracking-widest hidden sm:block",
+                  step >= item ? "text-white" : "text-blue-300")}>
+                  {stepLabels[item - 1]}
+                </span>
               </div>
-              <span className={cn(
-                "text-[10px] mt-2 font-black uppercase tracking-widest hidden sm:block",
-                step >= item ? "text-white" : "text-blue-300"
-              )}>
-                {item === 1 ? "Basics" : item === 2 ? "Route" : item === 3 ? "Details" : "Review"}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <Card className="border-none shadow-[0_30px_60px_rgba(0,0,0,0.4)] overflow-hidden rounded-[2rem]">
-          <div className="bg-brand-blue p-8 text-white border-b-4 border-brand-gold">
-              <h2 className="text-2xl font-black flex items-center gap-3 tracking-tight">
-                  {step === 1 && <Car className="text-brand-gold" />}
-                  {step === 2 && <MapPin className="text-brand-gold" />}
-                  {step === 3 && <Users className="text-brand-gold" />}
-                  {step === 4 && <CheckCircle2 className="text-brand-gold" />}
-                  Step {step}: {step === 1 ? "Trip Basics" : step === 2 ? "Destination" : step === 3 ? "Passengers" : "Confirm Request"}
-              </h2>
-              <p className="text-blue-100 text-sm opacity-80 mt-1 font-medium">Please fill out the official MESSOB trip request form.</p>
+          <div className="bg-brand-blue p-6 text-white border-b-4 border-brand-gold">
+            <h2 className="text-xl font-black tracking-tight">
+              Step {step}: {["Trip Basics", "Schedule", "Locations & Passengers", "Review & Submit"][step - 1]}
+            </h2>
+            <p className="text-blue-100 text-sm opacity-80 mt-1">Official MESSOB vehicle request form</p>
           </div>
 
-          <CardContent className="p-10 bg-white min-h-[350px]">
+          <CardContent className="p-8 bg-white min-h-[320px]">
+            {/* Step 1: Purpose + Category */}
             {step === 1 && (
-              <div className="grid gap-8 animate-in fade-in slide-in-from-right-4 duration-500">
-                <div className="grid gap-3">
-                  <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Departure Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full h-14 justify-start border-2 border-gray-100 hover:border-brand-blue rounded-xl text-lg font-bold">
-                        <CalendarIcon className="mr-3 h-5 w-5 text-brand-gold" />
-                        {date ? format(date, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 rounded-2xl shadow-2xl">
-                      <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
-                    </PopoverContent>
-                  </Popover>
+              <div className="space-y-5">
+                <div>
+                  <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Trip Purpose *</Label>
+                  <Textarea
+                    placeholder="Describe the purpose of this trip (minimum 10 characters)..."
+                    value={formData.purpose}
+                    onChange={e => update("purpose", e.target.value)}
+                    className={cn("mt-2 rounded-xl border-2 min-h-[80px]", errors.purpose ? "border-red-400" : "border-gray-200 focus:border-brand-blue")}
+                  />
+                  <FieldError message={errors.purpose} />
+                  <p className="text-xs text-gray-400 mt-1">{formData.purpose.length}/10 min characters</p>
                 </div>
-                <div className="grid gap-3">
-                  <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Trip Purpose</Label>
-                  <Select onValueChange={(val) => setValue("purpose", val)}>
-                    <SelectTrigger className="h-14 border-2 border-gray-100 rounded-xl text-lg font-bold">
-                      <SelectValue placeholder="Select purpose" />
+                <div>
+                  <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Required Vehicle Category *</Label>
+                  <Select value={formData.vehicleCategory} onValueChange={v => update("vehicleCategory", v)}>
+                    <SelectTrigger className={cn("mt-2 h-12 border-2 rounded-xl font-bold", errors.vehicleCategory ? "border-red-400" : "border-gray-200")}>
+                      <SelectValue placeholder="Select vehicle type..." />
                     </SelectTrigger>
-                    <SelectContent >
-                      <SelectItem value="Field Work">Field Work</SelectItem>
-                      <SelectItem value="Meeting">Official Meeting</SelectItem>
-                      <SelectItem value="Maintenance">Vehicle Maintenance</SelectItem>
-                      <SelectItem value="Delivery">Cargo Delivery</SelectItem>
+                    <SelectContent>
+                      {VEHICLE_CATEGORIES.map(c => (
+                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  <FieldError message={errors.vehicleCategory} />
                 </div>
               </div>
             )}
 
+            {/* Step 2: Schedule with datetime validation */}
             {step === 2 && (
-              <div className="grid gap-8 animate-in fade-in slide-in-from-right-4">
-                <div className="grid gap-3">
-                  <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">From (Starting Point)</Label>
-                  <Input {...register("startPoint")} className="h-14 border-2 border-gray-100 rounded-xl text-lg font-bold bg-gray-50" readOnly />
+              <div className="space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Start Date *</Label>
+                    <Input type="date" value={formData.startDate} onChange={e => update("startDate", e.target.value)}
+                      className={cn("mt-2 h-12 border-2 rounded-xl", errors.startDate ? "border-red-400" : "border-gray-200")} />
+                    <FieldError message={errors.startDate} />
+                  </div>
+                  <div>
+                    <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Start Time *</Label>
+                    <Input type="time" value={formData.startTime} onChange={e => update("startTime", e.target.value)}
+                      className={cn("mt-2 h-12 border-2 rounded-xl", errors.startTime ? "border-red-400" : "border-gray-200")} />
+                    <FieldError message={errors.startTime} />
+                  </div>
                 </div>
-                <div className="grid gap-3">
-                  <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">To (Destination City/Area)</Label>
-                  <Input {...register("destination")} placeholder="e.g. Adama, Bahir Dar" className="h-14 border-2 border-gray-100 focus:border-brand-blue rounded-xl text-lg font-bold" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">End Date *</Label>
+                    <Input type="date" value={formData.endDate} min={formData.startDate} onChange={e => update("endDate", e.target.value)}
+                      className={cn("mt-2 h-12 border-2 rounded-xl", errors.endDate ? "border-red-400" : "border-gray-200")} />
+                    <FieldError message={errors.endDate} />
+                  </div>
+                  <div>
+                    <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">End Time *</Label>
+                    <Input type="time" value={formData.endTime} onChange={e => update("endTime", e.target.value)}
+                      className={cn("mt-2 h-12 border-2 rounded-xl", errors.endTime ? "border-red-400" : "border-gray-200")} />
+                    <FieldError message={errors.endTime} />
+                  </div>
+                </div>
+                {errors.endTime && errors.endTime.includes("after") && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" /> End date/time must be after start date/time
+                  </div>
+                )}
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700">
+                  Multi-day trips are supported. Set end date to a future date for overnight or extended trips.
                 </div>
               </div>
             )}
 
+            {/* Step 3: Locations + Passengers */}
             {step === 3 && (
-              <div className="grid gap-8 animate-in fade-in slide-in-from-right-4">
-                <div className="grid gap-3">
-                  <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Number of Passengers</Label>
-                  <Input type="number" {...register("passengers")} className="h-14 border-2 border-gray-100 rounded-xl text-lg font-bold" />
+              <div className="space-y-5">
+                <div>
+                  <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Pickup Location *</Label>
+                  <Input value={formData.pickupLocation} onChange={e => update("pickupLocation", e.target.value)}
+                    placeholder="e.g. MESSOB Center HQ, Main Gate"
+                    className={cn("mt-2 h-12 border-2 rounded-xl", errors.pickupLocation ? "border-red-400" : "border-gray-200")} />
+                  <FieldError message={errors.pickupLocation} />
                 </div>
-                <div className="grid gap-3">
-                  <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Trip Type</Label>
-                  <div className="flex gap-4">
-                      {["One-Way", "Round Trip"].map((t) => (
-                          <Button 
-                              key={t}
-                              type="button"
-                              variant={formData.tripType === t ? "default" : "outline"}
-                              className={cn("flex-1 h-14 border-2 rounded-xl font-bold transition-all", 
-                                formData.tripType === t ? "bg-brand-blue text-white border-brand-blue scale-105 shadow-lg" : "border-gray-100 hover:border-brand-blue")}
-                              onClick={() => setValue("tripType", t)}
-                          >
-                              {t}
-                          </Button>
-                      ))}
+                <div>
+                  <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Destination *</Label>
+                  <Input value={formData.destinationLocation} onChange={e => update("destinationLocation", e.target.value)}
+                    placeholder="e.g. Adama, Bahir Dar, Tikur Anbessa Hospital"
+                    className={cn("mt-2 h-12 border-2 rounded-xl", errors.destinationLocation ? "border-red-400" : "border-gray-200")} />
+                  <FieldError message={errors.destinationLocation} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Passengers *</Label>
+                    <Input type="number" min="1" value={formData.passengerCount} onChange={e => update("passengerCount", parseInt(e.target.value) || 1)}
+                      className={cn("mt-2 h-12 border-2 rounded-xl", errors.passengerCount ? "border-red-400" : "border-gray-200")} />
+                    <FieldError message={errors.passengerCount} />
+                  </div>
+                  <div>
+                    <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Trip Type *</Label>
+                    <Select value={formData.tripType} onValueChange={v => update("tripType", v)}>
+                      <SelectTrigger className="mt-2 h-12 border-2 border-gray-200 rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="official">Official Business</SelectItem>
+                        <SelectItem value="emergency">Emergency</SelectItem>
+                        <SelectItem value="maintenance">Maintenance</SelectItem>
+                        <SelectItem value="personal">Personal (Authorized)</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
             )}
 
+            {/* Step 4: Review */}
             {step === 4 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-                <div className="bg-brand-blue/5 p-8 rounded-[2rem] border-2 border-dashed border-brand-blue/20 shadow-inner">
-                  <h3 className="font-black text-brand-blue mb-6 border-b border-brand-blue/10 pb-4 uppercase text-sm tracking-widest">Official Trip Summary</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-12 text-sm">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Date</span>
-                        <span className="font-black text-brand-blue text-lg">{format(date, "PPP")}</span>
+              <div className="space-y-4">
+                <div className="bg-brand-blue/5 p-6 rounded-2xl border-2 border-dashed border-brand-blue/20">
+                  <h3 className="font-black text-brand-blue mb-4 text-xs uppercase tracking-widest border-b border-brand-blue/10 pb-3">
+                    Official Trip Summary
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    {[
+                      ["Purpose", formData.purpose],
+                      ["Vehicle Category", VEHICLE_CATEGORIES.find(c => c.value === formData.vehicleCategory)?.label || "—"],
+                      ["Start", `${formData.startDate} ${formData.startTime}`],
+                      ["End", `${formData.endDate} ${formData.endTime}`],
+                      ["From", formData.pickupLocation],
+                      ["To", formData.destinationLocation],
+                      ["Passengers", formData.passengerCount],
+                      ["Trip Type", formData.tripType],
+                    ].map(([label, value]) => (
+                      <div key={label} className="bg-white rounded-xl p-3 border">
+                        <p className="text-xs text-gray-400 font-bold uppercase">{label}</p>
+                        <p className="font-bold text-gray-800 mt-0.5 capitalize">{value || "—"}</p>
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Purpose</span>
-                        <span className="font-black text-brand-gold text-lg">{formData.purpose || "Not Specified"}</span>
-                      </div>
-                      <div className="flex flex-col gap-1 col-span-2">
-                        <span className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">Route</span>
-                        <span className="font-black text-brand-blue text-lg">{formData.startPoint} <ChevronRight className="inline h-4 w-4 mx-2" /> {formData.destination}</span>
-                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-xl border border-yellow-100">
-                   <div className="h-2 w-2 bg-yellow-500 rounded-full mt-1.5" />
-                   <p className="text-xs text-yellow-800 font-medium">Finalizing this request sends a formal notification to the Dispatcher for review and vehicle assignment.</p>
+                <div className="flex items-start gap-3 p-3 bg-yellow-50 rounded-xl border border-yellow-100">
+                  <AlertCircle className="h-4 w-4 text-yellow-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-yellow-800 font-medium">
+                    Submitting sends a formal notification to the Dispatcher for review and vehicle assignment.
+                  </p>
                 </div>
               </div>
             )}
           </CardContent>
 
-          <div className="p-8 bg-gray-50 flex justify-between items-center border-t border-gray-100">
+          <div className="p-6 bg-gray-50 flex justify-between items-center border-t border-gray-100">
             <Button variant="ghost" onClick={prevStep} disabled={step === 1} className="font-black text-brand-blue uppercase tracking-widest text-xs">
               <ChevronLeft className="mr-2 h-4 w-4" /> Back
             </Button>
-            
             {step < 4 ? (
-              <Button onClick={nextStep} className="bg-brand-blue hover:bg-blue-900 px-10 h-14 font-black shadow-xl rounded-2xl text-white transition-all active:scale-95">
-                Continue <ChevronRight className="ml-3 h-5 w-5" />
+              <Button onClick={nextStep} className="bg-brand-blue hover:bg-blue-900 px-8 h-12 font-black shadow-xl rounded-2xl text-white">
+                Continue <ChevronRight className="ml-2 h-5 w-5" />
               </Button>
             ) : (
-              <Button
-                onClick={handleSubmit(onSubmit)}
-                disabled={submitting}
-                className="bg-green-600 hover:bg-green-700 px-10 h-14 font-black shadow-xl rounded-2xl text-white transition-all active:scale-95"
-              >
-                {submitting ? (
-                  <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Submitting...</>
-                ) : (
-                  <>Send Request <CheckCircle2 className="ml-3 h-5 w-5" /></>
-                )}
+              <Button onClick={onSubmit} disabled={submitting} className="bg-green-600 hover:bg-green-700 px-8 h-12 font-black shadow-xl rounded-2xl text-white">
+                {submitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</> : <>Submit Request <CheckCircle2 className="ml-2 h-5 w-5" /></>}
               </Button>
             )}
           </div>

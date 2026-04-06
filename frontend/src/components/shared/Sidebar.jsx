@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   Navigation,
   CalendarDays,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
@@ -19,6 +21,7 @@ import { useUserStore } from "@/store/useUserStore";
 const menuItems = [
   { name: "Dashboard",       path: "/dashboard",          icon: LayoutDashboard, roles: ["Staff", "Dispatcher", "Admin"] },
   { name: "Request Vehicle", path: "/requests/new",       icon: ClipboardList,   roles: ["Staff", "Admin"] },
+  { name: "My Requests",     path: "/my-requests",        icon: ClipboardList,   roles: ["Staff", "Admin"] },
   { name: "Approval Queue",  path: "/dispatch/approvals", icon: CheckSquare,     roles: ["Dispatcher", "Admin"] },
   { name: "Fleet Calendar",  path: "/dispatch/calendar",  icon: CalendarDays,    roles: ["Dispatcher", "Admin"] },
   { name: "Manage Fleet",    path: "/fleet",              icon: Car,             roles: ["Dispatcher", "Admin"] },
@@ -30,10 +33,16 @@ const menuItems = [
 export default function Sidebar({ setOpen }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const [darkMode, setDarkMode] = useState(() => document.documentElement.classList.contains("dark"));
   
-  // Get User Data and Logout Function from Zustand Store
   const user = useUserStore((state) => state.user);
   const logout = useUserStore((state) => state.logout);
+
+  const toggleDark = () => {
+    const isDark = document.documentElement.classList.toggle("dark");
+    setDarkMode(isDark);
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+  };
 
   // Filter items based on the user's role. 
   // If no user is logged in, show an empty array to prevent errors.
@@ -111,6 +120,14 @@ export default function Sidebar({ setOpen }) {
               <span className="text-sm">Account Profile</span>
         </Link>
         
+        <button 
+          onClick={toggleDark}
+          className="w-full flex items-center px-4 py-3 hover:bg-white/10 text-white/70 rounded-xl transition-all"
+        >
+          {darkMode ? <Sun className="mr-3 h-5 w-5 text-brand-gold" /> : <Moon className="mr-3 h-5 w-5 text-gray-400" />}
+          <span className="text-sm">{darkMode ? "Light Mode" : "Dark Mode"}</span>
+        </button>
+
         <button 
           onClick={handleLogout}
           className="w-full flex items-center px-4 py-3 hover:bg-red-500/20 text-red-400 rounded-xl transition-all group mt-2"

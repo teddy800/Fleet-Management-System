@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import Login from "./features/auth/Login";
 import RequestWizard from "./features/requests/components/RequestWizard";
+import MyRequests from "./features/requests/MyRequests";
 import ApprovalQueue from "./features/dispatch/ApprovalQueue";
 import FleetCalendar from "./features/dispatch/FleetCalendar";
 import DashboardHome from "./features/dispatch/DashboardHome";
@@ -19,6 +20,7 @@ export default function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardHome />} />
         <Route path="requests/new" element={<RequestWizard />} />
+        <Route path="my-requests" element={<MyRequests />} />
         <Route path="dispatch/approvals" element={<ApprovalQueue />} />
         <Route path="dispatch/calendar" element={<FleetCalendar />} />
         <Route path="profile" element={<Profile />} />

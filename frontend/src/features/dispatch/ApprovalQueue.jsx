@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { tripApi, fleetApi } from "@/lib/api";
+import { tripApi, fleetApi, driverApi } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ const PRIORITY_META = {
 export default function ApprovalQueue() {
   const [requests, setRequests] = useState([]);
   const [vehicles, setVehicles] = useState([]);
+  const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedReq, setSelectedReq] = useState(null);
@@ -42,9 +43,10 @@ export default function ApprovalQueue() {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [reqRes, vehRes] = await Promise.all([tripApi.list(), fleetApi.list()]);
+      const [reqRes, vehRes, drvRes] = await Promise.all([tripApi.list(), fleetApi.list(), driverApi.list()]);
       setRequests(reqRes.trip_requests || []);
       setVehicles((vehRes.vehicles || []).filter(v => v.mesob_status === "available"));
+      setDrivers((drvRes.drivers || []).filter(d => d.active_trips === 0));
     } catch (err) {
       toast.error("Failed to load data: " + err.message);
     } finally {
@@ -299,9 +301,20 @@ export default function ApprovalQueue() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-black text-gray-600 uppercase">Driver ID</label>
-              <Input placeholder="Enter driver employee ID..." value={assignDriver} onChange={e => setAssignDriver(e.target.value)} className="rounded-xl h-11" />
-              <p className="text-xs text-gray-400">Enter the HR employee ID of the assigned driver</p>
+              <label className="text-xs font-black text-gray-600 uppercase">Available Driver</label>
+              <Select onValueChange={setAssignDriver}>
+                <SelectTrigger className="rounded-xl h-11">
+                  <SelectValue placeholder="Select a driver..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {drivers.map(d => (
+                    <SelectItem key={d.id} value={String(d.id)}>
+                      {d.name} {d.license_number ? `— Lic: ${d.license_number}` : ""}
+                    </SelectItem>
+                  ))}
+                  {drivers.length === 0 && <SelectItem value="none" disabled>No available drivers</SelectItem>}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
