@@ -15,8 +15,11 @@ const BREADCRUMBS = {
   "/dispatch/calendar":  ["Dispatch", "Fleet Calendar"],
   "/fleet":              ["Fleet", "Manage Fleet"],
   "/tracking":           ["Fleet", "GPS Tracking"],
+  "/drivers":            ["Fleet", "Drivers"],
   "/fuel-log":           ["Fleet", "Fuel Logs"],
   "/maintenance":        ["Fleet", "Maintenance"],
+  "/alerts":             ["Fleet", "Alerts"],
+  "/analytics":          ["Reports", "Analytics"],
   "/profile":            ["Account", "Profile"],
 };
 

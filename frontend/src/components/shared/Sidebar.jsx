@@ -1,18 +1,8 @@
 import { useState } from "react";
 import { 
-  LayoutDashboard, 
-  Car, 
-  ClipboardList, 
-  CheckSquare, 
-  User, 
-  Fuel, 
-  Gauge, 
-  LogOut,
-  ShieldCheck,
-  Navigation,
-  CalendarDays,
-  Moon,
-  Sun,
+  LayoutDashboard, Car, ClipboardList, CheckSquare, User, Fuel,
+  Gauge, LogOut, ShieldCheck, Navigation, CalendarDays, Moon, Sun,
+  Bell, BarChart3, Users,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
@@ -27,8 +17,11 @@ const menuItems = [
   { name: "Fleet Calendar",  path: "/dispatch/calendar",  icon: CalendarDays,    roles: ["Dispatcher", "Admin"] },
   { name: "Manage Fleet",    path: "/fleet",              icon: Car,             roles: ["Dispatcher", "Admin"] },
   { name: "GPS Tracking",    path: "/tracking",           icon: Navigation,      roles: ["Dispatcher", "Admin"] },
+  { name: "Drivers",         path: "/drivers",            icon: Users,           roles: ["Dispatcher", "Admin"] },
   { name: "Fuel Logs",       path: "/fuel-log",           icon: Fuel,            roles: ["Admin", "Dispatcher"] },
-  { name: "Maintenance",     path: "/maintenance",        icon: Gauge,           roles: ["Admin"] },
+  { name: "Maintenance",     path: "/maintenance",        icon: Gauge,           roles: ["Admin", "Dispatcher"] },
+  { name: "Alerts",          path: "/alerts",             icon: Bell,            roles: ["Admin", "Dispatcher"] },
+  { name: "Analytics",       path: "/analytics",          icon: BarChart3,       roles: ["Admin"] },
 ];
 
 export default function Sidebar({ setOpen }) {
