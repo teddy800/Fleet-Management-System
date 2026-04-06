@@ -9,7 +9,7 @@ _logger = logging.getLogger(__name__)
 
 class FleetAPIController(http.Controller):
     
-    @http.route('/api/fleet/dashboard', type='json', auth='user', methods=['GET'])
+    @http.route('/api/fleet/dashboard', type='json', auth='user', methods=['GET'], cors='*')
     def get_dashboard_data(self):
         """Get comprehensive dashboard data"""
         try:
@@ -28,7 +28,7 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/vehicles', type='json', auth='user', methods=['GET'])
+    @http.route('/api/fleet/vehicles', type='json', auth='user', methods=['GET'], cors='*')
     def get_vehicles(self):
         """Get all vehicles with enhanced data"""
         try:
@@ -65,7 +65,7 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/trip-requests', type='json', auth='user', methods=['POST'])
+    @http.route('/api/fleet/trip-requests', type='json', auth='user', methods=['POST'], cors='*')
     def create_trip_request(self, **kwargs):
         """Create a new trip request"""
         try:
@@ -112,7 +112,7 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/trip-requests/<int:request_id>/approve', type='json', auth='user', methods=['POST'])
+    @http.route('/api/fleet/trip-requests/<int:request_id>/approve', type='json', auth='user', methods=['POST'], cors='*')
     def approve_trip_request(self, request_id):
         """Approve a trip request"""
         try:
@@ -144,7 +144,7 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/trip-requests/<int:request_id>/assign', type='json', auth='user', methods=['POST'])
+    @http.route('/api/fleet/trip-requests/<int:request_id>/assign', type='json', auth='user', methods=['POST'], cors='*')
     def assign_vehicle(self, request_id):
         """Assign vehicle and driver to trip request"""
         try:
@@ -222,7 +222,7 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/vehicles/<int:vehicle_id>/location', type='json', auth='user', methods=['GET'])
+    @http.route('/api/fleet/vehicles/<int:vehicle_id>/location', type='json', auth='user', methods=['GET'], cors='*')
     def get_vehicle_location(self, vehicle_id):
         """Get current location of a specific vehicle"""
         try:
@@ -253,7 +253,7 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/analytics/kpis', type='json', auth='user', methods=['GET'])
+    @http.route('/api/fleet/analytics/kpis', type='json', auth='user', methods=['GET'], cors='*')
     def get_kpis(self):
         """Get key performance indicators"""
         try:
@@ -272,7 +272,7 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/maintenance/predictions', type='json', auth='user', methods=['GET'])
+    @http.route('/api/fleet/maintenance/predictions', type='json', auth='user', methods=['GET'], cors='*')
     def get_maintenance_predictions(self):
         """Get maintenance predictions"""
         try:

@@ -9,7 +9,7 @@ _logger = logging.getLogger(__name__)
 
 class MobileAPIController(http.Controller):
     
-    @http.route('/api/mobile/auth/login', type='json', auth='none', methods=['POST'], csrf=False)
+    @http.route('/api/mobile/auth/login', type='json', auth='none', methods=['POST'], csrf=False, cors='*')
     def mobile_login(self):
         """Mobile authentication endpoint"""
         try:
