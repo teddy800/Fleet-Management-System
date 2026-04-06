@@ -483,3 +483,41 @@ class FleetAPIController(http.Controller):
         except Exception as e:
             _logger.error(f"Maintenance schedules error: {e}")
             return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/trip-requests/<int:request_id>/co-passengers', type='json', auth='user', methods=['GET'], cors='*')
+    def get_co_passengers(self, request_id):
+        """FR-3.3: Get co-passengers sharing the same trip assignment"""
+        try:
+            trip_request = request.env['mesob.trip.request'].browse(request_id)
+            if not trip_request.exists():
+                return {'success': False, 'error': 'Trip request not found'}
+
+            co_passengers = []
+
+            # Find other requests sharing the same trip assignment
+            if trip_request.trip_assignment_id:
+                others = request.env['mesob.trip.request'].search([
+                    ('trip_assignment_id', '=', trip_request.trip_assignment_id.id),
+                    ('id', '!=', request_id),
+                    ('state', 'in', ['approved', 'assigned', 'in_progress']),
+                ])
+                for other in others:
+                    co_passengers.append({
+                        'id': other.id,
+                        'name': other.employee_id.name if other.employee_id else '',
+                        'pickup_location': other.pickup_location,
+                        'pickup_latitude': other.pickup_latitude,
+                        'pickup_longitude': other.pickup_longitude,
+                        'pickup_updated': other.pickup_updated,
+                        'pickup_update_note': other.pickup_update_note or '',
+                    })
+
+            return {
+                'success': True,
+                'trip_id': request_id,
+                'co_passengers': co_passengers,
+                'total': len(co_passengers),
+            }
+        except Exception as e:
+            _logger.error(f"Co-passengers error: {e}")
+            return {'success': False, 'error': str(e)}

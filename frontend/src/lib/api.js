@@ -40,6 +40,8 @@ export const tripApi = {
     request(`/api/fleet/trip-requests/${id}/update-pickup`, {
       method: "POST", body: JSON.stringify({ pickup_location: pickupLocation, note }),
     }),
+  coPassengers: (id) =>
+    request(`/api/fleet/trip-requests/${id}/co-passengers`),
 };
 
 // --- Fleet Vehicles ---
