@@ -27,6 +27,7 @@ export default defineConfig({
     },
   },
   resolve: {
+    conditions: ['style', 'browser', 'module', 'import', 'default'],
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
