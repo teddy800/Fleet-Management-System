@@ -37,9 +37,6 @@ export default function Login() {
     }
   });
 
-  const [apiError, setApiError] = useState(null);
-  const loginUser = useUserStore((state) => state.login);
-
   const onSubmit = async (data) => {
     setApiError(null);
     const result = await loginUser(data.email, data.password);
