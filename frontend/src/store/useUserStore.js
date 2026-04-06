@@ -1,57 +1,55 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { authApi } from '@/lib/api';
 
-export const useUserStore = create((set) => ({
-  user: null,
-  isAuthenticated: false,
-  loginError: null,
+export const useUserStore = create(
+  persist(
+    (set) => ({
+      user: null,
+      isAuthenticated: false,
+      loginError: null,
 
-  // --- ACTIONS ---
+      login: async (username, password) => {
+        set({ loginError: null });
+        try {
+          const data = await authApi.login(username, password);
+          // Map Odoo roles to frontend roles
+          const roles = data.user?.roles || [];
+          let role = "Staff";
+          if (roles.includes("fleet_manager")) role = "Admin";
+          else if (roles.includes("fleet_dispatcher")) role = "Dispatcher";
+          else if (roles.includes("fleet_user")) role = "Staff";
+          else if (roles.includes("driver")) role = "Driver";
 
-  /**
-   * Real Login: Authenticates against Odoo backend
-   * @param {string} email
-   * @param {string} password
-   */
-  login: async (email, password) => {
-    set({ loginError: null });
-    try {
-      const data = await authApi.login(email, password);
-      const userData = {
-        name: data.user?.name || data.name,
-        role: data.user?.role || (data.roles?.[0]) || "Staff",
-        email: data.user?.email || email,
-      };
-      set({ user: userData, isAuthenticated: true });
-      localStorage.setItem("user-role", userData.role);
-      return { success: true };
-    } catch (err) {
-      set({ loginError: err.message });
-      return { success: false, error: err.message };
+          const userData = {
+            id: data.user?.id,
+            name: data.user?.name || username,
+            email: data.user?.email || username,
+            role,
+            employee_id: data.user?.employee_id,
+            is_driver: data.user?.is_driver || false,
+            roles,
+          };
+          set({ user: userData, isAuthenticated: true, loginError: null });
+          return { success: true };
+        } catch (err) {
+          set({ loginError: err.message, isAuthenticated: false });
+          return { success: false, error: err.message };
+        }
+      },
+
+      logout: async () => {
+        try { await authApi.logout(); } catch (_) { /* ignore */ }
+        set({ user: null, isAuthenticated: false, loginError: null });
+      },
+    }),
+    {
+      name: "messob-auth",
+      // Only persist user and isAuthenticated, not loginError
+      partialize: (state) => ({
+        user: state.user,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
-  },
-
-  /**
-   * Developer Helper: Used for the "Quick Login" buttons
-   * @param {string} role - "Staff", "Dispatcher", or "Admin"
-   */
-  loginAsRole: (role) => {
-    const mockUsers = {
-      Staff: { name: "Sumeya (Staff)", role: "Staff", email: "staff@messob.et" },
-      Dispatcher: { name: "Abebe (Dispatcher)", role: "Dispatcher", email: "dispatch@messob.et" },
-      Admin: { name: "Admin User", role: "Admin", email: "admin@messob.et" }
-    };
-    const selectedUser = mockUsers[role] || mockUsers.Staff;
-    set({ user: selectedUser, isAuthenticated: true });
-    localStorage.setItem("user-role", role);
-  },
-
-  /**
-   * Logout: Clears everything
-   */
-  logout: async () => {
-    try { await authApi.logout(); } catch (_) { /* ignore */ }
-    set({ user: null, isAuthenticated: false });
-    localStorage.removeItem("user-role");
-  },
-}));
+  )
+);

@@ -83,7 +83,12 @@ export default function DashboardHome() {
       setLastUpdated(new Date());
       setError(null);
     } catch (err) {
-      setError(err.message);
+      // Don't show error if it's a JSON parse error (module not installed yet)
+      if (!err.message?.includes("JSON")) {
+        setError(err.message);
+      } else {
+        setError("Odoo module not installed. Please install mesob_fleet_customizations in Odoo.");
+      }
     } finally {
       setLoading(false);
     }
@@ -135,8 +140,14 @@ export default function DashboardHome() {
       </div>
 
       {error && !data && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
-          {error} — Showing cached data if available.
+        <div className="bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
+          <span className="text-amber-500 font-black mt-0.5">⚠</span>
+          <div>
+            <p className="font-bold">Backend not connected</p>
+            <p className="text-xs mt-0.5 text-amber-700">
+              Install the Odoo module: go to <strong>http://localhost:8069</strong> → Apps → search "Mesob Fleet" → Install
+            </p>
+          </div>
         </div>
       )}
 
