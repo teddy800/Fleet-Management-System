@@ -7,21 +7,14 @@ import { useUserStore } from "@/store/useUserStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, Lock, Mail, Car, MapPin, Gauge, Users } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
 
 const loginSchema = z.object({
-  email: z.string().min(1, "Email or username is required"),
+  email: z.string().min(1, "Username or email is required"),
   password: z.string().min(1, "Password is required"),
 });
-
-const FEATURES = [
-  { icon: Car, label: "Fleet Management", desc: "Track and manage your entire vehicle fleet" },
-  { icon: MapPin, label: "Real-Time GPS", desc: "Live vehicle tracking and route monitoring" },
-  { icon: Gauge, label: "Analytics", desc: "KPIs, fuel efficiency, and cost analysis" },
-  { icon: Users, label: "Driver Management", desc: "Assignments, performance, and scheduling" },
-];
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -45,80 +38,48 @@ export default function Login() {
   };
 
   return (
-    <div className="h-screen w-screen flex overflow-hidden bg-white">
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex lg:w-[45%] bg-brand-blue flex-col justify-between p-10 relative overflow-hidden h-full">
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-white" />
-          <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-brand-gold" />
-          <div className="absolute top-1/2 left-1/3 w-32 h-32 rounded-full bg-white" />
-        </div>
+    <div
+      className="fixed inset-0 flex items-center justify-center bg-brand-blue"
+      style={{
+        backgroundImage: `radial-gradient(ellipse at 20% 50%, rgba(255,255,255,0.08) 0%, transparent 60%),
+                          radial-gradient(ellipse at 80% 20%, rgba(251,191,36,0.12) 0%, transparent 50%)`,
+      }}
+    >
+      {/* Decorative circles */}
+      <div className="absolute top-[-80px] left-[-80px] w-80 h-80 rounded-full bg-white/5 pointer-events-none" />
+      <div className="absolute bottom-[-100px] right-[-60px] w-96 h-96 rounded-full bg-brand-gold/10 pointer-events-none" />
 
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-16">
-            <div className="bg-white p-2 rounded-2xl shadow-lg">
-              <img src={logo} alt="MESSOB" className="h-10 w-10 object-contain rounded-xl" />
-            </div>
-            <div>
-              <h1 className="text-white font-black text-xl tracking-tight">MESSOB-FMS</h1>
-              <p className="text-white/60 text-xs">Fleet Management System</p>
-            </div>
+      {/* Login Card */}
+      <div className="relative z-10 w-full max-w-md mx-4">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="bg-white p-3 rounded-3xl shadow-2xl mb-4 border-4 border-white/20">
+            <img src={logo} alt="MESSOB" className="h-16 w-16 object-contain rounded-2xl" />
           </div>
-
-          <h2 className="text-white font-black text-4xl leading-tight mb-4">
-            Manage your fleet<br />
-            <span className="text-brand-gold">smarter, faster.</span>
-          </h2>
-          <p className="text-white/70 text-base leading-relaxed max-w-sm">
-            A complete fleet management solution for MESSOB — from trip requests to real-time GPS tracking.
-          </p>
+          <h1 className="text-white font-black text-2xl tracking-tight">MESSOB-FMS</h1>
+          <p className="text-white/60 text-sm mt-1">Fleet Management System</p>
         </div>
 
-        <div className="relative z-10 grid grid-cols-2 gap-4">
-          {FEATURES.map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/10">
-              <div className="w-8 h-8 rounded-xl bg-brand-gold/20 flex items-center justify-center mb-2">
-                <Icon className="h-4 w-4 text-brand-gold" />
-              </div>
-              <p className="text-white font-bold text-sm">{label}</p>
-              <p className="text-white/50 text-xs mt-0.5">{desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Right panel — login form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-white h-full overflow-y-auto">
-        <div className="w-full max-w-sm">
-          {/* Mobile logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="bg-brand-blue p-2 rounded-2xl">
-              <img src={logo} alt="MESSOB" className="h-8 w-8 object-contain rounded-xl" />
-            </div>
-            <div>
-              <h1 className="text-brand-blue font-black text-lg">MESSOB-FMS</h1>
-              <p className="text-gray-400 text-xs">Fleet Management System</p>
-            </div>
-          </div>
-
-          <div className="mb-8">
-            <h2 className="text-3xl font-black text-gray-900">Welcome back</h2>
-            <p className="text-gray-500 mt-1.5 text-sm">Sign in to your MESSOB account to continue</p>
+        {/* Card */}
+        <div className="bg-white rounded-3xl shadow-2xl p-8">
+          <div className="mb-6">
+            <h2 className="text-2xl font-black text-gray-900">Welcome back</h2>
+            <p className="text-gray-500 mt-1 text-sm">Sign in to your MESSOB account</p>
           </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            {/* Email/Username */}
+            {/* Username */}
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-bold text-gray-700">
-                Email or Username
+                Username or Email
               </Label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-400" />
                 <Input
                   id="email"
                   type="text"
-                  placeholder="admin or name@messob.et"
+                  placeholder="admin"
+                  autoComplete="username"
                   {...register("email")}
                   className={cn(
                     "pl-10 h-12 border-2 rounded-xl text-sm transition-all bg-gray-50 focus:bg-white",
@@ -126,35 +87,50 @@ export default function Login() {
                   )}
                 />
               </div>
-              {errors.email && <p className="text-xs text-red-500 font-medium">{errors.email.message}</p>}
+              {errors.email && (
+                <p className="text-xs text-red-500 font-medium flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" /> {errors.email.message}
+                </p>
+              )}
             </div>
 
             {/* Password */}
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm font-bold text-gray-700">Password</Label>
+              <Label htmlFor="password" className="text-sm font-bold text-gray-700">
+                Password
+              </Label>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3.5 h-4 w-4 text-gray-400" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   {...register("password")}
                   className={cn(
                     "pl-10 pr-10 h-12 border-2 rounded-xl text-sm transition-all bg-gray-50 focus:bg-white",
                     errors.password ? "border-red-400" : "border-gray-200 focus:border-brand-blue"
                   )}
                 />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-3.5 text-gray-400 hover:text-gray-600">
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
+                >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.password && <p className="text-xs text-red-500 font-medium">{errors.password.message}</p>}
+              {errors.password && (
+                <p className="text-xs text-red-500 font-medium flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" /> {errors.password.message}
+                </p>
+              )}
             </div>
 
             {/* API Error */}
             {apiError && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 font-medium">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 font-medium flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
                 {apiError}
               </div>
             )}
@@ -163,28 +139,25 @@ export default function Login() {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-12 bg-brand-blue hover:bg-blue-800 text-white font-bold rounded-xl text-sm shadow-lg transition-all active:scale-[0.98] mt-2"
+              className="w-full h-12 bg-brand-blue hover:bg-blue-800 text-white font-black rounded-xl text-sm shadow-lg transition-all active:scale-[0.98]"
             >
               {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Signing in...
                 </span>
-              ) : "Sign In →"}
+              ) : "Sign In"}
             </Button>
           </form>
 
-          {/* Divider with hint */}
-          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-            <p className="text-xs text-gray-400">
-              Use your Odoo admin credentials to sign in
-            </p>
-          </div>
-
-          <p className="text-center text-xs text-gray-300 mt-4">
-            &copy; {new Date().getFullYear()} MESSOB Center Logistics
+          <p className="text-center text-xs text-gray-400 mt-6">
+            Use your Odoo credentials (e.g. username: <strong>admin</strong>)
           </p>
         </div>
+
+        <p className="text-center text-xs text-white/30 mt-6">
+          &copy; {new Date().getFullYear()} MESSOB Center Logistics
+        </p>
       </div>
     </div>
   );
