@@ -3,56 +3,28 @@ import {
   Car, 
   ClipboardList, 
   CheckSquare, 
-  Settings, 
   User, 
   Fuel, 
   Gauge, 
   LogOut,
-  ShieldCheck
+  ShieldCheck,
+  Navigation,
+  CalendarDays,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
 import { useUserStore } from "@/store/useUserStore";
 
-// The Master Menu List with Role-Based Access Control (RBAC)
 const menuItems = [
-  { 
-    name: "Dashboard", 
-    path: "/dashboard", 
-    icon: LayoutDashboard, 
-    roles: ["Staff", "Dispatcher", "Admin"] 
-  },
-  { 
-    name: "Request Vehicle", 
-    path: "/requests/new", 
-    icon: ClipboardList, 
-    roles: ["Staff", "Admin"] 
-  },
-  { 
-    name: "Approval Queue", 
-    path: "/dispatch/approvals", 
-    icon: CheckSquare, 
-    roles: ["Dispatcher", "Admin"] 
-  },
-  { 
-    name: "Manage Fleet", 
-    path: "/fleet", 
-    icon: Car, 
-    roles: ["Dispatcher", "Admin"] 
-  },
-  { 
-    name: "Fuel Logs", 
-    path: "/fuel-log", 
-    icon: Fuel, 
-    roles: ["Admin", "Dispatcher"] 
-  },
-  { 
-    name: "Maintenance", 
-    path: "/maintenance", 
-    icon: Gauge, 
-    roles: ["Admin"] 
-  }
+  { name: "Dashboard",       path: "/dashboard",          icon: LayoutDashboard, roles: ["Staff", "Dispatcher", "Admin"] },
+  { name: "Request Vehicle", path: "/requests/new",       icon: ClipboardList,   roles: ["Staff", "Admin"] },
+  { name: "Approval Queue",  path: "/dispatch/approvals", icon: CheckSquare,     roles: ["Dispatcher", "Admin"] },
+  { name: "Fleet Calendar",  path: "/dispatch/calendar",  icon: CalendarDays,    roles: ["Dispatcher", "Admin"] },
+  { name: "Manage Fleet",    path: "/fleet",              icon: Car,             roles: ["Dispatcher", "Admin"] },
+  { name: "GPS Tracking",    path: "/tracking",           icon: Navigation,      roles: ["Dispatcher", "Admin"] },
+  { name: "Fuel Logs",       path: "/fuel-log",           icon: Fuel,            roles: ["Admin", "Dispatcher"] },
+  { name: "Maintenance",     path: "/maintenance",        icon: Gauge,           roles: ["Admin"] },
 ];
 
 export default function Sidebar({ setOpen }) {
