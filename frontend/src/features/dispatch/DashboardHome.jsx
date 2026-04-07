@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { analyticsApi } from "@/lib/api";
+import { analyticsApi, tripApi } from "@/lib/api";
 import { useUserStore } from "@/store/useUserStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +82,9 @@ export default function DashboardHome() {
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
+  const [myRequests, setMyRequests] = useState([]);
+  const [myRequestsLoading, setMyRequestsLoading] = useState(false);
+
   const fetchDashboard = useCallback(async () => {
     try {
       const res = await analyticsApi.dashboard();
@@ -100,11 +103,25 @@ export default function DashboardHome() {
     }
   }, []);
 
+  const fetchMyRequests = useCallback(async () => {
+    if (user?.role !== "Staff" && user?.role !== "Driver") return;
+    setMyRequestsLoading(true);
+    try {
+      const res = await tripApi.listMine();
+      setMyRequests(res.trip_requests || []);
+    } catch (_) {
+      setMyRequests([]);
+    } finally {
+      setMyRequestsLoading(false);
+    }
+  }, [user?.role]);
+
   useEffect(() => {
     fetchDashboard();
+    fetchMyRequests();
     const interval = setInterval(fetchDashboard, 60000);
     return () => clearInterval(interval);
-  }, [fetchDashboard]);
+  }, [fetchDashboard, fetchMyRequests]);
 
   const fleet = data?.fleet_overview;
   const trips = data?.trip_statistics;
@@ -116,6 +133,7 @@ export default function DashboardHome() {
   const predictive = data?.predictive_insights;
 
   const isAdmin = user?.role === "Admin" || user?.role === "Dispatcher";
+  const isStaffOrDriver = user?.role === "Staff" || user?.role === "Driver";
 
   return (
     <div className="space-y-6 pb-8">
@@ -157,6 +175,65 @@ export default function DashboardHome() {
         </div>
       )}
 
+      {/* Staff / Driver simplified view */}
+      {isStaffOrDriver && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: "My Requests", value: myRequests.length, color: "text-brand-blue", bg: "bg-white border" },
+              { label: "Pending", value: myRequests.filter(r => r.state === "pending").length, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-100" },
+              { label: "Active", value: myRequests.filter(r => ["approved","assigned","in_progress"].includes(r.state)).length, color: "text-green-600", bg: "bg-green-50 border-green-100" },
+            ].map(s => (
+              <div key={s.label} className={`${s.bg} rounded-2xl p-4 text-center shadow-sm`}>
+                <p className="text-xs text-gray-500 uppercase font-bold">{s.label}</p>
+                <p className={`text-2xl font-black mt-1 ${s.color}`}>
+                  {myRequestsLoading ? <span className="inline-block w-8 h-6 bg-gray-100 animate-pulse rounded" /> : s.value}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="bg-white rounded-2xl border shadow-sm p-5 space-y-3">
+            <p className="text-xs font-black text-brand-blue uppercase tracking-widest">Recent Requests</p>
+            {myRequestsLoading ? (
+              <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 animate-pulse rounded-xl" />)}</div>
+            ) : myRequests.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-gray-400 text-sm">No requests yet</p>
+                <Link to="/requests/new" className="text-brand-blue text-sm font-bold hover:underline mt-1 block">Create your first request →</Link>
+              </div>
+            ) : myRequests.slice(0, 5).map(req => {
+              const STATE_COLORS = { pending: "bg-yellow-100 text-yellow-800", approved: "bg-green-100 text-green-800", assigned: "bg-blue-100 text-blue-800", in_progress: "bg-purple-100 text-purple-800", completed: "bg-teal-100 text-teal-800", rejected: "bg-red-100 text-red-800", cancelled: "bg-gray-100 text-gray-500" };
+              return (
+                <div key={req.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold text-brand-blue truncate">{req.name || `#${req.id}`}</p>
+                    <p className="text-xs text-gray-500 truncate">{req.pickup_location} → {req.destination_location}</p>
+                  </div>
+                  <span className={`ml-3 text-xs font-bold px-2 py-1 rounded-full capitalize shrink-0 ${STATE_COLORS[req.state] || "bg-gray-100 text-gray-600"}`}>
+                    {req.state?.replace("_", " ")}
+                  </span>
+                </div>
+              );
+            })}
+            {myRequests.length > 0 && (
+              <Link to="/my-requests" className="block text-center text-xs text-brand-blue font-bold hover:underline pt-1">View all requests →</Link>
+            )}
+          </div>
+          <div className="bg-brand-blue rounded-2xl p-5 text-white">
+            <p className="text-xs font-black text-brand-gold uppercase tracking-widest mb-3">Quick Actions</p>
+            <Link to="/requests/new" className="flex items-center gap-2 w-full bg-brand-gold hover:bg-yellow-400 text-brand-blue py-2.5 px-4 rounded-xl text-sm font-bold transition-colors">
+              <Clock className="h-4 w-4" /> New Trip Request
+            </Link>
+            <Link to="/my-requests" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold transition-colors mt-2">
+              <CheckCircle2 className="h-4 w-4 text-brand-gold" /> View My Requests
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Admin / Dispatcher full fleet view */}
+      {!isStaffOrDriver && (
+      <>
       {/* Primary KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
         <StatCard title="Total Fleet" value={fleet?.total_vehicles} subtitle={`${fleet?.available_vehicles ?? "—"} available`} icon={Car} gradient="gradient-card-blue" iconBg="bg-brand-blue/10" iconColor="text-brand-blue" loading={loading} />
@@ -408,6 +485,8 @@ export default function DashboardHome() {
             </div>
           </CardContent>
         </Card>
+      )}
+      </>
       )}
     </div>
   );

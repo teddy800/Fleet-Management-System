@@ -84,6 +84,19 @@ export const driverApi = {
   list: () => request("/api/fleet/drivers"),
 };
 
+// --- Driver mobile (for Driver role) ---
+export const driverMobileApi = {
+  assignments: () => request("/api/mobile/driver/assignments"),
+  startTrip: (assignmentId) =>
+    request(`/api/mobile/trip/${assignmentId}/start`, { method: "POST", body: JSON.stringify({}) }),
+  completeTrip: (assignmentId, payload) =>
+    request(`/api/mobile/trip/${assignmentId}/complete`, { method: "POST", body: JSON.stringify(payload) }),
+  updateLocation: (assignmentId, latitude, longitude, speed = 0, heading = 0, accuracy = 0) =>
+    request(`/api/mobile/trip/${assignmentId}/update-location`, {
+      method: "POST", body: JSON.stringify({ latitude, longitude, speed, heading, accuracy }),
+    }),
+};
+
 // --- Fuel Logs ---
 export const fuelApi = {
   list: () => request("/api/fleet/fuel-logs"),
