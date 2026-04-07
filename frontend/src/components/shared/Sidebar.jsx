@@ -39,10 +39,12 @@ export default function Sidebar({ setOpen }) {
   };
 
   // Filter items based on the user's role. 
-  // If no user is logged in, show an empty array to prevent errors.
-  const filteredMenu = menuItems.filter(item => 
-    user?.role ? item.roles.includes(user.role) : false
-  );
+  // Admin sees everything. If no role, show all (handles admin users without fleet groups).
+  const filteredMenu = menuItems.filter(item => {
+    if (!user?.role) return false;
+    if (user.role === "Admin") return true; // Admin sees all
+    return item.roles.includes(user.role);
+  });
 
   const handleLogout = () => {
     logout();

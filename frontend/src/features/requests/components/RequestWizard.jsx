@@ -29,7 +29,7 @@ import { tripApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
-const BG_URL = "https://www.ena.et/o/adaptive-media/image/6826100/Preview-1000x0/Moseb%20ethiopian%20service.jpg";
+const BG_URL = null; // Use gradient background instead of external image
 
 const VEHICLE_CATEGORIES = [
   { value: "sedan",     label: "Sedan" },
@@ -147,9 +147,12 @@ export default function RequestWizard() {
   const stepIcons = [Car, CalendarIcon, MapPin, CheckCircle2];
 
   return (
-    <div className="relative -m-4 md:-m-8 min-h-screen overflow-hidden bg-brand-blue">
-      <div className="absolute inset-0 z-0" style={{ backgroundImage: `url(${BG_URL})`, backgroundSize: "cover", backgroundPosition: "center" }}>
-        <div className="absolute inset-0 backdrop-blur-[2px]" />
+    <div className="relative -m-4 md:-m-8 min-h-screen overflow-hidden bg-brand-blue"
+      style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #1e40af 40%, #1d4ed8 70%, #0f172a 100%)" }}>
+      <div className="absolute inset-0 z-0 opacity-20">
+        <div className="absolute top-10 left-10 w-64 h-64 rounded-full bg-brand-gold blur-3xl" />
+        <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-blue-400 blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 w-48 h-48 rounded-full bg-white blur-3xl" />
       </div>
 
       <div className="relative z-10 max-w-3xl mx-auto py-12 px-4">

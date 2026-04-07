@@ -13,13 +13,24 @@ export const useUserStore = create(
         set({ loginError: null });
         try {
           const data = await authApi.login(username, password);
-          // Map Odoo roles to frontend roles
           const roles = data.user?.roles || [];
+          
+          // Role priority: fleet_manager > fleet_dispatcher > fleet_user > driver
+          // If no fleet roles (module not installed or admin user), check if admin
           let role = "Staff";
-          if (roles.includes("fleet_manager")) role = "Admin";
-          else if (roles.includes("fleet_dispatcher")) role = "Dispatcher";
-          else if (roles.includes("fleet_user")) role = "Staff";
-          else if (roles.includes("driver")) role = "Driver";
+          if (roles.includes("fleet_manager")) {
+            role = "Admin";
+          } else if (roles.includes("fleet_dispatcher")) {
+            role = "Dispatcher";
+          } else if (roles.includes("fleet_user")) {
+            role = "Staff";
+          } else if (roles.includes("driver")) {
+            role = "Driver";
+          } else if (roles.length === 0) {
+            // No fleet groups — likely Odoo admin or module not installed
+            // Give admin access so they can manage the system
+            role = "Admin";
+          }
 
           const userData = {
             id: data.user?.id,
