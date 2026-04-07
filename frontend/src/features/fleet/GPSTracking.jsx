@@ -15,7 +15,6 @@ import {
   AlertCircle, CheckCircle2, Edit3, Clock, Users,
 } from "lucide-react";
 import { toast } from "sonner";
-import { tripApi as tripApiFull } from "@/lib/api";
 
 const STATUS_DOT = {
   available:   "bg-green-500",
@@ -87,7 +86,7 @@ function CoPassengerPanel({ tripId }) {
 
   useEffect(() => {
     if (!tripId) return;
-    tripApiFull.coPassengers(tripId)
+    tripApi.coPassengers(tripId)
       .then(res => setCoPassengers(res.co_passengers || []))
       .catch(() => setCoPassengers([]))
       .finally(() => setLoading(false));
