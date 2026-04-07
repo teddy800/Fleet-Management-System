@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, Car, ClipboardList, CheckSquare, User, Fuel,
   Gauge, LogOut, ShieldCheck, Navigation, CalendarDays, Moon, Sun,
-  Bell, BarChart3, Users, Sparkles,
+  Bell, BarChart3, Users,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
