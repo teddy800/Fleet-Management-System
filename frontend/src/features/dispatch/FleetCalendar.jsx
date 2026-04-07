@@ -16,10 +16,13 @@ const STATUS_COLORS = {
   unavailable: "bg-gray-100 text-gray-500 border-gray-200",
 };
 
-const TRIP_COLORS = [
-  "bg-blue-400", "bg-purple-400", "bg-teal-400",
-  "bg-indigo-400", "bg-cyan-400", "bg-violet-400",
-];
+const TRIP_STATE_COLORS = {
+  pending:     "bg-yellow-400 text-yellow-900",
+  approved:    "bg-blue-500 text-white",
+  assigned:    "bg-indigo-500 text-white",
+  in_progress: "bg-green-500 text-white",
+  completed:   "bg-gray-400 text-white",
+};
 
 function getWeekDays(startDate) {
   return Array.from({ length: 7 }, (_, i) => {
@@ -83,13 +86,13 @@ export default function FleetCalendar() {
 
   // Map vehicle id → trips
   const tripsByVehicle = {};
-  trips.forEach((trip, idx) => {
+  trips.forEach((trip) => {
     if (!trip.assigned_vehicle) return;
-    // match by name since we only have name from API
     const vehicle = vehicles.find(v => v.name === trip.assigned_vehicle);
     if (!vehicle) return;
     if (!tripsByVehicle[vehicle.id]) tripsByVehicle[vehicle.id] = [];
-    tripsByVehicle[vehicle.id].push({ ...trip, _color: TRIP_COLORS[idx % TRIP_COLORS.length] });
+    const stateColor = TRIP_STATE_COLORS[trip.state] || "bg-blue-400 text-white";
+    tripsByVehicle[vehicle.id].push({ ...trip, _color: stateColor });
   });
 
   return (
@@ -183,7 +186,7 @@ export default function FleetCalendar() {
                             <div className="space-y-0.5">
                               {dayTrips.map(trip => (
                                 <div key={trip.id} title={`${trip.name}: ${trip.pickup_location} → ${trip.destination_location}`}
-                                  className={`mx-auto w-full h-7 rounded ${trip._color} flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity`}>
+                                  className={`mx-auto w-full h-7 rounded ${trip._color} flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity animate-scale-in`}>
                                   <span className="text-[9px] font-black text-white truncate px-1">{trip.name || `#${trip.id}`}</span>
                                 </div>
                               ))}

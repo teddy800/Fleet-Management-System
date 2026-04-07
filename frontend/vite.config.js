@@ -13,16 +13,44 @@ export default defineConfig({
         target: 'http://localhost:8069',
         changeOrigin: true,
         secure: false,
+        cookieDomainRewrite: "localhost",
+        cookiePathRewrite: { "*": "/" },
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            const setCookie = proxyRes.headers['set-cookie'];
+            if (setCookie) {
+              proxyRes.headers['set-cookie'] = setCookie.map(c =>
+                c.replace(/; SameSite=None/gi, '; SameSite=Lax')
+                 .replace(/; Secure/gi, '')
+              );
+            }
+          });
+        },
       },
       '/web': {
         target: 'http://localhost:8069',
         changeOrigin: true,
         secure: false,
+        cookieDomainRewrite: "localhost",
+        cookiePathRewrite: { "*": "/" },
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            const setCookie = proxyRes.headers['set-cookie'];
+            if (setCookie) {
+              proxyRes.headers['set-cookie'] = setCookie.map(c =>
+                c.replace(/; SameSite=None/gi, '; SameSite=Lax')
+                 .replace(/; Secure/gi, '')
+              );
+            }
+          });
+        },
       },
       '/webhook': {
         target: 'http://localhost:8069',
         changeOrigin: true,
         secure: false,
+        cookieDomainRewrite: "localhost",
+        cookiePathRewrite: { "*": "/" },
       },
     },
   },

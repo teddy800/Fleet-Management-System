@@ -21,10 +21,10 @@ const STATE_META = {
 };
 
 const PRIORITY_META = {
-  urgent: "text-red-600 bg-red-50 border border-red-200",
-  high:   "text-orange-600 bg-orange-50 border border-orange-200",
-  normal: "text-gray-600 bg-gray-50 border border-gray-200",
-  low:    "text-blue-600 bg-blue-50 border border-blue-200",
+  urgent: { cls: "text-red-700 bg-red-50 border border-red-200",    row: "priority-urgent", dot: "bg-red-500" },
+  high:   { cls: "text-orange-700 bg-orange-50 border border-orange-200", row: "priority-high", dot: "bg-orange-500" },
+  normal: { cls: "text-gray-600 bg-gray-50 border border-gray-200", row: "priority-normal", dot: "bg-blue-400" },
+  low:    { cls: "text-blue-600 bg-blue-50 border border-blue-200", row: "priority-low",    dot: "bg-gray-400" },
 };
 
 export default function ApprovalQueue() {
@@ -158,7 +158,7 @@ export default function ApprovalQueue() {
             ) : filtered.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center py-16 text-gray-400 text-sm">No requests found</TableCell></TableRow>
             ) : filtered.map(req => (
-              <TableRow key={req.id} className="hover:bg-gray-50 transition-colors">
+              <TableRow key={req.id} className={`hover:bg-gray-50/80 transition-colors ${PRIORITY_META[req.priority]?.row || ""}`}>
                 <TableCell>
                   <p className="font-bold text-sm text-brand-blue">{req.name || `#${req.id}`}</p>
                   <p className="text-xs text-gray-400 capitalize">{req.trip_type?.replace("_", " ")}</p>
@@ -172,9 +172,12 @@ export default function ApprovalQueue() {
                   {req.start_datetime ? new Date(req.start_datetime).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—"}
                 </TableCell>
                 <TableCell>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize ${PRIORITY_META[req.priority] || ""}`}>
-                    {req.priority}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${PRIORITY_META[req.priority]?.dot || "bg-gray-400"}`} />
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize ${PRIORITY_META[req.priority]?.cls || ""}`}>
+                      {req.priority}
+                    </span>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge className={`text-xs border ${STATE_META[req.state]?.cls || "bg-gray-100"}`}>
@@ -188,7 +191,7 @@ export default function ApprovalQueue() {
                     </Button>
                     {req.state === "pending" && (
                       <>
-                        <Button size="sm" className="h-8 rounded-lg text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => { setSelectedReq(req); setMode("approve"); handleApproveImmediate(req); }}>
+                        <Button size="sm" className="h-8 rounded-lg text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => handleApproveImmediate(req)}>
                           <CheckCircle className="h-3.5 w-3.5" />
                         </Button>
                         <Button size="sm" className="h-8 rounded-lg text-xs bg-red-600 hover:bg-red-700 text-white" onClick={() => { setSelectedReq(req); setMode("reject"); }}>

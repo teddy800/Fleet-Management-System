@@ -9,8 +9,47 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Search, RefreshCw, Loader2, CheckCircle2, AlertCircle, Car } from "lucide-react";
+import { Users, Search, RefreshCw, Loader2, CheckCircle2, AlertCircle, Car, Shield } from "lucide-react";
 import { toast } from "sonner";
+
+const AVATAR_COLORS = [
+  "bg-blue-500", "bg-purple-500", "bg-teal-500", "bg-indigo-500",
+  "bg-pink-500", "bg-orange-500", "bg-green-600", "bg-red-500",
+];
+
+function getAvatarColor(name) {
+  let hash = 0;
+  for (let i = 0; i < (name?.length || 0); i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function LicenseExpiryBar({ expiry }) {
+  if (!expiry) return <span className="text-gray-300 text-xs">—</span>;
+  const now = new Date();
+  const exp = new Date(expiry);
+  const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+  const expired = daysLeft <= 0;
+  const critical = daysLeft > 0 && daysLeft <= 30;
+  const warning = daysLeft > 30 && daysLeft <= 90;
+
+  const barColor = expired ? "bg-red-500" : critical ? "bg-orange-500" : warning ? "bg-yellow-500" : "bg-green-500";
+  const textColor = expired ? "text-red-600" : critical ? "text-orange-600" : warning ? "text-yellow-600" : "text-green-600";
+  const pct = expired ? 100 : Math.max(0, Math.min(100, (1 - daysLeft / 365) * 100));
+
+  return (
+    <div className="space-y-1 min-w-[120px]">
+      <div className="flex justify-between items-center">
+        <span className={`text-xs font-bold ${textColor}`}>
+          {expired ? "Expired" : `${daysLeft}d left`}
+        </span>
+        <span className="text-[10px] text-gray-400">{exp.toLocaleDateString("en-GB")}</span>
+      </div>
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className={`h-full ${barColor} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
 
 export default function Drivers() {
   const [drivers, setDrivers] = useState([]);
@@ -38,17 +77,11 @@ export default function Drivers() {
 
   const available = drivers.filter(d => d.active_trips === 0).length;
   const onTrip = drivers.filter(d => d.active_trips > 0).length;
-
-  const isLicenseExpiringSoon = (expiry) => {
-    if (!expiry) return false;
-    const days = (new Date(expiry) - new Date()) / (1000 * 60 * 60 * 24);
-    return days <= 30 && days > 0;
-  };
-
-  const isLicenseExpired = (expiry) => {
-    if (!expiry) return false;
-    return new Date(expiry) < new Date();
-  };
+  const expiringSoon = drivers.filter(d => {
+    if (!d.license_expiry) return false;
+    const days = (new Date(d.license_expiry) - new Date()) / (1000 * 60 * 60 * 24);
+    return days <= 30;
+  }).length;
 
   return (
     <div className="space-y-5 pb-8">
@@ -63,23 +96,24 @@ export default function Drivers() {
             <p className="text-sm text-gray-400">{drivers.length} registered drivers</p>
           </div>
         </div>
-        <button onClick={fetchDrivers} className="p-2 rounded-xl border bg-white hover:bg-gray-50 shadow-sm">
+        <button onClick={fetchDrivers} className="p-2 rounded-xl border bg-white hover:bg-gray-50 shadow-sm transition-colors">
           <RefreshCw className={`h-4 w-4 text-gray-500 ${loading ? "animate-spin" : ""}`} />
         </button>
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 stagger-children">
         {[
-          { label: "Total Drivers", value: drivers.length, color: "text-brand-blue", bg: "bg-white" },
-          { label: "Available", value: available, color: "text-green-600", bg: "bg-green-50" },
-          { label: "On Trip", value: onTrip, color: "text-blue-600", bg: "bg-blue-50" },
+          { label: "Total Drivers", value: drivers.length, color: "text-brand-blue", bg: "bg-white border" },
+          { label: "Available", value: available, color: "text-green-600", bg: "gradient-card-green border-green-100" },
+          { label: "On Trip", value: onTrip, color: "text-blue-600", bg: "gradient-card-blue border-blue-100" },
+          { label: "License Alert", value: expiringSoon, color: "text-orange-600", bg: expiringSoon > 0 ? "gradient-card-amber border-amber-100" : "bg-white border" },
         ].map(s => (
-          <Card key={s.label} className={`border-0 shadow-sm ${s.bg}`}>
+          <Card key={s.label} className={`border shadow-sm animate-fade-in-up ${s.bg}`}>
             <CardContent className="p-4 text-center">
-              <p className="text-xs text-gray-500 uppercase font-bold">{s.label}</p>
+              <p className="text-xs text-gray-500 uppercase font-black tracking-widest">{s.label}</p>
               <p className={`text-2xl font-black mt-1 ${s.color}`}>
-                {loading ? <span className="inline-block w-8 h-6 bg-gray-100 animate-pulse rounded" /> : s.value}
+                {loading ? <span className="inline-block w-8 h-6 shimmer rounded" /> : s.value}
               </p>
             </CardContent>
           </Card>
@@ -114,43 +148,44 @@ export default function Drivers() {
                 </TableCell>
               </TableRow>
             ) : filtered.map(d => {
-              const expired = isLicenseExpired(d.license_expiry);
-              const expiringSoon = isLicenseExpiringSoon(d.license_expiry);
+              const avatarColor = getAvatarColor(d.name);
+              const isOnTrip = d.active_trips > 0;
               return (
-                <TableRow key={d.id} className="hover:bg-gray-50 transition-colors">
+                <TableRow key={d.id} className="hover:bg-gray-50/80 transition-colors">
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-brand-blue flex items-center justify-center text-white text-xs font-black">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-9 h-9 rounded-full ${avatarColor} flex items-center justify-center text-white text-sm font-black shadow-sm shrink-0`}>
                         {d.name?.charAt(0)?.toUpperCase()}
                       </div>
-                      <span className="font-bold text-sm text-gray-800">{d.name}</span>
+                      <div>
+                        <p className="font-bold text-sm text-gray-800">{d.name}</p>
+                        {isOnTrip && <p className="text-[10px] text-blue-500 font-bold">Currently on trip</p>}
+                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell className="font-mono text-sm text-gray-600">{d.license_number || "—"}</TableCell>
-                  <TableCell>
-                    {d.license_expiry ? (
-                      <span className={`text-sm font-medium ${expired ? "text-red-600" : expiringSoon ? "text-orange-600" : "text-gray-600"}`}>
-                        {new Date(d.license_expiry).toLocaleDateString("en-GB")}
-                        {expired && " (Expired)"}
-                        {expiringSoon && " (Expiring soon)"}
-                      </span>
-                    ) : <span className="text-gray-300 text-sm">—</span>}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <Car className={`h-3.5 w-3.5 ${d.active_trips > 0 ? "text-blue-500" : "text-gray-300"}`} />
+                      <Shield className="h-3.5 w-3.5 text-gray-400" />
+                      <span className="font-mono text-sm text-gray-600">{d.license_number || "—"}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <LicenseExpiryBar expiry={d.license_expiry} />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <Car className={`h-3.5 w-3.5 ${isOnTrip ? "text-blue-500" : "text-gray-300"}`} />
                       <span className="text-sm font-bold">{d.active_trips}</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    {d.active_trips > 0 ? (
-                      <Badge className="bg-blue-100 text-blue-700 text-xs">On Trip</Badge>
-                    ) : expired ? (
-                      <Badge className="bg-red-100 text-red-700 text-xs flex items-center gap-1 w-fit">
-                        <AlertCircle className="h-3 w-3" /> License Expired
+                    {isOnTrip ? (
+                      <Badge className="bg-blue-100 text-blue-700 text-xs border border-blue-200 flex items-center gap-1 w-fit">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                        On Trip
                       </Badge>
                     ) : (
-                      <Badge className="bg-green-100 text-green-700 text-xs flex items-center gap-1 w-fit">
+                      <Badge className="bg-green-100 text-green-700 text-xs border border-green-200 flex items-center gap-1 w-fit">
                         <CheckCircle2 className="h-3 w-3" /> Available
                       </Badge>
                     )}
@@ -164,3 +199,4 @@ export default function Drivers() {
     </div>
   );
 }
+

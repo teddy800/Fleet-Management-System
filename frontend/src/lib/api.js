@@ -1,12 +1,41 @@
-const BASE_URL = ""  // Empty = use Vite proxy (same origin, no CORS);
+const BASE_URL = "";  // Empty = use Vite proxy (same origin, no CORS)
 
 async function request(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...options.headers },
-    ...options,
-  });
+  let res;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...options.headers },
+      ...options,
+    });
+  } catch (_networkErr) {
+    throw new Error("Network error. Check your connection.");
+  }
+
+  // Check Content-Type BEFORE calling res.json() to avoid "Unexpected token '<'"
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    // Odoo returned HTML — session expired or unauthenticated
+    try {
+      const { useUserStore } = await import("@/store/useUserStore");
+      useUserStore.getState().logout();
+    } catch (_) { /* ignore if store not available */ }
+    window.location.href = "/login";
+    throw new Error("Session expired or backend returned HTML. Please log in again.");
+  }
+
   const data = await res.json();
+
+  // Odoo JSON-RPC session expiry error envelope
+  if (data?.error?.code === 100 || data?.error?.message?.includes("Session Expired")) {
+    try {
+      const { useUserStore } = await import("@/store/useUserStore");
+      useUserStore.getState().logout();
+    } catch (_) { /* ignore */ }
+    window.location.href = "/login";
+    throw new Error("Session expired. Please log in again.");
+  }
+
   if (!res.ok) throw new Error(data.error?.message || data.error || "Request failed");
   if (data.success === false) throw new Error(data.error || "Unknown error");
   return data;

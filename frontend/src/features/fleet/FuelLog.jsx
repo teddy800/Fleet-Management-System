@@ -4,16 +4,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Loader2, Fuel, Search, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-function SummaryCard({ label, value, sub, icon: Icon, color }) {
+function SummaryCard({ label, value, sub, icon: Icon, gradient, iconColor }) {
   return (
-    <div className={`rounded-2xl p-4 border shadow-sm ${color}`}>
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-black uppercase text-gray-500">{label}</p>
-        <Icon className="h-4 w-4 text-gray-400" />
+    <div className={cn("card-stat animate-fade-in-up", gradient)}>
+      <div className="absolute -right-3 -top-3 w-16 h-16 rounded-full bg-white/10 pointer-events-none" />
+      <div className="relative flex items-start justify-between">
+        <div>
+          <p className="text-xs font-black uppercase text-gray-500 tracking-widest mb-1">{label}</p>
+          <p className="text-2xl font-black text-gray-800">{value}</p>
+          {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+        </div>
+        <div className={cn("p-2.5 rounded-xl", iconColor, "bg-opacity-15")}>
+          <Icon className={cn("h-5 w-5", iconColor.replace("bg-", "text-"))} />
+        </div>
       </div>
-      <p className="text-2xl font-black text-gray-800">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
     </div>
   );
 }
@@ -55,11 +61,11 @@ export default function FuelLog() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <SummaryCard label="Total Records" value={loading ? "—" : logs.length} icon={Fuel} color="bg-white" />
-        <SummaryCard label="Total Volume" value={loading ? "—" : `${totalVolume.toFixed(1)} L`} sub="all time" icon={TrendingUp} color="bg-orange-50" />
-        <SummaryCard label="Total Cost" value={loading ? "—" : `${totalCost.toFixed(0)} ETB`} sub="all time" icon={TrendingDown} color="bg-red-50" />
-        <SummaryCard label="Avg Efficiency" value={loading ? "—" : `${avgEfficiency.toFixed(2)} KM/L`} sub={anomalies > 0 ? `${anomalies} anomalies` : "fleet average"} icon={AlertTriangle} color={anomalies > 0 ? "bg-yellow-50" : "bg-green-50"} />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 stagger-children">
+        <SummaryCard label="Total Records" value={loading ? "—" : logs.length} icon={Fuel} gradient="bg-white border" iconColor="bg-orange-500" />
+        <SummaryCard label="Total Volume" value={loading ? "—" : `${totalVolume.toFixed(1)} L`} sub="all time" icon={TrendingUp} gradient="gradient-card-amber" iconColor="bg-orange-500" />
+        <SummaryCard label="Total Cost" value={loading ? "—" : `${totalCost.toFixed(0)} ETB`} sub="all time" icon={TrendingDown} gradient="gradient-card-red" iconColor="bg-red-500" />
+        <SummaryCard label="Avg Efficiency" value={loading ? "—" : `${avgEfficiency.toFixed(2)} KM/L`} sub={anomalies > 0 ? `${anomalies} anomalies` : "fleet average"} icon={AlertTriangle} gradient={anomalies > 0 ? "gradient-card-amber" : "gradient-card-green"} iconColor={anomalies > 0 ? "bg-yellow-500" : "bg-green-500"} />
       </div>
 
       {/* Search */}

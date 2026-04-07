@@ -6,12 +6,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { AlertCircle, Car, Loader2, Search, RefreshCw, MapPin, Gauge, Fuel, Activity, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const STATUS_META = {
-  available:   { label: "Available",   cls: "bg-green-100 text-green-700 border-green-200",  dot: "bg-green-500" },
-  in_use:      { label: "In Use",      cls: "bg-blue-100 text-blue-700 border-blue-200",     dot: "bg-blue-500" },
-  maintenance: { label: "Maintenance", cls: "bg-red-100 text-red-700 border-red-200",        dot: "bg-red-500" },
-  unavailable: { label: "Unavailable", cls: "bg-gray-100 text-gray-600 border-gray-200",    dot: "bg-gray-400" },
+  available:   { label: "Available",   cls: "bg-green-100 text-green-700 border-green-200",  dot: "bg-green-500",  pulse: true },
+  in_use:      { label: "In Use",      cls: "bg-blue-100 text-blue-700 border-blue-200",     dot: "bg-blue-500",   pulse: true },
+  maintenance: { label: "Maintenance", cls: "bg-red-100 text-red-700 border-red-200",        dot: "bg-red-500",    pulse: false },
+  unavailable: { label: "Unavailable", cls: "bg-gray-100 text-gray-600 border-gray-200",    dot: "bg-gray-400",   pulse: false },
 };
 
 function VehicleDetailPanel({ vehicle, onClose }) {
@@ -206,7 +207,11 @@ export default function ManageFleet() {
                   <TableCell className="text-xs capitalize text-gray-600">{v.vehicle_category?.replace("_", " ")}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full ${sm.dot}`} />
+                      <span className={cn(
+                        "w-2.5 h-2.5 rounded-full shrink-0",
+                        sm.dot,
+                        sm.pulse && "pulse-dot"
+                      )} />
                       <Badge className={`text-xs border ${sm.cls}`}>{sm.label}</Badge>
                     </div>
                   </TableCell>

@@ -3,44 +3,50 @@ import { analyticsApi } from "@/lib/api";
 import { useUserStore } from "@/store/useUserStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import {
   Car, Clock, CheckCircle2, AlertCircle, TrendingUp, TrendingDown,
   Fuel, Wrench, Users, Activity, RefreshCw, Bell, Target, Zap,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-function StatCard({ title, value, subtitle, icon: Icon, color, trend, trendLabel, loading }) {
+function StatCard({ title, value, subtitle, icon: Icon, gradient, iconBg, iconColor, trend, trendLabel, loading, pulse }) {
   return (
-    <Card className="relative overflow-hidden border-0 shadow-md hover:shadow-lg transition-shadow">
-      <div className={`absolute inset-0 opacity-5 ${color}`} />
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">{title}</p>
-            <p className="text-3xl font-black text-gray-800 leading-none">
-              {loading ? <span className="inline-block w-12 h-8 bg-gray-100 animate-pulse rounded" /> : value ?? "—"}
-            </p>
-            {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
-          </div>
-          <div className={`p-3 rounded-2xl ${color} bg-opacity-10`}>
-            <Icon className={`h-6 w-6 ${color.replace("bg-", "text-")}`} />
-          </div>
+    <div className={cn("card-stat animate-fade-in-up", gradient)}>
+      {/* Decorative background shape */}
+      <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full bg-white/10 pointer-events-none" />
+      <div className="absolute -right-2 -bottom-6 w-16 h-16 rounded-full bg-white/5 pointer-events-none" />
+
+      <div className="relative flex items-start justify-between">
+        <div className="flex-1">
+          <p className="text-xs font-black text-gray-500 uppercase tracking-widest mb-2">{title}</p>
+          <p className="text-3xl font-black text-gray-800 leading-none animate-count-up">
+            {loading
+              ? <span className="inline-block w-14 h-8 shimmer rounded-lg" />
+              : value ?? "—"}
+          </p>
+          {subtitle && <p className="text-xs text-gray-400 mt-1.5">{subtitle}</p>}
         </div>
-        {trend !== undefined && !loading && (
-          <div className="flex items-center gap-1 mt-3 pt-3 border-t border-gray-100">
-            {trend >= 0 ? (
-              <TrendingUp className="h-3.5 w-3.5 text-green-500" />
-            ) : (
-              <TrendingDown className="h-3.5 w-3.5 text-red-500" />
-            )}
-            <span className={`text-xs font-bold ${trend >= 0 ? "text-green-600" : "text-red-600"}`}>
-              {Math.abs(trend).toFixed(1)}%
-            </span>
-            <span className="text-xs text-gray-400">{trendLabel}</span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        <div className={cn("p-3 rounded-2xl shadow-sm relative", iconBg)}>
+          <Icon className={cn("h-6 w-6", iconColor)} />
+          {pulse && !loading && value > 0 && (
+            <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-400 border-2 border-white pulse-dot pulse-dot-green" />
+          )}
+        </div>
+      </div>
+
+      {trend !== undefined && !loading && (
+        <div className="flex items-center gap-1 mt-3 pt-3 border-t border-black/5">
+          {trend >= 0
+            ? <TrendingUp className="h-3.5 w-3.5 text-green-500" />
+            : <TrendingDown className="h-3.5 w-3.5 text-red-500" />}
+          <span className={cn("text-xs font-black", trend >= 0 ? "text-green-600" : "text-red-600")}>
+            {Math.abs(trend).toFixed(1)}%
+          </span>
+          <span className="text-xs text-gray-400">{trendLabel}</span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -152,21 +158,23 @@ export default function DashboardHome() {
       )}
 
       {/* Primary KPI Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Fleet" value={fleet?.total_vehicles} subtitle={`${fleet?.available_vehicles ?? "—"} available`} icon={Car} color="bg-brand-blue" loading={loading} />
-        <StatCard title="Active Trips" value={fleet?.in_use_vehicles} subtitle="vehicles in use" icon={Activity} color="bg-green-500" loading={loading} />
-        <StatCard title="Pending Requests" value={trips?.total_requests} subtitle={`${trips?.approval_rate?.toFixed(0) ?? "—"}% approval rate`} icon={Clock} color="bg-brand-gold" loading={loading} />
-        <StatCard title="Maintenance Due" value={fleet?.maintenance_vehicles} subtitle="vehicles need service" icon={Wrench} color="bg-red-500" loading={loading} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
+        <StatCard title="Total Fleet" value={fleet?.total_vehicles} subtitle={`${fleet?.available_vehicles ?? "—"} available`} icon={Car} gradient="gradient-card-blue" iconBg="bg-brand-blue/10" iconColor="text-brand-blue" loading={loading} />
+        <StatCard title="Active Trips" value={fleet?.in_use_vehicles} subtitle="vehicles in use" icon={Activity} gradient="gradient-card-green" iconBg="bg-green-500/10" iconColor="text-green-600" loading={loading} pulse />
+        <StatCard title="Pending Requests" value={trips?.total_requests} subtitle={`${trips?.approval_rate?.toFixed(0) ?? "—"}% approval rate`} icon={Clock} gradient="gradient-card-amber" iconBg="bg-amber-500/10" iconColor="text-amber-600" loading={loading} />
+        <StatCard title="Maintenance Due" value={fleet?.maintenance_vehicles} subtitle="vehicles need service" icon={Wrench} gradient="gradient-card-red" iconBg="bg-red-500/10" iconColor="text-red-600" loading={loading} />
       </div>
 
       {/* Secondary KPI Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
         <StatCard
           title="Fuel Cost (Month)"
           value={fuel?.monthly_consumption ? `${costs?.fuel_costs?.current_month?.toFixed(0)} ETB` : "—"}
           subtitle={`vs ${costs?.fuel_costs?.last_month?.toFixed(0) ?? "—"} ETB last month`}
           icon={Fuel}
-          color="bg-orange-500"
+          gradient="gradient-card-amber"
+          iconBg="bg-orange-500/10"
+          iconColor="text-orange-600"
           trend={costs?.fuel_costs?.month_over_month_change}
           trendLabel="vs last month"
           loading={loading}
@@ -176,7 +184,9 @@ export default function DashboardHome() {
           value={fuel?.average_efficiency ? `${fuel.average_efficiency.toFixed(2)} KM/L` : "—"}
           subtitle="fleet average"
           icon={Zap}
-          color="bg-teal-500"
+          gradient="gradient-card-teal"
+          iconBg="bg-teal-500/10"
+          iconColor="text-teal-600"
           loading={loading}
         />
         <StatCard
@@ -184,7 +194,9 @@ export default function DashboardHome() {
           value={trips?.completed_trips}
           subtitle="this month"
           icon={CheckCircle2}
-          color="bg-purple-500"
+          gradient="gradient-card-purple"
+          iconBg="bg-purple-500/10"
+          iconColor="text-purple-600"
           loading={loading}
         />
         <StatCard
@@ -192,7 +204,9 @@ export default function DashboardHome() {
           value={drivers?.active_drivers}
           subtitle={`of ${drivers?.total_drivers ?? "—"} total`}
           icon={Users}
-          color="bg-indigo-500"
+          gradient="gradient-card-blue"
+          iconBg="bg-indigo-500/10"
+          iconColor="text-indigo-600"
           loading={loading}
         />
       </div>

@@ -51,6 +51,7 @@ export const useUserStore = create(
 
       logout: async () => {
         try { await authApi.logout(); } catch (_) { /* ignore */ }
+        localStorage.removeItem("messob-auth");
         set({ user: null, isAuthenticated: false, loginError: null });
       },
     }),

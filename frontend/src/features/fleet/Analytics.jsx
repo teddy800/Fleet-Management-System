@@ -35,10 +35,13 @@ function KpiGauge({ label, value, color = "bg-brand-blue" }) {
     <div className="space-y-1.5">
       <div className="flex justify-between text-xs font-bold">
         <span className="text-gray-600">{label}</span>
-        <span className="text-gray-800">{pct.toFixed(1)}%</span>
+        <span className="text-gray-800 animate-count-up">{pct.toFixed(1)}%</span>
       </div>
-      <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${pct}%` }} />
+      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className={`h-full ${color} rounded-full transition-all duration-1000 ease-out`}
+          style={{ width: `${pct}%` }}
+        />
       </div>
     </div>
   );

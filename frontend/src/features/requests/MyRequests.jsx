@@ -14,15 +14,17 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 const STATE_META = {
-  draft:       { label: "Draft",       cls: "bg-gray-100 text-gray-600 border-gray-200" },
-  pending:     { label: "Pending",     cls: "bg-yellow-100 text-yellow-800 border-yellow-200" },
-  approved:    { label: "Approved",    cls: "bg-green-100 text-green-800 border-green-200" },
-  rejected:    { label: "Rejected",    cls: "bg-red-100 text-red-800 border-red-200" },
-  assigned:    { label: "Assigned",    cls: "bg-blue-100 text-blue-800 border-blue-200" },
-  in_progress: { label: "In Progress", cls: "bg-purple-100 text-purple-800 border-purple-200" },
-  completed:   { label: "Completed",   cls: "bg-teal-100 text-teal-800 border-teal-200" },
-  cancelled:   { label: "Cancelled",   cls: "bg-gray-100 text-gray-500 border-gray-200" },
+  draft:       { label: "Draft",       cls: "bg-gray-100 text-gray-600 border-gray-200",     bar: "bg-gray-400",    step: 0 },
+  pending:     { label: "Pending",     cls: "bg-yellow-100 text-yellow-800 border-yellow-200", bar: "bg-yellow-500",  step: 1 },
+  approved:    { label: "Approved",    cls: "bg-green-100 text-green-800 border-green-200",   bar: "bg-green-500",   step: 2 },
+  rejected:    { label: "Rejected",    cls: "bg-red-100 text-red-800 border-red-200",         bar: "bg-red-500",     step: -1 },
+  assigned:    { label: "Assigned",    cls: "bg-blue-100 text-blue-800 border-blue-200",      bar: "bg-blue-500",    step: 3 },
+  in_progress: { label: "In Progress", cls: "bg-purple-100 text-purple-800 border-purple-200", bar: "bg-purple-500", step: 4 },
+  completed:   { label: "Completed",   cls: "bg-teal-100 text-teal-800 border-teal-200",      bar: "bg-teal-500",    step: 5 },
+  cancelled:   { label: "Cancelled",   cls: "bg-gray-100 text-gray-500 border-gray-200",      bar: "bg-gray-300",    step: -1 },
 };
+
+const STATUS_STEPS = ["Draft", "Pending", "Approved", "Assigned", "In Progress", "Completed"];
 
 export default function MyRequests() {
   const [requests, setRequests] = useState([]);
@@ -36,7 +38,12 @@ export default function MyRequests() {
       const res = await tripApi.listMine();
       setRequests(res.trip_requests || []);
     } catch (err) {
-      toast.error("Failed to load requests: " + err.message);
+      if (err.message?.includes("Employee record not found")) {
+        // Admin user without an HR employee record — show empty state gracefully
+        setRequests([]);
+      } else {
+        toast.error("Failed to load requests: " + err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -130,9 +137,15 @@ export default function MyRequests() {
               </TableRow>
             ) : requests.map(req => {
               const sm = STATE_META[req.state] || STATE_META.draft;
+              const step = sm.step;
               return (
-                <TableRow key={req.id} className="hover:bg-gray-50 transition-colors">
-                  <TableCell className="font-bold text-sm text-brand-blue">{req.name || `#${req.id}`}</TableCell>
+                <TableRow key={req.id} className="hover:bg-gray-50/80 transition-colors">
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-1 h-10 rounded-full ${sm.bar}`} />
+                      <span className="font-bold text-sm text-brand-blue">{req.name || `#${req.id}`}</span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-sm max-w-[160px] truncate">{req.purpose}</TableCell>
                   <TableCell>
                     <p className="text-xs text-gray-500 truncate max-w-[120px]">{req.pickup_location}</p>

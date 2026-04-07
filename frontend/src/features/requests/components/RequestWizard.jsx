@@ -185,7 +185,8 @@ export default function RequestWizard() {
             <p className="text-blue-100 text-sm opacity-80 mt-1">Official MESSOB vehicle request form</p>
           </div>
 
-          <CardContent className="p-8 bg-white min-h-[320px]">
+          <CardContent className="p-8 bg-white min-h-[320px] relative overflow-hidden">
+            <div key={step} className="animate-slide-in-right">
             {/* Step 1: Purpose + Category */}
             {step === 1 && (
               <div className="space-y-5">
@@ -308,7 +309,7 @@ export default function RequestWizard() {
                   <h3 className="font-black text-brand-blue mb-4 text-xs uppercase tracking-widest border-b border-brand-blue/10 pb-3">
                     Official Trip Summary
                   </h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-4 text-sm stagger-children">
                     {[
                       ["Purpose", formData.purpose],
                       ["Vehicle Category", VEHICLE_CATEGORIES.find(c => c.value === formData.vehicleCategory)?.label || "—"],
@@ -319,7 +320,7 @@ export default function RequestWizard() {
                       ["Passengers", formData.passengerCount],
                       ["Trip Type", formData.tripType],
                     ].map(([label, value]) => (
-                      <div key={label} className="bg-white rounded-xl p-3 border">
+                      <div key={label} className="bg-white rounded-xl p-3 border animate-fade-in-up">
                         <p className="text-xs text-gray-400 font-bold uppercase">{label}</p>
                         <p className="font-bold text-gray-800 mt-0.5 capitalize">{value || "—"}</p>
                       </div>
@@ -334,6 +335,7 @@ export default function RequestWizard() {
                 </div>
               </div>
             )}
+          </div>
           </CardContent>
 
           <div className="p-6 bg-gray-50 flex justify-between items-center border-t border-gray-100">

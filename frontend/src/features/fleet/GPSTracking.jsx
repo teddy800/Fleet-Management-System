@@ -19,9 +19,16 @@ import { tripApi as tripApiFull } from "@/lib/api";
 
 const STATUS_DOT = {
   available:   "bg-green-500",
-  in_use:      "bg-blue-500 animate-pulse",
+  in_use:      "bg-blue-500",
   maintenance: "bg-red-500",
   unavailable: "bg-gray-400",
+};
+
+const STATUS_PULSE = {
+  available: false,
+  in_use:    true,
+  maintenance: false,
+  unavailable: false,
 };
 
 const STALE_MINUTES = 5;
@@ -37,10 +44,15 @@ function VehicleCard({ vehicle, onSelect, selected }) {
   return (
     <div
       onClick={() => onSelect(vehicle)}
-      className={`p-3 rounded-xl border cursor-pointer transition-all ${selected?.id === vehicle.id ? "border-brand-blue bg-blue-50 shadow-md" : "border-gray-200 bg-white hover:border-brand-blue hover:shadow-sm"}`}
+      className={`p-3 rounded-xl border cursor-pointer transition-all animate-fade-in-up ${selected?.id === vehicle.id ? "border-brand-blue bg-blue-50 shadow-md" : "border-gray-200 bg-white hover:border-brand-blue hover:shadow-sm"}`}
     >
       <div className="flex items-center gap-2 mb-2">
-        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${STATUS_DOT[vehicle.mesob_status] || "bg-gray-400"}`} />
+        <div className="relative shrink-0 w-2.5 h-2.5">
+          <span className={`w-2.5 h-2.5 rounded-full block ${STATUS_DOT[vehicle.mesob_status] || "bg-gray-400"}`} />
+          {STATUS_PULSE[vehicle.mesob_status] && (
+            <span className={`absolute inset-0 rounded-full ${STATUS_DOT[vehicle.mesob_status]} opacity-50 animate-ping`} />
+          )}
+        </div>
         <p className="font-bold text-sm text-gray-800 truncate flex-1">{vehicle.name}</p>
         {stale && hasGPS && <AlertCircle className="h-3.5 w-3.5 text-gray-400 shrink-0" title="GPS stale" />}
       </div>

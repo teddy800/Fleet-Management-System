@@ -76,31 +76,30 @@ export default function Alerts() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="border-0 shadow-sm bg-red-50">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 uppercase font-bold">Total Active</p>
-            <p className="text-3xl font-black text-red-600 mt-1">
-              {loading ? <span className="inline-block w-10 h-8 bg-red-100 animate-pulse rounded" /> : total}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm bg-orange-50">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 uppercase font-bold">Critical</p>
-            <p className="text-3xl font-black text-orange-600 mt-1">
-              {loading ? <span className="inline-block w-10 h-8 bg-orange-100 animate-pulse rounded" /> : critical}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm bg-yellow-50">
-          <CardContent className="p-4 text-center">
-            <p className="text-xs text-gray-500 uppercase font-bold">Unacknowledged</p>
-            <p className="text-3xl font-black text-yellow-600 mt-1">
-              {loading ? <span className="inline-block w-10 h-8 bg-yellow-100 animate-pulse rounded" /> : unacknowledged}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-3 gap-4 stagger-children">
+        <div className="card-stat gradient-card-red animate-fade-in-up">
+          <div className="absolute -right-3 -top-3 w-16 h-16 rounded-full bg-white/10 pointer-events-none" />
+          <p className="text-xs text-gray-500 uppercase font-black tracking-widest relative">Total Active</p>
+          <p className="text-3xl font-black text-red-600 mt-1 relative">
+            {loading ? <span className="inline-block w-10 h-8 shimmer rounded-lg" /> : total}
+          </p>
+          {total > 0 && <span className="absolute top-3 right-3 w-3 h-3 rounded-full bg-red-500 pulse-dot pulse-dot-red" />}
+        </div>
+        <div className="card-stat gradient-card-amber animate-fade-in-up" style={{ animationDelay: "60ms" }}>
+          <div className="absolute -right-3 -top-3 w-16 h-16 rounded-full bg-white/10 pointer-events-none" />
+          <p className="text-xs text-gray-500 uppercase font-black tracking-widest relative">Critical</p>
+          <p className="text-3xl font-black text-orange-600 mt-1 relative">
+            {loading ? <span className="inline-block w-10 h-8 shimmer rounded-lg" /> : critical}
+          </p>
+          {critical > 0 && <span className="absolute top-3 right-3 w-3 h-3 rounded-full bg-orange-500 pulse-dot pulse-dot-amber" />}
+        </div>
+        <div className="card-stat gradient-card-amber animate-fade-in-up" style={{ animationDelay: "120ms" }}>
+          <div className="absolute -right-3 -top-3 w-16 h-16 rounded-full bg-white/10 pointer-events-none" />
+          <p className="text-xs text-gray-500 uppercase font-black tracking-widest relative">Unacknowledged</p>
+          <p className="text-3xl font-black text-yellow-600 mt-1 relative">
+            {loading ? <span className="inline-block w-10 h-8 shimmer rounded-lg" /> : unacknowledged}
+          </p>
+        </div>
       </div>
 
       {/* Alert Types Breakdown */}
