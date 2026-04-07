@@ -115,7 +115,7 @@ class FleetAPIController(http.Controller):
 
     def _create_trip_request(self, **kwargs):
         try:
-            data = request.params
+            data = request.jsonrequest or {}
             
             # Get current employee
             employee = request.env['hr.employee'].search([
@@ -194,7 +194,7 @@ class FleetAPIController(http.Controller):
     def assign_vehicle(self, request_id):
         """Assign vehicle and driver to trip request"""
         try:
-            data = request.params
+            data = request.jsonrequest or {}
             
             # Check dispatcher permissions
             if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher'):
@@ -243,9 +243,7 @@ class FleetAPIController(http.Controller):
             if not trip_request.exists():
                 return {'success': False, 'error': 'Trip request not found'}
             data = request.jsonrequest or {}
-            trip_request.action_reject()
-            if data.get('reason'):
-                trip_request.write({'rejection_reason': data.get('reason')})
+            trip_request.action_reject(reason=data.get('reason'))
             return {'success': True, 'message': 'Trip request rejected'}
         except Exception as e:
             _logger.error(f"Reject trip request error: {e}")
@@ -267,7 +265,7 @@ class FleetAPIController(http.Controller):
                     'volume': log.volume,
                     'cost': log.cost,
                     'odometer': log.odometer,
-                    'fuel_efficiency': log.fuel_efficiency,
+                    'fuel_efficiency': log.efficiency,
                 })
             return {'success': True, 'fuel_logs': data}
         except Exception as e:

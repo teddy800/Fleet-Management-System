@@ -259,7 +259,7 @@ class TripRequest(models.Model):
             message_type='notification'
         )
 
-    def action_reject(self):
+    def action_reject(self, reason=None):
         """Reject trip request"""
         self.ensure_one()
         if not self.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher'):
@@ -268,15 +268,15 @@ class TripRequest(models.Model):
         if self.state != 'pending':
             raise UserError("Only pending requests can be rejected.")
         
-        # Open wizard for rejection reason
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Rejection Reason',
-            'res_model': 'mesob.trip.rejection.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {'default_trip_request_id': self.id}
-        }
+        vals = {'state': 'rejected'}
+        if reason:
+            vals['rejection_reason'] = reason
+        self.write(vals)
+        self._notify_requester('rejected')
+        self.message_post(
+            body=f"Trip request rejected by {self.env.user.name}" + (f": {reason}" if reason else ""),
+            message_type='notification'
+        )
 
     def action_assign_vehicle(self, vehicle_id, driver_id):
         """Assign vehicle and driver to trip request"""

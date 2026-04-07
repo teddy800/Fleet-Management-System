@@ -196,3 +196,33 @@ class FleetVehicle(models.Model):
         for rec in self.search([]):
             if rec.maintenance_due:
                 rec.mesob_status = 'maintenance'
+
+    @api.depends('current_odometer', 'maintenance_due', 'last_gps_update', 'insurance_expiry', 'registration_expiry')
+    def _compute_maintenance_score(self):
+        """Compute a 0-100 risk score: higher = more urgent maintenance needed."""
+        today = fields.Date.today()
+        for vehicle in self:
+            score = 0.0
+            # +40 if maintenance is already due
+            if vehicle.maintenance_due:
+                score += 40.0
+            # +20 if insurance expires within 30 days
+            if vehicle.insurance_expiry:
+                days_to_expiry = (vehicle.insurance_expiry - today).days
+                if days_to_expiry <= 0:
+                    score += 20.0
+                elif days_to_expiry <= 30:
+                    score += 10.0
+            # +20 if registration expires within 30 days
+            if vehicle.registration_expiry:
+                days_to_expiry = (vehicle.registration_expiry - today).days
+                if days_to_expiry <= 0:
+                    score += 20.0
+                elif days_to_expiry <= 30:
+                    score += 10.0
+            # +20 if GPS has not updated in more than 24 hours (vehicle may be stuck)
+            if vehicle.last_gps_update:
+                hours_since_update = (fields.Datetime.now() - vehicle.last_gps_update).total_seconds() / 3600
+                if hours_since_update > 24:
+                    score += 20.0
+            vehicle.maintenance_score = min(score, 100.0)
