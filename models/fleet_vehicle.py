@@ -58,6 +58,18 @@ class FleetVehicle(models.Model):
     insurance_expiry = fields.Date(string="Insurance Expiry Date")
     registration_expiry = fields.Date(string="Registration Expiry Date")
 
+    # Analytics / KPI fields used by fleet_analytics.py
+    maintenance_score = fields.Float(
+        string="Maintenance Risk Score (%)",
+        compute="_compute_maintenance_score",
+        store=True,
+        default=0.0,
+    )
+    current_value = fields.Float(
+        string="Current Market Value (ETB)",
+        default=0.0,
+    )
+
     @api.depends('current_odometer')
     def _compute_maintenance_due(self):
         for vehicle in self:

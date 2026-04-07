@@ -10,7 +10,7 @@ Fix all critical integration bugs between the React/Vite frontend and Odoo 19 ba
   - In `frontend/vite.config.js`, add `cookieDomainRewrite: "localhost"`, `cookiePathRewrite: { "*": "/" }`, and a `configure` proxy event listener that rewrites `SameSite=None` to `SameSite=Lax` and strips `; Secure` from all `Set-Cookie` headers for the `/api`, `/web`, and `/webhook` proxy entries
   - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
 
-  - [ ]* 1.1 Write property test for proxy cookie rewriting
+  - [x] 1.1 Write property test for proxy cookie rewriting
     - **Property 1: Every API call includes credentials**
     - **Validates: Requirements 1.4, 4.1**
 
@@ -20,7 +20,7 @@ Fix all critical integration bugs between the React/Vite frontend and Odoo 19 ba
   - Handle Odoo JSON-RPC error envelope: if `data.error.code === 100` or message includes `"Session Expired"`, logout and redirect to `/login`
   - _Requirements: 4.1, 4.3, 4.4, 4.5, 4.6, 10.1_
 
-  - [ ]* 2.1 Write property test for Content-Type check before JSON parsing
+  - [x] 2.1 Write property test for Content-Type check before JSON parsing
     - **Property 2: Content-Type is checked before JSON parsing**
     - **Validates: Requirements 4.3, 4.6**
 
@@ -28,11 +28,11 @@ Fix all critical integration bugs between the React/Vite frontend and Odoo 19 ba
   - In `frontend/src/store/useUserStore.js`, add `localStorage.removeItem("messob-auth")` inside the `logout()` action before clearing Zustand state, ensuring the persisted entry is removed even if the persist middleware has not flushed
   - _Requirements: 1.6, 9.4_
 
-  - [ ]* 3.1 Write property test for loginError never persisted
+  - [x] 3.1 Write property test for loginError never persisted
     - **Property 6: loginError is never persisted**
     - **Validates: Requirements 9.5**
 
-  - [ ]* 3.2 Write property test for login-to-display role round-trip consistency
+  - [x] 3.2 Write property test for login-to-display role round-trip consistency
     - **Property 4: Login-to-display role round-trip consistency**
     - **Validates: Requirements 2.7, 2.8, 9.1**
 
@@ -40,7 +40,7 @@ Fix all critical integration bugs between the React/Vite frontend and Odoo 19 ba
   - In `frontend/src/components/shared/Sidebar.jsx`, add `"Driver"` to the `roles` array of the Dashboard menu item and the My Requests menu item so that Driver users see a non-empty sidebar
   - _Requirements: 3.4, 3.7_
 
-  - [ ]* 4.1 Write property test for role-based menu filtering
+  - [x] 4.1 Write property test for role-based menu filtering
     - **Property 5: Role-based menu filtering is exact**
     - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.7**
 
@@ -48,7 +48,7 @@ Fix all critical integration bugs between the React/Vite frontend and Odoo 19 ba
   - In `frontend/src/features/dispatch/ApprovalQueue.jsx`, change the table row quick-approve button's `onClick` to call only `handleApproveImmediate(req)`, removing the simultaneous `setSelectedReq(req)` + `setMode("approve")` that was triggering a second approval through the dialog flow
   - _Requirements: 6.4_
 
-  - [ ]* 5.1 Write unit test for ApprovalQueue single-approve
+  - [x] 5.1 Write unit test for ApprovalQueue single-approve
     - Verify that clicking the quick-approve button calls `tripApi.approve()` exactly once
     - _Requirements: 6.4_
 
@@ -56,7 +56,7 @@ Fix all critical integration bugs between the React/Vite frontend and Odoo 19 ba
   - In `frontend/src/features/requests/MyRequests.jsx`, catch the `"Employee record not found"` error from `tripApi.listMine()` and set requests to `[]` with an explanatory empty-state message instead of showing an error toast
   - _Requirements: 6.2, 10.2_
 
-  - [ ]* 6.1 Write unit test for MyRequests employee-not-found empty state
+  - [x] 6.1 Write unit test for MyRequests employee-not-found empty state
     - Mock `tripApi.listMine()` to reject with `"Employee record not found"` and assert no toast is shown and an empty state message is rendered
     - _Requirements: 6.2_
 
@@ -70,7 +70,7 @@ Fix all critical integration bugs between the React/Vite frontend and Odoo 19 ba
   - Show loading skeletons while fetching and an error toast on failure
   - _Requirements: 7.4_
 
-  - [ ]* 8.1 Write unit test for Maintenance parallel API calls
+  - [x] 8.1 Write unit test for Maintenance parallel API calls
     - Assert that both `maintenanceApi.list()` and `maintenanceApi.schedules()` are called on mount
     - _Requirements: 7.4_
 
@@ -80,7 +80,7 @@ Fix all critical integration bugs between the React/Vite frontend and Odoo 19 ba
   - Add utility classes: `.glass`, `.glass-dark`, `.gradient-card`, `.gradient-text`, `.animate-fade-in`, `.animate-slide-in`, `.pulse-dot`
   - _Requirements: (UI/UX enhancement)_
 
-- [ ]* 9.1 Smoke-test CSS utilities render without layout breakage
+- [x] 9.1 Smoke-test CSS utilities render without layout breakage
   - Verify key utility classes apply expected CSS properties in a jsdom render
   - _Requirements: (UI/UX enhancement)_
 
