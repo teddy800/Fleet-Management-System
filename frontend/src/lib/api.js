@@ -1,5 +1,7 @@
 const BASE_URL = "";  // Empty = use Vite proxy (same origin, no CORS)
 
+// Odoo 19 wraps all type='json' (jsonrpc) responses in {"jsonrpc":"2.0","result":{...}}
+// We unwrap that transparently here.
 async function request(path, options = {}) {
   let res;
   try {
@@ -24,9 +26,28 @@ async function request(path, options = {}) {
     throw new Error("Session expired or backend returned HTML. Please log in again.");
   }
 
-  const data = await res.json();
+  const raw = await res.json();
 
-  // Odoo JSON-RPC session expiry error envelope
+  // Odoo 19 jsonrpc envelope: {"jsonrpc":"2.0","id":null,"result":{...}}
+  // Unwrap it so the rest of the code sees the inner object directly
+  const data = (raw && typeof raw === "object" && "result" in raw) ? raw.result : raw;
+
+  // Odoo JSON-RPC error envelope (top-level error key)
+  if (raw?.error) {
+    const errCode = raw.error?.code;
+    const errMsg = raw.error?.message || raw.error?.data?.message || "Request failed";
+    if (errCode === 100 || errMsg.includes("Session Expired") || errMsg.includes("session")) {
+      try {
+        const { useUserStore } = await import("@/store/useUserStore");
+        useUserStore.getState().logout();
+      } catch (_) { /* ignore */ }
+      window.location.href = "/login";
+      throw new Error("Session expired. Please log in again.");
+    }
+    throw new Error(errMsg);
+  }
+
+  // Inner session expiry check
   if (data?.error?.code === 100 || data?.error?.message?.includes("Session Expired")) {
     try {
       const { useUserStore } = await import("@/store/useUserStore");
@@ -36,15 +57,23 @@ async function request(path, options = {}) {
     throw new Error("Session expired. Please log in again.");
   }
 
-  if (!res.ok) throw new Error(data.error?.message || data.error || "Request failed");
-  if (data.success === false) throw new Error(data.error || "Unknown error");
+  if (!res.ok) throw new Error(data?.error?.message || data?.error || "Request failed");
+  if (data?.success === false) throw new Error(data?.error || "Unknown error");
   return data;
 }
 
 // --- Auth ---
 export const authApi = {
   login: (username, password) =>
-    request("/api/mobile/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
+    request("/api/mobile/auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        method: "call",
+        id: 1,
+        params: { username, password },
+      }),
+    }),
   logout: () =>
     request("/web/session/destroy", { method: "POST", body: JSON.stringify({}) }),
 };

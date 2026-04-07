@@ -115,7 +115,7 @@ class FleetAPIController(http.Controller):
 
     def _create_trip_request(self, **kwargs):
         try:
-            data = request.jsonrequest or {}
+            data = request.get_json_data() or {}
             
             # Get current employee
             employee = request.env['hr.employee'].search([
@@ -194,7 +194,7 @@ class FleetAPIController(http.Controller):
     def assign_vehicle(self, request_id):
         """Assign vehicle and driver to trip request"""
         try:
-            data = request.jsonrequest or {}
+            data = request.get_json_data() or {}
             
             # Check dispatcher permissions
             if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher'):
@@ -242,7 +242,7 @@ class FleetAPIController(http.Controller):
             trip_request = request.env['mesob.trip.request'].browse(request_id)
             if not trip_request.exists():
                 return {'success': False, 'error': 'Trip request not found'}
-            data = request.jsonrequest or {}
+            data = request.get_json_data() or {}
             trip_request.action_reject(reason=data.get('reason'))
             return {'success': True, 'message': 'Trip request rejected'}
         except Exception as e:
@@ -442,7 +442,7 @@ class FleetAPIController(http.Controller):
     def update_pickup_point(self, request_id):
         """FR-3.4: Update pickup point on active trip"""
         try:
-            data = request.jsonrequest or {}
+            data = request.get_json_data() or {}
             trip_request = request.env['mesob.trip.request'].browse(request_id)
             if not trip_request.exists():
                 return {'success': False, 'error': 'Trip request not found'}
