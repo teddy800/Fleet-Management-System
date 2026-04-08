@@ -1,20 +1,32 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import Login from "./features/auth/Login";
-import RequestWizard from "./features/requests/components/RequestWizard";
-import MyRequests from "./features/requests/MyRequests";
-import ApprovalQueue from "./features/dispatch/ApprovalQueue";
-import FleetCalendar from "./features/dispatch/FleetCalendar";
-import DashboardHome from "./features/dispatch/DashboardHome";
-import Profile from "./features/profile/profile";
-import ManageFleet from "./features/fleet/ManageFleet";
-import FuelLog from "./features/fleet/FuelLog";
-import Maintenance from "./features/fleet/Maintenance";
-import GPSTracking from "./features/fleet/GPSTracking";
-import Alerts from "./features/fleet/Alerts";
-import Analytics from "./features/fleet/Analytics";
-import Drivers from "./features/fleet/Drivers";
-import UserManagement from "./features/admin/UserManagement";
+
+// Lazy-load all pages — each becomes its own chunk, loaded only when visited
+const RequestWizard  = lazy(() => import("./features/requests/components/RequestWizard"));
+const MyRequests     = lazy(() => import("./features/requests/MyRequests"));
+const ApprovalQueue  = lazy(() => import("./features/dispatch/ApprovalQueue"));
+const FleetCalendar  = lazy(() => import("./features/dispatch/FleetCalendar"));
+const DashboardHome  = lazy(() => import("./features/dispatch/DashboardHome"));
+const Profile        = lazy(() => import("./features/profile/profile"));
+const ManageFleet    = lazy(() => import("./features/fleet/ManageFleet"));
+const FuelLog        = lazy(() => import("./features/fleet/FuelLog"));
+const Maintenance    = lazy(() => import("./features/fleet/Maintenance"));
+const GPSTracking    = lazy(() => import("./features/fleet/GPSTracking"));
+const Alerts         = lazy(() => import("./features/fleet/Alerts"));
+const Analytics      = lazy(() => import("./features/fleet/Analytics"));
+const Drivers        = lazy(() => import("./features/fleet/Drivers"));
+const UserManagement = lazy(() => import("./features/admin/UserManagement"));
+
+// Minimal skeleton shown while a page chunk loads
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-4 border-brand-blue border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 export default function App() {
   return (
@@ -22,20 +34,20 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<DashboardLayout />}>
         <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardHome />} />
-        <Route path="requests/new" element={<RequestWizard />} />
-        <Route path="my-requests" element={<MyRequests />} />
-        <Route path="dispatch/approvals" element={<ApprovalQueue />} />
-        <Route path="dispatch/calendar" element={<FleetCalendar />} />
-        <Route path="profile" element={<Profile />} />
-        <Route path="fleet" element={<ManageFleet />} />
-        <Route path="tracking" element={<GPSTracking />} />
-        <Route path="fuel-log" element={<FuelLog />} />
-        <Route path="maintenance" element={<Maintenance />} />
-        <Route path="alerts" element={<Alerts />} />
-        <Route path="analytics" element={<Analytics />} />
-        <Route path="drivers" element={<Drivers />} />
-        <Route path="users" element={<UserManagement />} />
+        <Route path="dashboard"          element={<Suspense fallback={<PageLoader />}><DashboardHome /></Suspense>} />
+        <Route path="requests/new"       element={<Suspense fallback={<PageLoader />}><RequestWizard /></Suspense>} />
+        <Route path="my-requests"        element={<Suspense fallback={<PageLoader />}><MyRequests /></Suspense>} />
+        <Route path="dispatch/approvals" element={<Suspense fallback={<PageLoader />}><ApprovalQueue /></Suspense>} />
+        <Route path="dispatch/calendar"  element={<Suspense fallback={<PageLoader />}><FleetCalendar /></Suspense>} />
+        <Route path="profile"            element={<Suspense fallback={<PageLoader />}><Profile /></Suspense>} />
+        <Route path="fleet"              element={<Suspense fallback={<PageLoader />}><ManageFleet /></Suspense>} />
+        <Route path="tracking"           element={<Suspense fallback={<PageLoader />}><GPSTracking /></Suspense>} />
+        <Route path="fuel-log"           element={<Suspense fallback={<PageLoader />}><FuelLog /></Suspense>} />
+        <Route path="maintenance"        element={<Suspense fallback={<PageLoader />}><Maintenance /></Suspense>} />
+        <Route path="alerts"             element={<Suspense fallback={<PageLoader />}><Alerts /></Suspense>} />
+        <Route path="analytics"          element={<Suspense fallback={<PageLoader />}><Analytics /></Suspense>} />
+        <Route path="drivers"            element={<Suspense fallback={<PageLoader />}><Drivers /></Suspense>} />
+        <Route path="users"              element={<Suspense fallback={<PageLoader />}><UserManagement /></Suspense>} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

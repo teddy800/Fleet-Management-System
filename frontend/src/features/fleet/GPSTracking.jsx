@@ -179,8 +179,24 @@ export default function GPSTracking() {
 
   useEffect(() => {
     fetchData();
-    intervalRef.current = setInterval(() => fetchData(true), 10000);
-    return () => clearInterval(intervalRef.current);
+
+    // Pause polling when tab is hidden — saves CPU and network
+    const startPolling = () => {
+      intervalRef.current = setInterval(() => {
+        if (!document.hidden) fetchData(true);
+      }, 10000);
+    };
+
+    const handleVisibility = () => {
+      if (!document.hidden) fetchData(true); // refresh immediately on tab focus
+    };
+
+    startPolling();
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      clearInterval(intervalRef.current);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [fetchData]);
 
   useEffect(() => {
