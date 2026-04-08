@@ -50,9 +50,11 @@ export const useUserStore = create(
       },
 
       logout: async () => {
-        try { await authApi.logout(); } catch (_) { /* ignore */ }
+        // Clear local state first
         localStorage.removeItem("messob-auth");
         set({ user: null, isAuthenticated: false, loginError: null });
+        // Then try to destroy server session (best effort, don't block)
+        try { await authApi.logout(); } catch (_) { /* ignore */ }
       },
     }),
     {

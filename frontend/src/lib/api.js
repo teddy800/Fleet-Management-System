@@ -17,12 +17,14 @@ async function request(path, options = {}) {
   // Check Content-Type BEFORE calling res.json() to avoid "Unexpected token '<'"
   const contentType = res.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) {
-    // Odoo returned HTML — session expired or unauthenticated
-    try {
-      const { useUserStore } = await import("@/store/useUserStore");
-      useUserStore.getState().logout();
-    } catch (_) { /* ignore if store not available */ }
-    window.location.href = "/login";
+    // Only redirect to login if we're NOT on the login page already
+    if (!window.location.pathname.includes("/login")) {
+      try {
+        const { useUserStore } = await import("@/store/useUserStore");
+        useUserStore.getState().logout();
+      } catch (_) { /* ignore if store not available */ }
+      window.location.href = "/login";
+    }
     throw new Error("Session expired or backend returned HTML. Please log in again.");
   }
 
@@ -36,7 +38,8 @@ async function request(path, options = {}) {
   if (raw?.error) {
     const errCode = raw.error?.code;
     const errMsg = raw.error?.message || raw.error?.data?.message || "Request failed";
-    if (errCode === 100 || errMsg.includes("Session Expired") || errMsg.includes("session")) {
+    // Only redirect to login for actual session expiry (code 100), not generic errors
+    if (errCode === 100) {
       try {
         const { useUserStore } = await import("@/store/useUserStore");
         useUserStore.getState().logout();
@@ -47,8 +50,8 @@ async function request(path, options = {}) {
     throw new Error(errMsg);
   }
 
-  // Inner session expiry check
-  if (data?.error?.code === 100 || data?.error?.message?.includes("Session Expired")) {
+  // Inner session expiry check — only hard code 100
+  if (data?.error?.code === 100) {
     try {
       const { useUserStore } = await import("@/store/useUserStore");
       useUserStore.getState().logout();
@@ -58,7 +61,8 @@ async function request(path, options = {}) {
   }
 
   if (!res.ok) throw new Error(data?.error?.message || data?.error || "Request failed");
-  if (data?.success === false) throw new Error(data?.error || "Unknown error");
+  // Only throw on explicit success=false with an error message — don't throw on missing success field
+  if (data?.success === false && data?.error) throw new Error(data.error);
   return data;
 }
 
