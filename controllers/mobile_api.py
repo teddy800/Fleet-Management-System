@@ -27,13 +27,25 @@ class MobileAPIController(http.Controller):
             if not username or not password:
                 return {'success': False, 'error': 'Username and password are required'}
 
-            # In Odoo 19, session.db must be set before calling authenticate(login, password)
+            # In Odoo 19, session.db must be set before calling authenticate
             db = request.session.db or config.get('db_name') or 'messob_db'
             request.session.db = db
             _logger.info(f"Authenticating user '{username}' against db '{db}'")
 
-            # Odoo 19: authenticate(login, password) — db is set on session, not passed as arg
-            uid = request.session.authenticate(username, password)
+            # Odoo 19: authenticate(env, credential) where credential = {login, password, type}
+            try:
+                env = request.env(user=None, su=True)
+                credential = {
+                    'login': username,
+                    'password': password,
+                    'type': 'password',
+                }
+                request.session.authenticate(env, credential)
+                uid = request.session.uid
+            except Exception as auth_err:
+                _logger.warning(f"Authentication error for '{username}': {auth_err}")
+                return {'success': False, 'error': 'Invalid credentials'}
+
             _logger.info(f"Authentication result for '{username}': uid={uid}")
 
             if not uid:
