@@ -4,7 +4,7 @@ from odoo import http  # type: ignore
 from odoo.http import request  # type: ignore
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 _logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class FleetAPIController(http.Controller):
                     'id': vehicle.id,
                     'name': vehicle.name,
                     'license_plate': vehicle.license_plate,
-                    'mesob_status': vehicle.mesob_status,
+                    'mesob_status': vehicle.mesob_status or 'available',
                     'current_odometer': vehicle.current_odometer,
                     'maintenance_due': vehicle.maintenance_due,
                     'fuel_efficiency': vehicle.fuel_efficiency,
@@ -56,7 +56,7 @@ class FleetAPIController(http.Controller):
                         'longitude': vehicle.current_longitude,
                         'last_update': vehicle.last_gps_update.isoformat() if vehicle.last_gps_update else None
                     },
-                    'vehicle_category': vehicle.mesob_vehicle_category,
+                    'vehicle_category': vehicle.mesob_vehicle_category or 'sedan',
                     'assigned_driver': vehicle.assigned_driver_id.name if vehicle.assigned_driver_id else None
                 })
             
@@ -118,48 +118,72 @@ class FleetAPIController(http.Controller):
             _logger.error(f"List trip requests error: {e}")
             return {'success': False, 'error': str(e)}
 
+    def _parse_datetime(self, dt_str):
+        """Parse ISO 8601 or Odoo datetime string into 'YYYY-MM-DD HH:MM:SS' format."""
+        if not dt_str:
+            return None
+        # Already in Odoo format
+        if 'T' not in str(dt_str):
+            return dt_str
+        try:
+            # Handle ISO 8601 with Z or +offset
+            dt_str = str(dt_str).replace('Z', '+00:00')
+            dt = datetime.fromisoformat(dt_str)
+            # Convert to UTC naive for Odoo storage
+            if dt.tzinfo is not None:
+                dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+            return dt.strftime('%Y-%m-%d %H:%M:%S')
+        except Exception:
+            # Fallback: strip timezone suffix and truncate
+            clean = str(dt_str).split('.')[0].replace('T', ' ')[:19]
+            return clean
+
     def _create_trip_request(self, **kwargs):
         try:
             data = request.params or {}
-            
+
             # Get current employee
             employee = request.env['hr.employee'].search([
                 ('user_id', '=', request.env.uid)
             ], limit=1)
-            
+
             if not employee:
                 return {
                     'success': False,
                     'error': 'Employee record not found for current user'
                 }
-            
+
+            # Parse datetimes — frontend sends ISO 8601, Odoo needs '%Y-%m-%d %H:%M:%S'
+            start_dt = self._parse_datetime(data.get('start_datetime'))
+            end_dt = self._parse_datetime(data.get('end_datetime'))
+
             # Create trip request
             trip_request = request.env['mesob.trip.request'].create({
                 'employee_id': employee.id,
                 'purpose': data.get('purpose'),
                 'vehicle_category': data.get('vehicle_category'),
-                'start_datetime': data.get('start_datetime'),
-                'end_datetime': data.get('end_datetime'),
+                'start_datetime': start_dt,
+                'end_datetime': end_dt,
                 'pickup_location': data.get('pickup_location'),
-                'pickup_latitude': data.get('pickup_latitude', 0.0),
-                'pickup_longitude': data.get('pickup_longitude', 0.0),
+                'pickup_latitude': float(data.get('pickup_latitude') or 0.0),
+                'pickup_longitude': float(data.get('pickup_longitude') or 0.0),
                 'destination_location': data.get('destination_location'),
-                'destination_latitude': data.get('destination_latitude', 0.0),
-                'destination_longitude': data.get('destination_longitude', 0.0),
-                'passenger_count': data.get('passenger_count', 1),
+                'destination_latitude': float(data.get('destination_latitude') or 0.0),
+                'destination_longitude': float(data.get('destination_longitude') or 0.0),
+                'passenger_count': int(data.get('passenger_count') or 1),
                 'priority': data.get('priority', 'normal'),
                 'trip_type': data.get('trip_type', 'official'),
             })
-            
+
             # Submit the request
             trip_request.action_submit()
-            
+
             return {
                 'success': True,
                 'trip_request_id': trip_request.id,
                 'message': 'Trip request created successfully'
             }
-            
+
         except Exception as e:
             _logger.error(f"Create trip request API error: {e}")
             return {
@@ -421,22 +445,45 @@ class FleetAPIController(http.Controller):
             if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
                     request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
                 return {'success': False, 'error': 'Insufficient permissions'}
-            alerts = request.env['mesob.fleet.alert'].search(
-                [('resolved', '=', False)], order='timestamp desc', limit=100
-            )
+
             data = []
-            for a in alerts:
-                data.append({
-                    'id': a.id,
-                    'alert_type': a.alert_type,
-                    'vehicle_name': a.vehicle_id.name if a.vehicle_id else None,
-                    'driver_name': a.driver_id.name if a.driver_id else None,
-                    'message': a.message,
-                    'severity': a.severity,
-                    'timestamp': a.timestamp.isoformat() if a.timestamp else None,
-                    'acknowledged': a.acknowledged,
-                    'resolved': a.resolved,
-                })
+
+            # Try the dedicated alert model first; fall back to computed alerts if not installed
+            try:
+                alerts = request.env['mesob.fleet.alert'].search(
+                    [('resolved', '=', False)], order='timestamp desc', limit=100
+                )
+                for a in alerts:
+                    data.append({
+                        'id': a.id,
+                        'alert_type': a.alert_type,
+                        'vehicle_name': a.vehicle_id.name if a.vehicle_id else None,
+                        'driver_name': a.driver_id.name if a.driver_id else None,
+                        'message': a.message,
+                        'severity': a.severity,
+                        'timestamp': a.timestamp.isoformat() if a.timestamp else None,
+                        'acknowledged': a.acknowledged,
+                        'resolved': a.resolved,
+                    })
+            except Exception:
+                # Model not installed — generate alerts from maintenance schedules
+                try:
+                    schedules = request.env['mesob.maintenance.schedule'].search([('is_overdue', '=', True)])
+                    for s in schedules:
+                        data.append({
+                            'id': s.id,
+                            'alert_type': 'maintenance_due',
+                            'vehicle_name': s.vehicle_id.name if s.vehicle_id else None,
+                            'driver_name': None,
+                            'message': f"Maintenance overdue: {s.maintenance_type} for {s.vehicle_id.name if s.vehicle_id else 'vehicle'}",
+                            'severity': 'high',
+                            'timestamp': s.next_due_date.isoformat() if s.next_due_date else None,
+                            'acknowledged': False,
+                            'resolved': False,
+                        })
+                except Exception:
+                    pass
+
             return {'success': True, 'alerts': data}
         except Exception as e:
             _logger.error(f"Get alerts error: {e}")
@@ -494,8 +541,8 @@ class FleetAPIController(http.Controller):
                 'id': v.id,
                 'name': v.name,
                 'license_plate': v.license_plate,
-                'vehicle_category': v.mesob_vehicle_category,
-                'mesob_status': v.mesob_status,
+                'vehicle_category': v.mesob_vehicle_category or 'sedan',
+                'mesob_status': v.mesob_status or 'available',
                 'current_odometer': v.current_odometer,
             } for v in vehicles]
 

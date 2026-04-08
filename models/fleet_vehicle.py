@@ -52,7 +52,7 @@ class FleetVehicle(models.Model):
         ('minibus', 'Mini-Bus'),
         ('motorcycle', 'Motorcycle'),
         ('truck', 'Truck')
-    ], string="Vehicle Category")
+    ], string="Vehicle Category", default='sedan')
 
     # Documentation
     insurance_expiry = fields.Date(string="Insurance Expiry Date")
@@ -196,6 +196,29 @@ class FleetVehicle(models.Model):
         for rec in self.search([]):
             if rec.maintenance_due:
                 rec.mesob_status = 'maintenance'
+
+    @api.model
+    def _fix_null_vehicle_categories(self):
+        """Fix any existing NULL vehicle_category values in the DB."""
+        self.env.cr.execute(
+            "UPDATE fleet_vehicle SET mesob_vehicle_category = 'sedan' "
+            "WHERE mesob_vehicle_category IS NULL"
+        )
+
+    def init(self):
+        """Fix NULL vehicle categories and statuses on module install/update."""
+        super().init()
+        try:
+            self.env.cr.execute(
+                "UPDATE fleet_vehicle SET mesob_vehicle_category = 'sedan' "
+                "WHERE mesob_vehicle_category IS NULL"
+            )
+            self.env.cr.execute(
+                "UPDATE fleet_vehicle SET mesob_status = 'available' "
+                "WHERE mesob_status IS NULL"
+            )
+        except Exception:
+            pass
 
     @api.depends('current_odometer', 'maintenance_due', 'last_gps_update', 'insurance_expiry', 'registration_expiry')
     def _compute_maintenance_score(self):
