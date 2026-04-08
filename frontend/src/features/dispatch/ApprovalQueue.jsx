@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { tripApi, fleetApi, driverApi } from "@/lib/api";
+import { tripApi, fleetApi, driverApi, resourceApi } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,13 +38,20 @@ export default function ApprovalQueue() {
   const [rejectReason, setRejectReason] = useState("");
   const [assignVehicle, setAssignVehicle] = useState("");
   const [assignDriver, setAssignDriver] = useState("");
+  const [availableVehicles, setAvailableVehicles] = useState([]);
+  const [availableDrivers, setAvailableDrivers] = useState([]);
+  const [loadingResources, setLoadingResources] = useState(false);
   const [search, setSearch] = useState("");
   const [filterState, setFilterState] = useState("all");
 
   const fetchAll = useCallback(async () => {
     try {
       const [reqRes, vehRes, drvRes] = await Promise.all([tripApi.list(), fleetApi.list(), driverApi.list()]);
-      setRequests(reqRes.trip_requests || []);
+      // FR-2.1: display oldest first (backend already returns asc, but sort client-side as safety)
+      const sorted = (reqRes.trip_requests || []).sort(
+        (a, b) => new Date(a.create_date) - new Date(b.create_date)
+      );
+      setRequests(sorted);
       setVehicles((vehRes.vehicles || []).filter(v => v.mesob_status === "available"));
       setDrivers((drvRes.drivers || []).filter(d => d.active_trips === 0));
     } catch (err) {
@@ -56,7 +63,35 @@ export default function ApprovalQueue() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const closeDialog = () => { setSelectedReq(null); setMode(null); setRejectReason(""); setAssignVehicle(""); setAssignDriver(""); };
+  const closeDialog = () => {
+    setSelectedReq(null); setMode(null); setRejectReason("");
+    setAssignVehicle(""); setAssignDriver("");
+    setAvailableVehicles([]); setAvailableDrivers([]);
+  };
+
+  // FR-2.2: fetch time-window filtered resources when assign dialog opens
+  const openAssignDialog = async (req) => {
+    setSelectedReq(req);
+    setMode("assign");
+    setAssignVehicle(""); setAssignDriver("");
+    if (req.start_datetime && req.end_datetime) {
+      setLoadingResources(true);
+      try {
+        const res = await resourceApi.available(req.start_datetime, req.end_datetime, req.vehicle_category);
+        setAvailableVehicles(res.vehicles || []);
+        setAvailableDrivers(res.drivers || []);
+      } catch {
+        // fallback to all available
+        setAvailableVehicles(vehicles);
+        setAvailableDrivers(drivers);
+      } finally {
+        setLoadingResources(false);
+      }
+    } else {
+      setAvailableVehicles(vehicles);
+      setAvailableDrivers(drivers);
+    }
+  };
 
   const handleApprove = async () => {
     setActionLoading(true);
@@ -200,7 +235,7 @@ export default function ApprovalQueue() {
                       </>
                     )}
                     {req.state === "approved" && (
-                      <Button size="sm" className="h-8 rounded-lg text-xs bg-brand-blue hover:bg-blue-800 text-white" onClick={() => { setSelectedReq(req); setMode("assign"); }}>
+                      <Button size="sm" className="h-8 rounded-lg text-xs bg-brand-blue hover:bg-blue-800 text-white" onClick={() => openAssignDialog(req)}>
                         <Car className="h-3.5 w-3.5 mr-1" /> Assign
                       </Button>
                     )}
@@ -294,12 +329,16 @@ export default function ApprovalQueue() {
                   <SelectValue placeholder="Select a vehicle..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {vehicles.filter(v => !selectedReq?.vehicle_category || v.vehicle_category === selectedReq.vehicle_category).map(v => (
-                    <SelectItem key={v.id} value={String(v.id)}>
-                      {v.name} — {v.license_plate} ({v.vehicle_category})
-                    </SelectItem>
-                  ))}
-                  {vehicles.length === 0 && <SelectItem value="none" disabled>No available vehicles</SelectItem>}
+                  {loadingResources
+                    ? <SelectItem value="loading" disabled>Loading available vehicles...</SelectItem>
+                    : availableVehicles.length > 0
+                      ? availableVehicles.map(v => (
+                          <SelectItem key={v.id} value={String(v.id)}>
+                            {v.name} — {v.license_plate} ({v.vehicle_category})
+                          </SelectItem>
+                        ))
+                      : <SelectItem value="none" disabled>No available vehicles for this time window</SelectItem>
+                  }
                 </SelectContent>
               </Select>
             </div>
@@ -310,12 +349,16 @@ export default function ApprovalQueue() {
                   <SelectValue placeholder="Select a driver..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {drivers.map(d => (
-                    <SelectItem key={d.id} value={String(d.id)}>
-                      {d.name} {d.license_number ? `— Lic: ${d.license_number}` : ""}
-                    </SelectItem>
-                  ))}
-                  {drivers.length === 0 && <SelectItem value="none" disabled>No available drivers</SelectItem>}
+                  {loadingResources
+                    ? <SelectItem value="loading" disabled>Loading available drivers...</SelectItem>
+                    : availableDrivers.length > 0
+                      ? availableDrivers.map(d => (
+                          <SelectItem key={d.id} value={String(d.id)}>
+                            {d.name} {d.license_number ? `— Lic: ${d.license_number}` : ""}
+                          </SelectItem>
+                        ))
+                      : <SelectItem value="none" disabled>No available drivers for this time window</SelectItem>
+                  }
                 </SelectContent>
               </Select>
             </div>

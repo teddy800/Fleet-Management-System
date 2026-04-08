@@ -32,8 +32,12 @@ class FleetAPIController(http.Controller):
     
     @http.route('/api/fleet/vehicles', type='json', auth='user', methods=['GET'], cors='*')
     def get_vehicles(self):
-        """Get all vehicles with enhanced data"""
+        """Get all vehicles with enhanced data — dispatcher/manager only for full list"""
         try:
+            is_dispatcher = request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or \
+                            request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')
+            if not is_dispatcher:
+                return {'success': False, 'error': 'Insufficient permissions'}
             vehicles = request.env['fleet.vehicle'].search([])
             vehicle_data = []
             
@@ -75,12 +79,13 @@ class FleetAPIController(http.Controller):
         return self._create_trip_request()
 
     def _list_trip_requests(self):
-        """List trip requests - all pending for dispatcher, own for staff"""
+        """List trip requests - all pending for dispatcher (oldest first per FR-2.1), own for staff"""
         try:
             is_dispatcher = request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or \
                             request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')
             if is_dispatcher:
-                trip_requests = request.env['mesob.trip.request'].search([], order='create_date desc', limit=100)
+                # FR-2.1: sorted by request date, oldest first
+                trip_requests = request.env['mesob.trip.request'].search([], order='create_date asc', limit=100)
             else:
                 employee = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
                 if not employee:
@@ -251,8 +256,11 @@ class FleetAPIController(http.Controller):
 
     @http.route('/api/fleet/fuel-logs', type='json', auth='user', methods=['GET'], cors='*')
     def get_fuel_logs(self):
-        """Get fuel logs"""
+        """Get fuel logs — dispatcher/manager only (NFR-3.2)"""
         try:
+            if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
+                    request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
+                return {'success': False, 'error': 'Insufficient permissions'}
             logs = request.env['mesob.fuel.log'].search([], order='date desc', limit=100)
             data = []
             for log in logs:
@@ -274,8 +282,11 @@ class FleetAPIController(http.Controller):
 
     @http.route('/api/fleet/maintenance-logs', type='json', auth='user', methods=['GET'], cors='*')
     def get_maintenance_logs(self):
-        """Get maintenance logs"""
+        """Get maintenance logs — dispatcher/manager only (NFR-3.2)"""
         try:
+            if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
+                    request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
+                return {'success': False, 'error': 'Insufficient permissions'}
             logs = request.env['mesob.maintenance.log'].search([], order='date desc', limit=100)
             data = []
             for log in logs:
@@ -401,8 +412,11 @@ class FleetAPIController(http.Controller):
     
     @http.route('/api/fleet/alerts', type='json', auth='user', methods=['GET'], cors='*')
     def get_alerts(self):
-        """Get active fleet alerts (FR-4.3: maintenance alerts visible on dashboard)"""
+        """Get active fleet alerts — dispatcher/manager only (NFR-3.2, FR-4.3)"""
         try:
+            if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
+                    request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
+                return {'success': False, 'error': 'Insufficient permissions'}
             alerts = request.env['mesob.fleet.alert'].search(
                 [('resolved', '=', False)], order='timestamp desc', limit=100
             )
@@ -437,6 +451,155 @@ class FleetAPIController(http.Controller):
             _logger.error(f"Acknowledge alert error: {e}")
             return {'success': False, 'error': str(e)}
 
+    @http.route('/api/fleet/available-resources', type='json', auth='user', methods=['POST'], cors='*')
+    def get_available_resources(self):
+        """FR-2.2: Get vehicles and drivers available for a specific time window.
+        Filters out any already assigned to overlapping trips."""
+        try:
+            if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
+                    request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
+                return {'success': False, 'error': 'Insufficient permissions'}
+
+            data = request.get_json_data() or {}
+            start_dt = data.get('start_datetime')
+            end_dt = data.get('end_datetime')
+            vehicle_category = data.get('vehicle_category')
+
+            if not start_dt or not end_dt:
+                return {'success': False, 'error': 'start_datetime and end_datetime are required'}
+
+            # Find conflicting assignment IDs in the time window
+            conflicting = request.env['mesob.trip.assignment'].search([
+                ('state', 'in', ['assigned', 'in_progress']),
+                ('start_datetime', '<', end_dt),
+                ('end_datetime', '>', start_dt),
+            ])
+            busy_vehicle_ids = conflicting.mapped('vehicle_id').ids
+            busy_driver_ids  = conflicting.mapped('driver_id').ids
+
+            # Available vehicles: not busy, not in maintenance, matching category
+            vehicle_domain = [
+                ('mesob_status', '=', 'available'),
+                ('id', 'not in', busy_vehicle_ids),
+            ]
+            if vehicle_category:
+                vehicle_domain.append(('mesob_vehicle_category', '=', vehicle_category))
+
+            vehicles = request.env['fleet.vehicle'].search(vehicle_domain)
+            vehicle_data = [{
+                'id': v.id,
+                'name': v.name,
+                'license_plate': v.license_plate,
+                'vehicle_category': v.mesob_vehicle_category,
+                'mesob_status': v.mesob_status,
+                'current_odometer': v.current_odometer,
+            } for v in vehicles]
+
+            # Available drivers: is_driver, not busy
+            drivers = request.env['hr.employee'].search([
+                ('is_driver', '=', True),
+                ('id', 'not in', busy_driver_ids),
+            ])
+            driver_data = [{
+                'id': d.id,
+                'name': d.name,
+                'license_number': d.driver_license_number,
+                'license_expiry': d.license_expiry_date.isoformat() if d.license_expiry_date else None,
+            } for d in drivers]
+
+            return {'success': True, 'vehicles': vehicle_data, 'drivers': driver_data}
+        except Exception as e:
+            _logger.error(f"Available resources error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/users', type='json', auth='user', methods=['GET'], cors='*')
+    def get_users(self):
+        """FR-5.1: List all fleet users — manager only"""
+        try:
+            if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            users = request.env['res.users'].search([('active', '=', True), ('share', '=', False)])
+            data = []
+            for u in users:
+                employee = request.env['hr.employee'].search([('user_id', '=', u.id)], limit=1)
+                roles = []
+                if u.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                    roles.append('fleet_manager')
+                if u.has_group('mesob_fleet_customizations.group_fleet_dispatcher'):
+                    roles.append('fleet_dispatcher')
+                if u.has_group('mesob_fleet_customizations.group_fleet_user'):
+                    roles.append('fleet_user')
+                data.append({
+                    'id': u.id,
+                    'name': u.name,
+                    'email': u.email or '',
+                    'login': u.login,
+                    'active': u.active,
+                    'roles': roles,
+                    'employee_id': employee.id if employee else None,
+                    'is_driver': bool(employee and employee.is_driver),
+                })
+            return {'success': True, 'users': data}
+        except Exception as e:
+            _logger.error(f"Get users error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/users/<int:user_id>/set-role', type='json', auth='user', methods=['POST'], cors='*')
+    def set_user_role(self, user_id):
+        """FR-5.1: Assign role to a user — manager only"""
+        try:
+            if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            data = request.get_json_data() or {}
+            role = data.get('role')  # 'fleet_manager' | 'fleet_dispatcher' | 'fleet_user'
+            user = request.env['res.users'].browse(user_id)
+            if not user.exists():
+                return {'success': False, 'error': 'User not found'}
+            group_map = {
+                'fleet_manager':    'mesob_fleet_customizations.group_fleet_manager',
+                'fleet_dispatcher': 'mesob_fleet_customizations.group_fleet_dispatcher',
+                'fleet_user':       'mesob_fleet_customizations.group_fleet_user',
+            }
+            if role not in group_map:
+                return {'success': False, 'error': f'Invalid role: {role}'}
+            # Remove all fleet groups first, then add the new one
+            for gref in group_map.values():
+                try:
+                    grp = request.env.ref(gref)
+                    user.sudo().write({'groups_id': [(3, grp.id)]})
+                except Exception:
+                    pass
+            grp = request.env.ref(group_map[role])
+            user.sudo().write({'groups_id': [(4, grp.id)]})
+            return {'success': True, 'message': f'Role {role} assigned to {user.name}'}
+        except Exception as e:
+            _logger.error(f"Set user role error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/drivers/<int:driver_id>', type='json', auth='user', methods=['POST'], cors='*')
+    def update_driver(self, driver_id):
+        """FR-5.2: Update driver profile — manager only"""
+        try:
+            if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            data = request.get_json_data() or {}
+            driver = request.env['hr.employee'].browse(driver_id)
+            if not driver.exists():
+                return {'success': False, 'error': 'Driver not found'}
+            vals = {}
+            if 'license_number' in data:
+                vals['driver_license_number'] = data['license_number']
+            if 'license_expiry' in data:
+                vals['license_expiry_date'] = data['license_expiry']
+            if 'is_driver' in data:
+                vals['is_driver'] = bool(data['is_driver'])
+            if vals:
+                driver.write(vals)
+            return {'success': True, 'message': 'Driver updated'}
+        except Exception as e:
+            _logger.error(f"Update driver error: {e}")
+            return {'success': False, 'error': str(e)}
+
     def _validate_api_key(self, api_key):
         """Validate API key for external services"""
         valid_key = request.env['ir.config_parameter'].sudo().get_param('mesob.api_key')
@@ -444,8 +607,11 @@ class FleetAPIController(http.Controller):
 
     @http.route('/api/fleet/drivers', type='json', auth='user', methods=['GET'], cors='*')
     def get_drivers(self):
-        """Get all available drivers (is_driver=True employees)"""
+        """Get all available drivers — dispatcher/manager only (NFR-3.2)"""
         try:
+            if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
+                    request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
+                return {'success': False, 'error': 'Insufficient permissions'}
             drivers = request.env['hr.employee'].search([('is_driver', '=', True)])
             data = []
             for d in drivers:

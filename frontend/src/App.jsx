@@ -14,6 +14,7 @@ import GPSTracking from "./features/fleet/GPSTracking";
 import Alerts from "./features/fleet/Alerts";
 import Analytics from "./features/fleet/Analytics";
 import Drivers from "./features/fleet/Drivers";
+import UserManagement from "./features/admin/UserManagement";
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="alerts" element={<Alerts />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="drivers" element={<Drivers />} />
+        <Route path="users" element={<UserManagement />} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

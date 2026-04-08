@@ -22,6 +22,7 @@ const menuItems = [
   { name: "Maintenance",     path: "/maintenance",        icon: Gauge,           roles: ["Admin", "Dispatcher"] },
   { name: "Alerts",          path: "/alerts",             icon: Bell,            roles: ["Admin", "Dispatcher"] },
   { name: "Analytics",       path: "/analytics",          icon: BarChart3,       roles: ["Admin"] },
+  { name: "User Management", path: "/users",               icon: ShieldCheck,     roles: ["Admin"] },
 ];
 
 const ROLE_COLORS = {

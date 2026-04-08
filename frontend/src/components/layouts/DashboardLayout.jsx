@@ -20,6 +20,7 @@ const BREADCRUMBS = {
   "/maintenance":        ["Fleet", "Maintenance"],
   "/alerts":             ["Fleet", "Alerts"],
   "/analytics":          ["Reports", "Analytics"],
+  "/users":              ["Admin", "User Management"],
   "/profile":            ["Account", "Profile"],
 };
 

@@ -111,6 +111,24 @@ export const fleetApi = {
 // --- Drivers ---
 export const driverApi = {
   list: () => request("/api/fleet/drivers"),
+  update: (id, payload) =>
+    request(`/api/fleet/drivers/${id}`, { method: "POST", body: JSON.stringify(payload) }),
+};
+
+// --- Available resources for time window (FR-2.2) ---
+export const resourceApi = {
+  available: (startDatetime, endDatetime, vehicleCategory) =>
+    request("/api/fleet/available-resources", {
+      method: "POST",
+      body: JSON.stringify({ start_datetime: startDatetime, end_datetime: endDatetime, vehicle_category: vehicleCategory }),
+    }),
+};
+
+// --- User management (FR-5.1) ---
+export const userMgmtApi = {
+  list: () => request("/api/fleet/users"),
+  setRole: (userId, role) =>
+    request(`/api/fleet/users/${userId}/set-role`, { method: "POST", body: JSON.stringify({ role }) }),
 };
 
 // --- Driver mobile (for Driver role) ---
