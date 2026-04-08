@@ -22,7 +22,7 @@ class TripAssignWizard(models.TransientModel):
             'trip_request_id': trip.id,
             'vehicle_id': self.vehicle_id.id,
             'driver_id': self.driver_id.id,
-            'state': 'confirmed',
+            'state': 'assigned',
             'confirmed_at': fields.Datetime.now(),
         })
 

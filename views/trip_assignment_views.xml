@@ -12,7 +12,7 @@
                             invisible="state == 'cancelled'"
                             groups="mesob_fleet_customizations.group_fleet_dispatcher"/>
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,confirmed,cancelled"/>
+                           statusbar_visible="draft,assigned,in_progress,completed,cancelled"/>
                 </header>
                 <sheet>
                     <group>
@@ -39,7 +39,9 @@
                 <field name="start_datetime"/>
                 <field name="stop_datetime"/>
                 <field name="state" widget="badge"
-                       decoration-success="state == 'confirmed'"
+                       decoration-success="state == 'assigned'"
+                       decoration-info="state == 'in_progress'"
+                       decoration-muted="state == 'completed'"
                        decoration-warning="state == 'draft'"
                        decoration-danger="state == 'cancelled'"/>
                 <field name="confirmed_at"/>
@@ -81,7 +83,8 @@
             <search string="Fleet Availability">
                 <field name="vehicle_id"/>
                 <field name="driver_id"/>
-                <filter string="Confirmed" name="confirmed" domain="[('state','=','confirmed')]"/>
+                <filter string="Assigned" name="confirmed" domain="[('state','=','assigned')]"/>
+                <filter string="In Progress" name="in_progress" domain="[('state','=','in_progress')]"/>
                 <filter string="Draft" name="draft" domain="[('state','=','draft')]"/>
                 <separator/>
                 <filter string="By Vehicle" name="group_vehicle" context="{'group_by':'vehicle_id'}"/>

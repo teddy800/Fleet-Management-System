@@ -62,13 +62,13 @@ class TripAssignment(models.Model):
     @api.constrains('vehicle_id', 'driver_id', 'state')
     def _check_conflicts(self):
         for rec in self:
-            if rec.state not in ('assigned', 'in_progress', 'confirmed'):
+            if rec.state not in ('assigned', 'in_progress'):
                 continue
             trip = rec.trip_request_id
             if not trip:
                 continue
             overlap_domain = [
-                ('state', 'in', ['assigned', 'in_progress', 'confirmed']),
+                ('state', 'in', ['assigned', 'in_progress']),
                 ('id', '!=', rec.id),
                 ('trip_request_id.start_datetime', '<', trip.end_datetime),
                 ('trip_request_id.end_datetime', '>', trip.start_datetime),
