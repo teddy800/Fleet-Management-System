@@ -22,6 +22,7 @@ export default defineConfig({
               proxyRes.headers['set-cookie'] = setCookie.map(c =>
                 c.replace(/; SameSite=None/gi, '; SameSite=Lax')
                  .replace(/; Secure/gi, '')
+                 .replace(/Domain=[^;]+;?\s*/gi, '')
               );
             }
           });
@@ -40,6 +41,7 @@ export default defineConfig({
               proxyRes.headers['set-cookie'] = setCookie.map(c =>
                 c.replace(/; SameSite=None/gi, '; SameSite=Lax')
                  .replace(/; Secure/gi, '')
+                 .replace(/Domain=[^;]+;?\s*/gi, '')
               );
             }
           });
