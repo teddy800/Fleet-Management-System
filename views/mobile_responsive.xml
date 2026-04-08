@@ -1,6 +1,6 @@
 <odoo>
-    <!-- Mobile-Responsive Fleet Views for Figma Design Integration -->
-    
+    <!-- Mobile-Responsive Fleet Views -->
+
     <!-- Mobile Trip Request Form -->
     <record id="view_trip_request_form_mobile" model="ir.ui.view">
         <field name="name">trip.request.form.mobile</field>
@@ -8,21 +8,23 @@
         <field name="arch" type="xml">
             <form string="Trip Request" class="o_form_mobile">
                 <header>
-                    <button name="action_submit" string="Submit Request" type="object" 
-                            class="btn-primary" states="draft"/>
-                    <button name="action_approve" string="Approve" type="object" 
-                            class="btn-success" states="pending" 
+                    <button name="action_submit" string="Submit Request" type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve" string="Approve" type="object"
+                            class="btn-success"
+                            invisible="state != 'pending'"
                             groups="mesob_fleet_customizations.group_fleet_dispatcher"/>
-                    <button name="action_reject" string="Reject" type="object" 
-                            class="btn-danger" states="pending"
+                    <button name="action_reject" string="Reject" type="object"
+                            class="btn-danger"
+                            invisible="state != 'pending'"
                             groups="mesob_fleet_customizations.group_fleet_dispatcher"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,pending,approved,in_progress,completed"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,pending,approved,in_progress,completed"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
-                        <h1>
-                            <field name="name" readonly="1"/>
-                        </h1>
+                        <h1><field name="name" readonly="1"/></h1>
                     </div>
                     <group>
                         <group string="Trip Details" class="o_group_mobile">
@@ -42,8 +44,8 @@
                         <field name="destination_location" placeholder="Destination address..."/>
                         <field name="estimated_distance"/>
                     </group>
-                    <group string="Assignment" class="o_group_mobile" 
-                           attrs="{'invisible': [('state', 'in', ['draft', 'pending'])]}">
+                    <group string="Assignment" class="o_group_mobile"
+                           invisible="state in ('draft', 'pending')">
                         <field name="assigned_vehicle_id"/>
                         <field name="assigned_driver_id"/>
                     </group>
@@ -107,12 +109,8 @@
                             </div>
                             <div class="o_kanban_card_footer">
                                 <div class="btn-group w-100" role="group">
-                                    <button class="btn btn-sm btn-outline-primary" name="action_view_trips" type="object">
-                                        Trips
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-secondary" name="action_view_maintenance" type="object">
-                                        Service
-                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary" name="action_view_trips" type="object">Trips</button>
+                                    <button class="btn btn-sm btn-outline-secondary" name="action_view_maintenance" type="object">Service</button>
                                 </div>
                             </div>
                         </div>
@@ -150,17 +148,10 @@
                             </div>
                             <div class="o_kanban_card_content">
                                 <div class="btn-group w-100 mt-2" role="group">
-                                    <button class="btn btn-success btn-sm" name="action_start_trip" type="object"
-                                            attrs="{'invisible': [('state', '!=', 'assigned')]}">
-                                        Start Trip
-                                    </button>
-                                    <button class="btn btn-warning btn-sm" name="action_complete_trip" type="object"
-                                            attrs="{'invisible': [('state', '!=', 'in_progress')]}">
-                                        Complete
-                                    </button>
-                                    <button class="btn btn-info btn-sm" name="action_view_route" type="object">
-                                        Route
-                                    </button>
+                                    <button class="btn btn-success btn-sm" name="action_confirm" type="object"
+                                            invisible="state != 'draft'">Confirm</button>
+                                    <button class="btn btn-warning btn-sm" name="action_cancel" type="object"
+                                            invisible="state not in ('assigned', 'in_progress')">Cancel</button>
                                 </div>
                             </div>
                         </div>
