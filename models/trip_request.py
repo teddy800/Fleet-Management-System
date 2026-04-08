@@ -29,7 +29,7 @@ class TripRequest(models.Model):
         ('minibus', 'Mini-Bus'),
         ('motorcycle', 'Motorcycle'),
         ('truck', 'Truck')
-    ], string="Required Vehicle Category", required=True, tracking=True)
+    ], string="Required Vehicle Category", required=True, default='sedan', tracking=True)
     
     passenger_count = fields.Integer(string="Number of Passengers", default=1)
     cargo_requirements = fields.Text(string="Cargo Requirements")

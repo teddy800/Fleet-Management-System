@@ -217,6 +217,19 @@ class FleetVehicle(models.Model):
                 "UPDATE fleet_vehicle SET mesob_status = 'available' "
                 "WHERE mesob_status IS NULL"
             )
+            # Also fix trip requests that may have NULL vehicle_category
+            self.env.cr.execute(
+                "UPDATE mesob_trip_request SET vehicle_category = 'sedan' "
+                "WHERE vehicle_category IS NULL"
+            )
+            self.env.cr.execute(
+                "UPDATE mesob_trip_request SET priority = 'normal' "
+                "WHERE priority IS NULL"
+            )
+            self.env.cr.execute(
+                "UPDATE mesob_trip_request SET trip_type = 'official' "
+                "WHERE trip_type IS NULL"
+            )
         except Exception:
             pass
 
