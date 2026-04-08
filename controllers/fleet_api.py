@@ -11,7 +11,7 @@ _logger = logging.getLogger(__name__)
 
 class FleetAPIController(http.Controller):
     
-    @http.route('/api/fleet/dashboard', type='json', auth='user', methods=['GET'], cors='*')
+    @http.route('/api/fleet/dashboard', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_dashboard_data(self):
         """Get comprehensive dashboard data"""
         try:
@@ -30,7 +30,7 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/vehicles', type='json', auth='user', methods=['GET'], cors='*')
+    @http.route('/api/fleet/vehicles', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_vehicles(self):
         """Get all vehicles with enhanced data — dispatcher/manager only for full list"""
         try:
@@ -120,7 +120,7 @@ class FleetAPIController(http.Controller):
 
     def _create_trip_request(self, **kwargs):
         try:
-            data = request.get_json_data() or {}
+            data = request.params or {}
             
             # Get current employee
             employee = request.env['hr.employee'].search([
@@ -203,7 +203,7 @@ class FleetAPIController(http.Controller):
     def assign_vehicle(self, request_id):
         """Assign vehicle and driver to trip request"""
         try:
-            data = request.get_json_data() or {}
+            data = request.params or {}
             
             # Check dispatcher permissions
             if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher'):
@@ -251,14 +251,14 @@ class FleetAPIController(http.Controller):
             trip_request = request.env['mesob.trip.request'].browse(request_id)
             if not trip_request.exists():
                 return {'success': False, 'error': 'Trip request not found'}
-            data = request.get_json_data() or {}
+            data = request.params or {}
             trip_request.action_reject(reason=data.get('reason'))
             return {'success': True, 'message': 'Trip request rejected'}
         except Exception as e:
             _logger.error(f"Reject trip request error: {e}")
             return {'success': False, 'error': str(e)}
 
-    @http.route('/api/fleet/fuel-logs', type='json', auth='user', methods=['GET'], cors='*')
+    @http.route('/api/fleet/fuel-logs', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_fuel_logs(self):
         """Get fuel logs — dispatcher/manager only (NFR-3.2)"""
         try:
@@ -284,7 +284,7 @@ class FleetAPIController(http.Controller):
             _logger.error(f"Fuel logs error: {e}")
             return {'success': False, 'error': str(e)}
 
-    @http.route('/api/fleet/maintenance-logs', type='json', auth='user', methods=['GET'], cors='*')
+    @http.route('/api/fleet/maintenance-logs', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_maintenance_logs(self):
         """Get maintenance logs — dispatcher/manager only (NFR-3.2)"""
         try:
@@ -345,7 +345,7 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/vehicles/<int:vehicle_id>/location', type='json', auth='user', methods=['GET'], cors='*')
+    @http.route('/api/fleet/vehicles/<int:vehicle_id>/location', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_vehicle_location(self, vehicle_id):
         """Get current location of a specific vehicle"""
         try:
@@ -376,7 +376,7 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/analytics/kpis', type='json', auth='user', methods=['GET'], cors='*')
+    @http.route('/api/fleet/analytics/kpis', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_kpis(self):
         """Get key performance indicators"""
         try:
@@ -395,7 +395,7 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/maintenance/predictions', type='json', auth='user', methods=['GET'], cors='*')
+    @http.route('/api/fleet/maintenance/predictions', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_maintenance_predictions(self):
         """Get maintenance predictions"""
         try:
@@ -414,7 +414,7 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
-    @http.route('/api/fleet/alerts', type='json', auth='user', methods=['GET'], cors='*')
+    @http.route('/api/fleet/alerts', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_alerts(self):
         """Get active fleet alerts — dispatcher/manager only (NFR-3.2, FR-4.3)"""
         try:
@@ -464,7 +464,7 @@ class FleetAPIController(http.Controller):
                     request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
                 return {'success': False, 'error': 'Insufficient permissions'}
 
-            data = request.get_json_data() or {}
+            data = request.params or {}
             start_dt = data.get('start_datetime')
             end_dt = data.get('end_datetime')
             vehicle_category = data.get('vehicle_category')
@@ -516,7 +516,7 @@ class FleetAPIController(http.Controller):
             _logger.error(f"Available resources error: {e}")
             return {'success': False, 'error': str(e)}
 
-    @http.route('/api/fleet/users', type='json', auth='user', methods=['GET'], cors='*')
+    @http.route('/api/fleet/users', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_users(self):
         """FR-5.1: List all fleet users — manager only"""
         try:
@@ -554,7 +554,7 @@ class FleetAPIController(http.Controller):
         try:
             if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
                 return {'success': False, 'error': 'Insufficient permissions'}
-            data = request.get_json_data() or {}
+            data = request.params or {}
             role = data.get('role')  # 'fleet_manager' | 'fleet_dispatcher' | 'fleet_user'
             user = request.env['res.users'].browse(user_id)
             if not user.exists():
@@ -586,7 +586,7 @@ class FleetAPIController(http.Controller):
         try:
             if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
                 return {'success': False, 'error': 'Insufficient permissions'}
-            data = request.get_json_data() or {}
+            data = request.params or {}
             driver = request.env['hr.employee'].browse(driver_id)
             if not driver.exists():
                 return {'success': False, 'error': 'Driver not found'}
@@ -609,7 +609,7 @@ class FleetAPIController(http.Controller):
         valid_key = request.env['ir.config_parameter'].sudo().get_param('mesob.api_key')
         return api_key == valid_key
 
-    @http.route('/api/fleet/drivers', type='json', auth='user', methods=['GET'], cors='*')
+    @http.route('/api/fleet/drivers', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_drivers(self):
         """Get all available drivers — dispatcher/manager only (NFR-3.2)"""
         try:
@@ -650,7 +650,7 @@ class FleetAPIController(http.Controller):
     def update_pickup_point(self, request_id):
         """FR-3.4: Update pickup point on active trip"""
         try:
-            data = request.get_json_data() or {}
+            data = request.params or {}
             trip_request = request.env['mesob.trip.request'].browse(request_id)
             if not trip_request.exists():
                 return {'success': False, 'error': 'Trip request not found'}
@@ -666,7 +666,7 @@ class FleetAPIController(http.Controller):
             _logger.error(f"Update pickup error: {e}")
             return {'success': False, 'error': str(e)}
 
-    @http.route('/api/fleet/maintenance-schedules', type='json', auth='user', methods=['GET'], cors='*')
+    @http.route('/api/fleet/maintenance-schedules', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_maintenance_schedules(self):
         """FR-4.3: Get maintenance schedules with overdue status"""
         try:
@@ -690,7 +690,7 @@ class FleetAPIController(http.Controller):
             _logger.error(f"Maintenance schedules error: {e}")
             return {'success': False, 'error': str(e)}
 
-    @http.route('/api/fleet/trip-requests/<int:request_id>/co-passengers', type='json', auth='user', methods=['GET'], cors='*')
+    @http.route('/api/fleet/trip-requests/<int:request_id>/co-passengers', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_co_passengers(self, request_id):
         """FR-3.3: Get co-passengers sharing the same trip assignment"""
         try:
@@ -727,3 +727,5 @@ class FleetAPIController(http.Controller):
         except Exception as e:
             _logger.error(f"Co-passengers error: {e}")
             return {'success': False, 'error': str(e)}
+
+

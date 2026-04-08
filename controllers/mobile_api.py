@@ -83,7 +83,7 @@ class MobileAPIController(http.Controller):
             _logger.error(f"Mobile login error: {e}", exc_info=True)
             return {'success': False, 'error': 'Authentication failed'}
 
-    @http.route('/api/mobile/driver/assignments', type='json', auth='user', methods=['GET'])
+    @http.route('/api/mobile/driver/assignments', type='json', auth='user', methods=['GET', 'POST'])
     def get_driver_assignments(self):
         """Get assignments for current driver"""
         try:
@@ -147,7 +147,7 @@ class MobileAPIController(http.Controller):
     def complete_trip(self, assignment_id):
         """Complete a trip assignment"""
         try:
-            data = request.get_json_data() or {}
+            data = request.params or {}
             assignment = request.env['mesob.trip.assignment'].browse(assignment_id)
             if not assignment.exists():
                 return {'success': False, 'error': 'Assignment not found'}
@@ -181,7 +181,7 @@ class MobileAPIController(http.Controller):
     def update_trip_location(self, assignment_id):
         """Update current location during trip"""
         try:
-            data = request.get_json_data() or {}
+            data = request.params or {}
             assignment = request.env['mesob.trip.assignment'].browse(assignment_id)
             if not assignment.exists():
                 return {'success': False, 'error': 'Assignment not found'}
@@ -199,7 +199,7 @@ class MobileAPIController(http.Controller):
             _logger.error(f"Update trip location error: {e}")
             return {'success': False, 'error': str(e)}
 
-    @http.route('/api/mobile/user/trip-requests', type='json', auth='user', methods=['GET'])
+    @http.route('/api/mobile/user/trip-requests', type='json', auth='user', methods=['GET', 'POST'])
     def get_user_trip_requests(self):
         """Get trip requests for current user"""
         try:
@@ -236,7 +236,7 @@ class MobileAPIController(http.Controller):
     def create_quick_request(self):
         """Create a quick trip request from mobile"""
         try:
-            data = request.get_json_data() or {}
+            data = request.params or {}
             employee = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
             if not employee:
                 return {'success': False, 'error': 'Employee record not found'}
@@ -263,7 +263,7 @@ class MobileAPIController(http.Controller):
     def get_nearby_vehicles(self):
         """Get vehicles near a specific location"""
         try:
-            data = request.get_json_data() or {}
+            data = request.params or {}
             user_lat = data.get('latitude')
             user_lng = data.get('longitude')
             radius = data.get('radius', 10)
@@ -300,3 +300,5 @@ class MobileAPIController(http.Controller):
         dlat, dlon = lat2 - lat1, lon2 - lon1
         a = math.sin(dlat/2)**2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2
         return 6371 * 2 * math.asin(math.sqrt(a))
+
+
