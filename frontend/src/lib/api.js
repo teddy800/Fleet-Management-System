@@ -138,6 +138,13 @@ export const maintenanceApi = {
   predictions: () => request("/api/fleet/maintenance/predictions"),
 };
 
+// --- Alerts ---
+export const alertsApi = {
+  list: () => request("/api/fleet/alerts"),
+  acknowledge: (id) =>
+    request(`/api/fleet/alerts/${id}/acknowledge`, { method: "POST", body: JSON.stringify({}) }),
+};
+
 // --- Analytics / Dashboard ---
 export const analyticsApi = {
   kpis: () => request("/api/fleet/analytics/kpis"),

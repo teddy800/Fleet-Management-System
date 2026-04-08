@@ -65,10 +65,10 @@
             <kanban class="o_kanban_mobile o_fleet_mobile_dashboard">
                 <field name="name"/>
                 <field name="license_plate"/>
-                <field name="availability"/>
+                <field name="mesob_status"/>
                 <field name="current_odometer"/>
                 <field name="maintenance_due"/>
-                <field name="driver_id"/>
+                <field name="assigned_driver_id"/>
                 <templates>
                     <t t-name="kanban-box">
                         <div class="oe_kanban_card oe_kanban_global_click o_kanban_mobile_card">
@@ -82,17 +82,17 @@
                                     </div>
                                 </div>
                                 <div class="o_kanban_card_header_right">
-                                    <field name="availability" widget="badge" 
-                                           decoration-success="availability == 'available'"
-                                           decoration-warning="availability == 'maintenance'"
-                                           decoration-danger="availability == 'unavailable'"/>
+                                    <field name="mesob_status" widget="badge"
+                                           decoration-success="mesob_status == 'available'"
+                                           decoration-warning="mesob_status == 'maintenance'"
+                                           decoration-danger="mesob_status == 'unavailable'"/>
                                 </div>
                             </div>
                             <div class="o_kanban_card_content">
                                 <div class="row no-gutters">
                                     <div class="col-6">
                                         <small class="text-muted">Driver:</small><br/>
-                                        <field name="driver_id"/>
+                                        <field name="assigned_driver_id"/>
                                     </div>
                                     <div class="col-6 text-right">
                                         <small class="text-muted">Odometer:</small><br/>

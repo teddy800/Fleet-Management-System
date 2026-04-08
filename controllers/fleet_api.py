@@ -399,6 +399,44 @@ class FleetAPIController(http.Controller):
                 'error': str(e)
             }
     
+    @http.route('/api/fleet/alerts', type='json', auth='user', methods=['GET'], cors='*')
+    def get_alerts(self):
+        """Get active fleet alerts (FR-4.3: maintenance alerts visible on dashboard)"""
+        try:
+            alerts = request.env['mesob.fleet.alert'].search(
+                [('resolved', '=', False)], order='timestamp desc', limit=100
+            )
+            data = []
+            for a in alerts:
+                data.append({
+                    'id': a.id,
+                    'alert_type': a.alert_type,
+                    'vehicle_name': a.vehicle_id.name if a.vehicle_id else None,
+                    'driver_name': a.driver_id.name if a.driver_id else None,
+                    'message': a.message,
+                    'severity': a.severity,
+                    'timestamp': a.timestamp.isoformat() if a.timestamp else None,
+                    'acknowledged': a.acknowledged,
+                    'resolved': a.resolved,
+                })
+            return {'success': True, 'alerts': data}
+        except Exception as e:
+            _logger.error(f"Get alerts error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/alerts/<int:alert_id>/acknowledge', type='json', auth='user', methods=['POST'], cors='*')
+    def acknowledge_alert(self, alert_id):
+        """Acknowledge a fleet alert"""
+        try:
+            alert = request.env['mesob.fleet.alert'].browse(alert_id)
+            if not alert.exists():
+                return {'success': False, 'error': 'Alert not found'}
+            alert.action_acknowledge()
+            return {'success': True, 'message': 'Alert acknowledged'}
+        except Exception as e:
+            _logger.error(f"Acknowledge alert error: {e}")
+            return {'success': False, 'error': str(e)}
+
     def _validate_api_key(self, api_key):
         """Validate API key for external services"""
         valid_key = request.env['ir.config_parameter'].sudo().get_param('mesob.api_key')

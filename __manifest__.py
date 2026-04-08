@@ -23,6 +23,7 @@
         'views/dashboard_views.xml',
         'views/gps_tracking_views.xml',
         'views/pickup_update_wizard_views.xml',
+        'views/mobile_responsive.xml',
         'views/menu.xml',
     ],
     'installable': True,
