@@ -84,7 +84,8 @@ export default function RequestWizard() {
     purpose: "", vehicleCategory: "",
     startDate: format(new Date(), "yyyy-MM-dd"), startTime: "08:00",
     endDate: format(new Date(), "yyyy-MM-dd"), endTime: "17:00",
-    pickupLocation: "MESSOB Center HQ", destinationLocation: "",
+    pickupLocation: "MESSOB Center HQ", pickupLatitude: 0, pickupLongitude: 0,
+    destinationLocation: "", destinationLatitude: 0, destinationLongitude: 0,
     passengerCount: 1, tripType: "official",
   });
 
@@ -127,7 +128,11 @@ export default function RequestWizard() {
         start_datetime: startDt.toISOString(),
         end_datetime: endDt.toISOString(),
         pickup_location: formData.pickupLocation,
+        pickup_latitude: formData.pickupLatitude || 0,
+        pickup_longitude: formData.pickupLongitude || 0,
         destination_location: formData.destinationLocation,
+        destination_latitude: formData.destinationLatitude || 0,
+        destination_longitude: formData.destinationLongitude || 0,
         passenger_count: formData.passengerCount,
         priority: "normal",
         trip_type: formData.tripType,

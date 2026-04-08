@@ -141,10 +141,14 @@ class FleetAPIController(http.Controller):
                 'start_datetime': data.get('start_datetime'),
                 'end_datetime': data.get('end_datetime'),
                 'pickup_location': data.get('pickup_location'),
+                'pickup_latitude': data.get('pickup_latitude', 0.0),
+                'pickup_longitude': data.get('pickup_longitude', 0.0),
                 'destination_location': data.get('destination_location'),
+                'destination_latitude': data.get('destination_latitude', 0.0),
+                'destination_longitude': data.get('destination_longitude', 0.0),
                 'passenger_count': data.get('passenger_count', 1),
                 'priority': data.get('priority', 'normal'),
-                'trip_type': data.get('trip_type', 'official')
+                'trip_type': data.get('trip_type', 'official'),
             })
             
             # Submit the request

@@ -107,7 +107,7 @@ class FleetVehicle(models.Model):
         for vehicle in self:
             count = self.env['mesob.trip.assignment'].search_count([
                 ('vehicle_id', '=', vehicle.id),
-                ('state', '=', 'confirmed')
+                ('state', 'in', ['assigned', 'in_progress', 'completed'])
             ])
             vehicle.total_trips = count
 
@@ -116,7 +116,7 @@ class FleetVehicle(models.Model):
         for vehicle in self:
             assignments = self.env['mesob.trip.assignment'].search([
                 ('vehicle_id', '=', vehicle.id),
-                ('state', '=', 'confirmed'),
+                ('state', 'in', ['assigned', 'in_progress', 'completed']),
             ])
             thirty_days_ago = fields.Datetime.now() - timedelta(days=30)
             total_hours = 0.0

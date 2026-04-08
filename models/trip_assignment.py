@@ -13,9 +13,19 @@ class TripAssignment(models.Model):
     confirmed_at = fields.Datetime(readonly=True)
     state = fields.Selection([
         ('draft', 'Draft'),
+        ('assigned', 'Assigned'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
         ('confirmed', 'Confirmed'),
         ('cancelled', 'Cancelled'),
     ], default='draft')
+
+    # Trip execution tracking (used by Driver mobile API)
+    actual_start_datetime = fields.Datetime(string="Actual Start Time")
+    actual_end_datetime = fields.Datetime(string="Actual End Time")
+    actual_distance = fields.Float(string="Actual Distance (KM)")
+    end_odometer = fields.Float(string="End Odometer (KM)")
+    notes = fields.Text(string="Trip Notes")
 
     # Computed fields for calendar view (FR-2.3)
     start_datetime = fields.Datetime(
@@ -52,13 +62,13 @@ class TripAssignment(models.Model):
     @api.constrains('vehicle_id', 'driver_id', 'state')
     def _check_conflicts(self):
         for rec in self:
-            if rec.state != 'confirmed':
+            if rec.state not in ('assigned', 'in_progress', 'confirmed'):
                 continue
             trip = rec.trip_request_id
             if not trip:
                 continue
             overlap_domain = [
-                ('state', '=', 'confirmed'),
+                ('state', 'in', ['assigned', 'in_progress', 'confirmed']),
                 ('id', '!=', rec.id),
                 ('trip_request_id.start_datetime', '<', trip.end_datetime),
                 ('trip_request_id.end_datetime', '>', trip.start_datetime),
@@ -79,7 +89,7 @@ class TripAssignment(models.Model):
     def action_confirm(self):
         self._check_dispatcher()
         for rec in self:
-            rec.state = 'confirmed'
+            rec.state = 'assigned'
             rec.confirmed_at = fields.Datetime.now()
             if rec.trip_request_id.state == 'approved':
                 rec.trip_request_id.write({
