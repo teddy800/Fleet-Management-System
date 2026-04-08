@@ -153,26 +153,42 @@ class FleetAPIController(http.Controller):
                     'error': 'Employee record not found for current user'
                 }
 
+            # Validate required fields
+            vehicle_category = data.get('vehicle_category') or 'sedan'
+            purpose = data.get('purpose', '').strip()
+            pickup_location = data.get('pickup_location', '').strip()
+            destination_location = data.get('destination_location', '').strip()
+
+            if not purpose:
+                return {'success': False, 'error': 'Trip purpose is required'}
+            if not pickup_location:
+                return {'success': False, 'error': 'Pickup location is required'}
+            if not destination_location:
+                return {'success': False, 'error': 'Destination location is required'}
+
             # Parse datetimes — frontend sends ISO 8601, Odoo needs '%Y-%m-%d %H:%M:%S'
             start_dt = self._parse_datetime(data.get('start_datetime'))
             end_dt = self._parse_datetime(data.get('end_datetime'))
 
+            if not start_dt or not end_dt:
+                return {'success': False, 'error': 'Start and end datetime are required'}
+
             # Create trip request
             trip_request = request.env['mesob.trip.request'].create({
                 'employee_id': employee.id,
-                'purpose': data.get('purpose'),
-                'vehicle_category': data.get('vehicle_category'),
+                'purpose': purpose,
+                'vehicle_category': vehicle_category,
                 'start_datetime': start_dt,
                 'end_datetime': end_dt,
-                'pickup_location': data.get('pickup_location'),
+                'pickup_location': pickup_location,
                 'pickup_latitude': float(data.get('pickup_latitude') or 0.0),
                 'pickup_longitude': float(data.get('pickup_longitude') or 0.0),
-                'destination_location': data.get('destination_location'),
+                'destination_location': destination_location,
                 'destination_latitude': float(data.get('destination_latitude') or 0.0),
                 'destination_longitude': float(data.get('destination_longitude') or 0.0),
                 'passenger_count': int(data.get('passenger_count') or 1),
-                'priority': data.get('priority', 'normal'),
-                'trip_type': data.get('trip_type', 'official'),
+                'priority': data.get('priority') or 'normal',
+                'trip_type': data.get('trip_type') or 'official',
             })
 
             # Submit the request
