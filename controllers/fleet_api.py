@@ -73,10 +73,15 @@ class FleetAPIController(http.Controller):
     
     @http.route('/api/fleet/trip-requests', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def trip_requests(self, **kwargs):
-        """GET: list all pending trip requests (dispatcher). POST: create a new trip request."""
-        if request.httprequest.method == 'GET':
-            return self._list_trip_requests()
-        return self._create_trip_request()
+        """Route for trip requests — dispatches based on 'action' param.
+        List (default): no params or action='list'
+        Create: action='create' with trip data in params
+        """
+        data = request.params or {}
+        # If payload has 'purpose' or 'action=create', it's a create request
+        if data.get('action') == 'create' or data.get('purpose'):
+            return self._create_trip_request()
+        return self._list_trip_requests()
 
     def _list_trip_requests(self):
         """List trip requests - all pending for dispatcher (oldest first per FR-2.1), own for staff"""

@@ -89,7 +89,7 @@ export const tripApi = {
   list: () => request("/api/fleet/trip-requests"),
   listMine: () => request("/api/mobile/user/trip-requests"),
   create: (payload) =>
-    request("/api/fleet/trip-requests", { body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: payload }) }),
+    request("/api/fleet/trip-requests", { body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: { action: "create", ...payload } }) }),
   approve: (id) =>
     request(`/api/fleet/trip-requests/${id}/approve`, { body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: {} }) }),
   reject: (id, reason) =>
