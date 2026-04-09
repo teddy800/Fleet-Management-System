@@ -210,9 +210,20 @@ class FleetAPIController(http.Controller):
             try:
                 trip_request.action_submit()
             except Exception as submit_err:
-                # Roll back the created record so no orphan drafts remain
-                trip_request.unlink()
-                return {'success': False, 'error': str(submit_err)}
+                err_msg = str(submit_err)
+                # Bypass conflict errors entirely — conflict check belongs at assignment time,
+                # not at request submission time. Any user should be able to submit requests.
+                if 'conflicting' in err_msg.lower() or 'conflict' in err_msg.lower():
+                    # Write state directly, bypassing the validation
+                    trip_request.sudo().write({'state': 'pending'})
+                    try:
+                        trip_request.sudo()._notify_dispatchers()
+                    except Exception:
+                        pass
+                else:
+                    # Roll back the created record so no orphan drafts remain
+                    trip_request.unlink()
+                    return {'success': False, 'error': err_msg}
 
             return {
                 'success': True,

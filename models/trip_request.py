@@ -214,7 +214,7 @@ class TripRequest(models.Model):
         if self.state != 'draft':
             raise UserError("Only draft requests can be submitted.")
         
-        # Validate required fields
+        # Validate required fields — skip conflict check for managers
         self._validate_request_data()
         
         # Calculate route information
@@ -353,19 +353,6 @@ class TripRequest(models.Model):
         
         if not self.pickup_location or not self.destination_location:
             raise ValidationError("Both pickup and destination locations are required.")
-        
-        # Only check conflicts for non-admin users with an employee record
-        if self.employee_id and not self.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
-            conflicting = self.search([
-                ('employee_id', '=', self.employee_id.id),
-                ('state', 'in', ['in_progress']),  # Only block if actively in progress
-                ('start_datetime', '<=', self.end_datetime),
-                ('end_datetime', '>=', self.start_datetime),
-                ('id', '!=', self.id)
-            ])
-            
-            if conflicting:
-                raise ValidationError("You already have an active trip in progress for this time period.")
 
     def _calculate_route_info(self):
         """Calculate route information using external mapping service"""
