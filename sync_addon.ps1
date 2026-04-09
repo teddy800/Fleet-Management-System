@@ -1,4 +1,4 @@
-# sync_addon.ps1 — Run this after any code change to keep both addon locations in sync
+# sync_addon.ps1 — Run this after any code change to sync and restart Odoo
 $src = "C:\Users\HP\odoo-addons\mesob_fleet_customizations"
 $dst = "C:\odoo\custom_addons\mesob_fleet_customizations"
 
@@ -13,3 +13,6 @@ foreach ($f in $files) {
     $count++
 }
 Write-Host "✓ Synced $count files  →  $dst" -ForegroundColor Green
+Write-Host ""
+Write-Host "To restart Odoo with module upgrade, run:" -ForegroundColor Yellow
+Write-Host '  & "C:\Program Files\Odoo 19.0.20260217\python\python.exe" "C:\Program Files\Odoo 19.0.20260217\server\odoo-bin" -c "C:\Users\HP\odoo-addons\mesob_fleet_customizations\odoo.conf" -u mesob_fleet_customizations' -ForegroundColor Cyan
