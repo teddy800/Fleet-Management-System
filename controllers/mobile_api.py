@@ -223,7 +223,8 @@ class MobileAPIController(http.Controller):
         try:
             employee = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
             if not employee:
-                return {'success': False, 'error': 'Employee record not found'}
+                # Admin without employee record — return empty list gracefully
+                return {'success': True, 'trip_requests': []}
 
             trip_requests = request.env['mesob.trip.request'].search(
                 [('employee_id', '=', employee.id)], order='create_date desc', limit=50

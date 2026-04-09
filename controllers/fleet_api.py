@@ -147,16 +147,26 @@ class FleetAPIController(http.Controller):
         try:
             data = request.params or {}
 
-            # Get current employee
+            # Get current employee — for admin users without an employee record,
+            # create a virtual employee reference or use a fallback
             employee = request.env['hr.employee'].search([
                 ('user_id', '=', request.env.uid)
             ], limit=1)
 
             if not employee:
-                return {
-                    'success': False,
-                    'error': 'Employee record not found for current user'
-                }
+                # Admin users may not have an HR employee record.
+                # Try to create a minimal one automatically.
+                try:
+                    employee = request.env['hr.employee'].sudo().create({
+                        'name': request.env.user.name,
+                        'work_email': request.env.user.email or '',
+                        'user_id': request.env.uid,
+                    })
+                except Exception:
+                    return {
+                        'success': False,
+                        'error': 'No employee record found. Please ask your administrator to create an employee profile for your account.'
+                    }
 
             # Validate required fields
             vehicle_category = data.get('vehicle_category') or 'sedan'
