@@ -609,7 +609,7 @@ class FleetAPIController(http.Controller):
                 data.append({
                     'id': u.id,
                     'name': u.name,
-                    'email': u.email or '',
+                    'email': (u.email or '').replace('mailto:', '').strip(),
                     'login': u.login,
                     'active': u.active,
                     'roles': roles,

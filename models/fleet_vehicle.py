@@ -78,27 +78,34 @@ class FleetVehicle(models.Model):
                 ('vehicle_id', '=', vehicle.id)
             ])
             for schedule in schedules:
+                # KM-based check: due when within 500 km of interval
                 if schedule.interval_km and vehicle.current_odometer and schedule.last_odometer:
                     if vehicle.current_odometer >= (schedule.last_odometer + schedule.interval_km - 500):
                         maintenance_due = True
                         break
-                if schedule.last_service_date and schedule.interval_days:
-                    next_due = schedule.last_service_date + timedelta(days=schedule.interval_days - 30)
-                    if fields.Date.today() >= next_due:
-                        maintenance_due = True
-                        break
+                # Date-based check: due when next_due_date has arrived
+                if schedule.next_due_date and fields.Date.today() >= schedule.next_due_date:
+                    maintenance_due = True
+                    break
             vehicle.maintenance_due = maintenance_due
 
     @api.depends('current_odometer')
     def _compute_fuel_efficiency(self):
         for vehicle in self:
             fuel_logs = self.env['mesob.fuel.log'].search(
-                [('vehicle_id', '=', vehicle.id)], order='date asc'
+                [('vehicle_id', '=', vehicle.id), ('odometer', '>', 0)],
+                order='date asc, id asc'
             )
             if len(fuel_logs) >= 2:
-                total_fuel = sum(fuel_logs.mapped('volume'))
-                distance = fuel_logs[-1].odometer - fuel_logs[0].odometer
-                vehicle.fuel_efficiency = distance / total_fuel if total_fuel > 0 else 0.0
+                first_log = fuel_logs[0]
+                last_log = fuel_logs[-1]
+                distance = last_log.odometer - first_log.odometer
+                # Sum fuel from all logs except the first (first fill doesn't count toward distance)
+                total_fuel = sum(fuel_logs[1:].mapped('volume'))
+                if total_fuel > 0 and distance > 0:
+                    vehicle.fuel_efficiency = distance / total_fuel
+                else:
+                    vehicle.fuel_efficiency = 0.0
             else:
                 vehicle.fuel_efficiency = 0.0
 
@@ -256,7 +263,7 @@ class FleetVehicle(models.Model):
                     score += 20.0
                 elif days_to_expiry <= 30:
                     score += 10.0
-            # +20 if GPS has not updated in more than 24 hours (vehicle may be stuck)
+            # +20 if GPS has not updated in more than 24 hours (only if vehicle has GPS history)
             if vehicle.last_gps_update:
                 hours_since_update = (fields.Datetime.now() - vehicle.last_gps_update).total_seconds() / 3600
                 if hours_since_update > 24:

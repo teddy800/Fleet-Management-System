@@ -25,12 +25,16 @@ class FuelLog(models.Model):
             if not rec.vehicle_id or not rec.volume or rec.volume <= 0:
                 rec.efficiency = 0.0
                 continue
+            # Use rec.id (works for both new and existing records)
+            rec_id = rec.id if rec.id else 0
             prev = self.search([
                 ('vehicle_id', '=', rec.vehicle_id.id),
-                ('date', '<=', rec.date),
-                ('id', '!=', rec._origin.id),
+                ('id', '!=', rec_id),
+                '|',
+                ('date', '<', rec.date),
+                '&', ('date', '=', rec.date), ('id', '<', rec_id),
             ], order='date desc, id desc', limit=1)
-            if prev and rec.odometer > prev.odometer:
+            if prev and rec.odometer > 0 and prev.odometer > 0 and rec.odometer > prev.odometer:
                 rec.efficiency = (rec.odometer - prev.odometer) / rec.volume
             else:
                 rec.efficiency = 0.0

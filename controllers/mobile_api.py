@@ -1,10 +1,9 @@
 # flake8: noqa
 # pyright: ignore
-from odoo import http  # type: ignore
+from odoo import http, fields  # type: ignore
 from odoo.http import request  # type: ignore
 from odoo.tools import config  # type: ignore
 import logging
-from datetime import datetime
 
 _logger = logging.getLogger(__name__)
 
@@ -106,8 +105,8 @@ class MobileAPIController(http.Controller):
                         'requester': a.trip_request_id.employee_id.name,
                         'pickup_location': a.trip_request_id.pickup_location,
                         'destination_location': a.trip_request_id.destination_location,
-                        'start_datetime': a.trip_request_id.start_datetime.isoformat(),
-                        'end_datetime': a.trip_request_id.end_datetime.isoformat(),
+                        'start_datetime': a.trip_request_id.start_datetime.isoformat() if a.trip_request_id.start_datetime else None,
+                        'end_datetime': a.trip_request_id.end_datetime.isoformat() if a.trip_request_id.end_datetime else None,
                     },
                     'vehicle': {
                         'id': a.vehicle_id.id,
@@ -115,8 +114,8 @@ class MobileAPIController(http.Controller):
                         'license_plate': a.vehicle_id.license_plate,
                     },
                     'state': a.state,
-                    'start_datetime': a.start_datetime.isoformat(),
-                    'end_datetime': a.end_datetime.isoformat(),
+                    'start_datetime': a.start_datetime.isoformat() if a.start_datetime else None,
+                    'end_datetime': a.stop_datetime.isoformat() if a.stop_datetime else None,
                 })
             return {'success': True, 'assignments': data}
         except Exception as e:
@@ -135,8 +134,8 @@ class MobileAPIController(http.Controller):
             if not employee or assignment.driver_id.id != employee.id:
                 return {'success': False, 'error': 'Unauthorized access'}
 
-            assignment.write({'state': 'in_progress', 'actual_start_datetime': datetime.now()})
-            assignment.trip_request_id.write({'state': 'in_progress', 'actual_start_datetime': datetime.now()})
+            assignment.write({'state': 'in_progress', 'actual_start_datetime': fields.Datetime.now()})
+            assignment.trip_request_id.write({'state': 'in_progress', 'actual_start_datetime': fields.Datetime.now()})
             assignment.vehicle_id.write({'mesob_status': 'in_use'})
             return {'success': True, 'message': 'Trip started successfully'}
         except Exception as e:
@@ -158,14 +157,14 @@ class MobileAPIController(http.Controller):
 
             assignment.write({
                 'state': 'completed',
-                'actual_end_datetime': datetime.now(),
+                'actual_end_datetime': fields.Datetime.now(),
                 'actual_distance': data.get('actual_distance', 0),
                 'end_odometer': data.get('end_odometer', 0),
                 'notes': data.get('notes', ''),
             })
             assignment.trip_request_id.write({
                 'state': 'completed',
-                'actual_end_datetime': datetime.now(),
+                'actual_end_datetime': fields.Datetime.now(),
                 'actual_distance': data.get('actual_distance', 0),
             })
             assignment.vehicle_id.write({

@@ -57,13 +57,14 @@ class GPSLog(models.Model):
             else:
                 log.location_address = ""
 
-    @api.depends('latitude', 'longitude', 'vehicle_id')
+    @api.depends('latitude', 'longitude', 'vehicle_id', 'timestamp')
     def _compute_distance(self):
         for log in self:
-            if log.latitude and log.longitude and log.vehicle_id:
+            if log.latitude and log.longitude and log.vehicle_id and log.id:
                 previous_log = self.search([
                     ('vehicle_id', '=', log.vehicle_id.id),
-                    ('timestamp', '<', log.timestamp)
+                    ('timestamp', '<', log.timestamp),
+                    ('id', '!=', log.id),
                 ], order='timestamp desc', limit=1)
                 
                 if previous_log:
@@ -78,12 +79,14 @@ class GPSLog(models.Model):
 
     def _compute_geofence_status(self):
         for log in self:
-            # Check if location is within defined geofences
-            geofences = self.env['mesob.geofence'].search([('active', '=', True)])
-            log.is_in_geofence = any(
-                geofence.contains_point(log.latitude, log.longitude)
-                for geofence in geofences
-            )
+            try:
+                geofences = self.env['mesob.geofence'].search([('active', '=', True)])
+                log.is_in_geofence = any(
+                    geofence.contains_point(log.latitude, log.longitude)
+                    for geofence in geofences
+                )
+            except Exception:
+                log.is_in_geofence = True  # Default to "in geofence" if model unavailable
 
     def _calculate_distance(self, lat1, lon1, lat2, lon2):
         """Calculate distance between two GPS coordinates using Haversine formula"""
@@ -178,14 +181,17 @@ class GPSLog(models.Model):
                 self._create_alert('excessive_idling', vehicle, "Vehicle idling for extended period")
 
     def _create_alert(self, alert_type, vehicle, message):
-        """Create system alert"""
-        self.env['mesob.fleet.alert'].create({
-            'alert_type': alert_type,
-            'vehicle_id': vehicle.id,
-            'message': message,
-            'severity': 'medium',
-            'timestamp': fields.Datetime.now()
-        })
+        """Create system alert — silently skip if model not available"""
+        try:
+            self.env['mesob.fleet.alert'].create({
+                'alert_type': alert_type,
+                'vehicle_id': vehicle.id,
+                'message': message,
+                'severity': 'medium',
+                'timestamp': fields.Datetime.now()
+            })
+        except Exception:
+            _logger.warning("Could not create fleet alert (model may not be installed): %s", message)
 
     @api.model
     def get_vehicle_route(self, vehicle_id, start_date, end_date):

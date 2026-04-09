@@ -128,6 +128,18 @@ export default function ApprovalQueue() {
     finally { setActionLoading(false); }
   };
 
+  async function handleApproveImmediate(req) {
+    setActionLoading(true);
+    try {
+      await tripApi.approve(req.id);
+      toast.success(`Request ${req.name} approved`);
+      setMode(null);
+      setSelectedReq(null);
+      fetchAll();
+    } catch (err) { toast.error(err.message); }
+    finally { setActionLoading(false); }
+  }
+
   const filtered = requests.filter(r => {
     const matchState = filterState === "all" || r.state === filterState;
     const matchSearch = !search || r.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -373,16 +385,4 @@ export default function ApprovalQueue() {
       </Dialog>
     </div>
   );
-
-  async function handleApproveImmediate(req) {
-    setActionLoading(true);
-    try {
-      await tripApi.approve(req.id);
-      toast.success(`Request ${req.name} approved`);
-      setMode(null);
-      setSelectedReq(null);
-      fetchAll();
-    } catch (err) { toast.error(err.message); }
-    finally { setActionLoading(false); }
-  }
 }

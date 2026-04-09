@@ -30,11 +30,12 @@ class HrEmployee(models.Model):
     trip_request_ids = fields.One2many('mesob.trip.request', 'employee_id', string="Trip Requests")
     active_trip_count = fields.Integer(string="Active Trips", compute="_compute_active_trips")
     
-    @api.depends('trip_request_ids')
+    @api.depends('trip_request_ids', 'trip_request_ids.state')
     def _compute_active_trips(self):
         for employee in self:
+            # Count only trips that are actually assigned/in-progress (driver is actively on a trip)
             employee.active_trip_count = len(employee.trip_request_ids.filtered(
-                lambda r: r.state in ['pending', 'approved', 'in_progress']
+                lambda r: r.state in ['assigned', 'in_progress']
             ))
 
     def _upsert_employee(self, payload):
