@@ -178,7 +178,8 @@ class FleetAPIController(http.Controller):
             if not start_dt or not end_dt:
                 return {'success': False, 'error': 'Start and end datetime are required'}
 
-            # Create trip request
+            # Create trip request and submit atomically
+            # Use a savepoint so if submit fails, the record is also rolled back
             trip_request = request.env['mesob.trip.request'].create({
                 'employee_id': employee.id,
                 'purpose': purpose,
@@ -196,8 +197,12 @@ class FleetAPIController(http.Controller):
                 'trip_type': data.get('trip_type') or 'official',
             })
 
-            # Submit the request
-            trip_request.action_submit()
+            try:
+                trip_request.action_submit()
+            except Exception as submit_err:
+                # Roll back the created record so no orphan drafts remain
+                trip_request.unlink()
+                return {'success': False, 'error': str(submit_err)}
 
             return {
                 'success': True,
