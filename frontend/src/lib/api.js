@@ -207,6 +207,12 @@ export const driverMobileApi = {
 // ─── Fuel Logs ────────────────────────────────────────────────────────────────
 export const fuelApi = {
   list: () => request("/api/fleet/fuel-logs"),
+  create: (payload) => {
+    invalidateCache("/api/fleet/fuel-logs");
+    return request("/api/fleet/fuel-logs/create", {
+      body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: payload }),
+    });
+  },
 };
 
 // ─── Maintenance ──────────────────────────────────────────────────────────────
@@ -214,6 +220,12 @@ export const maintenanceApi = {
   list:        () => request("/api/fleet/maintenance-logs"),
   schedules:   () => request("/api/fleet/maintenance-schedules"),
   predictions: () => request("/api/fleet/maintenance/predictions"),
+  create: (payload) => {
+    invalidateCache("/api/fleet/maintenance-logs");
+    return request("/api/fleet/maintenance-logs/create", {
+      body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: payload }),
+    });
+  },
 };
 
 // ─── Alerts ───────────────────────────────────────────────────────────────────

@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
-import { fuelApi } from "@/lib/api";
+import { fuelApi, fleetApi } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Loader2, Fuel, Search, TrendingUp, TrendingDown, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Loader2, Fuel, Search, TrendingUp, TrendingDown, AlertTriangle, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 function SummaryCard({ label, value, sub, icon: Icon, gradient, iconColor }) {
   return (
@@ -28,13 +32,52 @@ export default function FuelLog() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [vehicles, setVehicles] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    vehicle_id: "", date: format(new Date(), "yyyy-MM-dd"),
+    volume: "", cost: "", odometer: "", fuel_station: "",
+  });
 
-  useEffect(() => {
+  const fetchLogs = () => {
     fuelApi.list()
       .then(res => setLogs(res.fuel_logs || []))
       .catch(err => toast.error("Failed to load fuel logs: " + err.message))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchLogs();
+    fleetApi.list().then(res => setVehicles(res.vehicles || [])).catch(() => {});
   }, []);
+
+  const handleAdd = async () => {
+    if (!form.vehicle_id || !form.volume || !form.cost) {
+      toast.error("Vehicle, volume, and cost are required");
+      return;
+    }
+    setSaving(true);
+    try {
+      await fuelApi.create({
+        vehicle_id: parseInt(form.vehicle_id),
+        date: form.date,
+        volume: parseFloat(form.volume),
+        cost: parseFloat(form.cost),
+        odometer: parseFloat(form.odometer) || 0,
+        fuel_station: form.fuel_station,
+      });
+      toast.success("Fuel log added");
+      setShowAdd(false);
+      setForm({ vehicle_id: "", date: format(new Date(), "yyyy-MM-dd"), volume: "", cost: "", odometer: "", fuel_station: "" });
+      setLoading(true);
+      fetchLogs();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const filtered = logs.filter(l =>
     !search ||
@@ -50,6 +93,7 @@ export default function FuelLog() {
 
   return (
     <div className="space-y-5 pb-8">
+      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-2xl bg-orange-100 flex items-center justify-center">
           <Fuel className="h-5 w-5 text-orange-600" />
@@ -58,6 +102,9 @@ export default function FuelLog() {
           <h1 className="text-2xl font-black text-brand-blue">Fuel Logs</h1>
           <p className="text-sm text-gray-400">{logs.length} records</p>
         </div>
+        <Button onClick={() => setShowAdd(true)} className="ml-auto bg-brand-blue hover:bg-blue-800 rounded-xl gap-2">
+          <Plus className="h-4 w-4" /> Add Fuel Log
+        </Button>
       </div>
 
       {/* Summary */}
@@ -125,6 +172,58 @@ export default function FuelLog() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Add Fuel Log Dialog */}
+      <Dialog open={showAdd} onOpenChange={v => !v && setShowAdd(false)}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-brand-blue font-black flex items-center gap-2">
+              <Fuel className="h-5 w-5" /> Add Fuel Log
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-xs font-black text-gray-600 uppercase">Vehicle *</label>
+              <Select value={form.vehicle_id} onValueChange={v => setForm(f => ({ ...f, vehicle_id: v }))}>
+                <SelectTrigger className="mt-1 rounded-xl h-11"><SelectValue placeholder="Select vehicle..." /></SelectTrigger>
+                <SelectContent>
+                  {vehicles.map(v => <SelectItem key={v.id} value={String(v.id)}>{v.name} — {v.license_plate}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-black text-gray-600 uppercase">Date *</label>
+                <Input type="date" className="mt-1 rounded-xl h-11" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-black text-gray-600 uppercase">Station</label>
+                <Input className="mt-1 rounded-xl h-11" placeholder="e.g. Total Addis" value={form.fuel_station} onChange={e => setForm(f => ({ ...f, fuel_station: e.target.value }))} />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-black text-gray-600 uppercase">Volume (L) *</label>
+                <Input type="number" min="0" step="0.1" className="mt-1 rounded-xl h-11" value={form.volume} onChange={e => setForm(f => ({ ...f, volume: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-black text-gray-600 uppercase">Cost (ETB) *</label>
+                <Input type="number" min="0" step="0.01" className="mt-1 rounded-xl h-11" value={form.cost} onChange={e => setForm(f => ({ ...f, cost: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-black text-gray-600 uppercase">Odometer</label>
+                <Input type="number" min="0" className="mt-1 rounded-xl h-11" value={form.odometer} onChange={e => setForm(f => ({ ...f, odometer: e.target.value }))} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
+            <Button className="bg-brand-blue hover:bg-blue-800" disabled={saving} onClick={handleAdd}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Fuel Log"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

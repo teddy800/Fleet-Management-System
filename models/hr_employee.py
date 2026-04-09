@@ -39,7 +39,9 @@ class HrEmployee(models.Model):
             ))
 
     def _upsert_employee(self, payload):
-        """Create or update an hr.employee from an HRMS payload dict."""
+        """Create or update an hr.employee from an HRMS payload dict.
+        Maps all fleet-relevant fields including driver license info.
+        """
         ext_id = payload.get('external_hr_id')
         if not ext_id:
             raise ValueError("Missing external_hr_id in payload: %s" % payload)
@@ -55,6 +57,13 @@ class HrEmployee(models.Model):
             vals['department_id'] = self.env['hr.department'].search(
                 [('name', '=', payload['department'])], limit=1
             ).id or False
+        # Map driver-specific fields from HR payload
+        if 'is_driver' in payload:
+            vals['is_driver'] = bool(payload['is_driver'])
+        if payload.get('driver_license_number'):
+            vals['driver_license_number'] = payload['driver_license_number']
+        if payload.get('license_expiry_date'):
+            vals['license_expiry_date'] = payload['license_expiry_date']
 
         existing = self.search([('external_hr_id', '=', ext_id)], limit=1)
         if existing:

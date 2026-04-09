@@ -43,7 +43,7 @@ const VEHICLE_CATEGORIES = [
 
 // Per-step validation schemas
 const step1Schema = z.object({
-  purpose: z.string().min(10, "Trip purpose must be at least 10 characters"),
+  purpose: z.string().min(3, "Trip purpose must be at least 3 characters"),
   vehicleCategory: z.string().min(1, "Please select a vehicle category"),
 });
 
@@ -204,7 +204,7 @@ export default function RequestWizard() {
                     className={cn("mt-2 rounded-xl border-2 min-h-[80px]", errors.purpose ? "border-red-400" : "border-gray-200 focus:border-brand-blue")}
                   />
                   <FieldError message={errors.purpose} />
-                  <p className="text-xs text-gray-400 mt-1">{formData.purpose.length}/10 min characters</p>
+                  <p className="text-xs text-gray-400 mt-1">{formData.purpose.length}/3 min characters</p>
                 </div>
                 <div>
                   <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Required Vehicle Category *</Label>

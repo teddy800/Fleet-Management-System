@@ -801,4 +801,71 @@ class FleetAPIController(http.Controller):
             _logger.error(f"Co-passengers error: {e}")
             return {'success': False, 'error': str(e)}
 
+    @http.route('/api/fleet/fuel-logs/create', type='json', auth='user', methods=['POST'], cors='*')
+    def create_fuel_log(self):
+        """FR-4.2: Create a fuel log entry — dispatcher/manager only"""
+        try:
+            if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
+                    request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            data = request.params or {}
+            vehicle_id = data.get('vehicle_id')
+            volume = float(data.get('volume', 0))
+            cost = float(data.get('cost', 0))
+            odometer = float(data.get('odometer', 0))
+            if not vehicle_id:
+                return {'success': False, 'error': 'vehicle_id is required'}
+            if volume <= 0:
+                return {'success': False, 'error': 'Volume must be greater than zero'}
+            vehicle = request.env['fleet.vehicle'].browse(int(vehicle_id))
+            if not vehicle.exists():
+                return {'success': False, 'error': 'Vehicle not found'}
+            driver = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
+            log = request.env['mesob.fuel.log'].create({
+                'vehicle_id': int(vehicle_id),
+                'driver_id': driver.id if driver else False,
+                'date': data.get('date') or str(request.env['fields.Date'].today()),
+                'volume': volume,
+                'cost': cost,
+                'odometer': odometer,
+                'fuel_station': data.get('fuel_station', ''),
+            })
+            # Update vehicle odometer if provided and greater
+            if odometer > 0 and odometer > vehicle.current_odometer:
+                vehicle.write({'current_odometer': odometer})
+            return {'success': True, 'fuel_log_id': log.id, 'message': 'Fuel log created'}
+        except Exception as e:
+            _logger.error(f"Create fuel log error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/maintenance-logs/create', type='json', auth='user', methods=['POST'], cors='*')
+    def create_maintenance_log(self):
+        """FR-4.4: Create a maintenance log entry — dispatcher/manager only"""
+        try:
+            if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
+                    request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            data = request.params or {}
+            vehicle_id = data.get('vehicle_id')
+            maintenance_type = data.get('maintenance_type')
+            odometer = float(data.get('odometer', 0))
+            if not vehicle_id or not maintenance_type:
+                return {'success': False, 'error': 'vehicle_id and maintenance_type are required'}
+            vehicle = request.env['fleet.vehicle'].browse(int(vehicle_id))
+            if not vehicle.exists():
+                return {'success': False, 'error': 'Vehicle not found'}
+            log = request.env['mesob.maintenance.log'].create({
+                'vehicle_id': int(vehicle_id),
+                'date': data.get('date') or str(request.env['fields.Date'].today()),
+                'maintenance_type': maintenance_type,
+                'description': data.get('description', ''),
+                'cost': float(data.get('cost', 0)),
+                'odometer': odometer,
+                'state': 'draft',
+            })
+            return {'success': True, 'maintenance_log_id': log.id, 'message': 'Maintenance log created'}
+        except Exception as e:
+            _logger.error(f"Create maintenance log error: {e}")
+            return {'success': False, 'error': str(e)}
+
 

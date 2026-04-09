@@ -137,6 +137,15 @@ class MobileAPIController(http.Controller):
             assignment.write({'state': 'in_progress', 'actual_start_datetime': fields.Datetime.now()})
             assignment.trip_request_id.write({'state': 'in_progress', 'actual_start_datetime': fields.Datetime.now()})
             assignment.vehicle_id.write({'mesob_status': 'in_use'})
+            # Log trip departure milestone (FR-1.3 state machine)
+            try:
+                request.env['mesob.trip.log'].sudo().log_trip_event(
+                    trip_id=assignment.trip_request_id.id,
+                    status='depart',
+                    notes='Trip started by driver',
+                )
+            except Exception:
+                pass
             return {'success': True, 'message': 'Trip started successfully'}
         except Exception as e:
             _logger.error(f"Start trip error: {e}")
@@ -171,6 +180,16 @@ class MobileAPIController(http.Controller):
                 'mesob_status': 'available',
                 'current_odometer': data.get('end_odometer', assignment.vehicle_id.current_odometer),
             })
+            # Log trip completion milestone (FR-1.3 state machine)
+            try:
+                request.env['mesob.trip.log'].sudo().log_trip_event(
+                    trip_id=assignment.trip_request_id.id,
+                    status='complete',
+                    odometer=data.get('end_odometer', 0),
+                    notes=data.get('notes', ''),
+                )
+            except Exception:
+                pass
             return {'success': True, 'message': 'Trip completed successfully'}
         except Exception as e:
             _logger.error(f"Complete trip error: {e}")

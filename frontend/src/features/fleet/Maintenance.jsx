@@ -4,14 +4,19 @@
  * Tabs: History (logs) + Schedules (preventive)
  */
 import { useEffect, useState, useCallback } from "react";
-import { maintenanceApi } from "@/lib/api";
+import { maintenanceApi, fleetApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Wrench, RefreshCw, Loader2, Search, AlertCircle, CheckCircle2, Clock, Calendar, Gauge, Car } from "lucide-react";
+import { Wrench, RefreshCw, Loader2, Search, AlertCircle, CheckCircle2, Clock, Calendar, Car, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 const STATE_META = {
   draft:       { label: "Draft",       cls: "bg-gray-100 text-gray-600 border-gray-200" },
@@ -51,6 +56,13 @@ export default function Maintenance() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("history");
   const [search, setSearch] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [vehicles, setVehicles] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    vehicle_id: "", date: format(new Date(), "yyyy-MM-dd"),
+    maintenance_type: "preventive", description: "", cost: "", odometer: "",
+  });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -68,7 +80,36 @@ export default function Maintenance() {
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    fetchData();
+    fleetApi.list().then(res => setVehicles(res.vehicles || [])).catch(() => {});
+  }, [fetchData]);
+
+  const handleAdd = async () => {
+    if (!form.vehicle_id || !form.maintenance_type) {
+      toast.error("Vehicle and maintenance type are required");
+      return;
+    }
+    setSaving(true);
+    try {
+      await maintenanceApi.create({
+        vehicle_id: parseInt(form.vehicle_id),
+        date: form.date,
+        maintenance_type: form.maintenance_type,
+        description: form.description,
+        cost: parseFloat(form.cost) || 0,
+        odometer: parseFloat(form.odometer) || 0,
+      });
+      toast.success("Maintenance log created");
+      setShowAdd(false);
+      setForm({ vehicle_id: "", date: format(new Date(), "yyyy-MM-dd"), maintenance_type: "preventive", description: "", cost: "", odometer: "" });
+      fetchData();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const inProgress = logs.filter(l => l.state === "in_progress").length;
   const overdue = schedules.filter(s => s.is_overdue).length;
@@ -100,6 +141,9 @@ export default function Maintenance() {
         <button onClick={fetchData} className="flex items-center gap-2 text-sm text-gray-500 hover:text-brand-blue bg-white border rounded-xl px-3 py-2 shadow-sm">
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
         </button>
+        <Button onClick={() => setShowAdd(true)} className="bg-brand-blue hover:bg-blue-800 rounded-xl gap-2">
+          <Plus className="h-4 w-4" /> Add Log
+        </Button>
       </div>
 
       {/* Summary Cards */}
@@ -253,6 +297,65 @@ export default function Maintenance() {
           </Table>
         </div>
       )}
+
+      {/* Add Maintenance Log Dialog */}
+      <Dialog open={showAdd} onOpenChange={v => !v && setShowAdd(false)}>
+        <DialogContent className="max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-brand-blue font-black flex items-center gap-2">
+              <Wrench className="h-5 w-5" /> Add Maintenance Log
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-xs font-black text-gray-600 uppercase">Vehicle *</label>
+              <Select value={form.vehicle_id} onValueChange={v => setForm(f => ({ ...f, vehicle_id: v }))}>
+                <SelectTrigger className="mt-1 rounded-xl h-11"><SelectValue placeholder="Select vehicle..." /></SelectTrigger>
+                <SelectContent>
+                  {vehicles.map(v => <SelectItem key={v.id} value={String(v.id)}>{v.name} — {v.license_plate}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-black text-gray-600 uppercase">Date *</label>
+                <Input type="date" className="mt-1 rounded-xl h-11" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-black text-gray-600 uppercase">Type *</label>
+                <Select value={form.maintenance_type} onValueChange={v => setForm(f => ({ ...f, maintenance_type: v }))}>
+                  <SelectTrigger className="mt-1 rounded-xl h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="preventive">Preventive</SelectItem>
+                    <SelectItem value="corrective">Corrective</SelectItem>
+                    <SelectItem value="emergency">Emergency</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-black text-gray-600 uppercase">Cost (ETB)</label>
+                <Input type="number" min="0" className="mt-1 rounded-xl h-11" value={form.cost} onChange={e => setForm(f => ({ ...f, cost: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs font-black text-gray-600 uppercase">Odometer (km)</label>
+                <Input type="number" min="0" className="mt-1 rounded-xl h-11" value={form.odometer} onChange={e => setForm(f => ({ ...f, odometer: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-black text-gray-600 uppercase">Description</label>
+              <Textarea className="mt-1 rounded-xl" rows={3} placeholder="Describe the maintenance work..." value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAdd(false)}>Cancel</Button>
+            <Button className="bg-brand-blue hover:bg-blue-800" disabled={saving} onClick={handleAdd}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Log"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
