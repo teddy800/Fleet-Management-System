@@ -138,12 +138,14 @@ export default function Maintenance() {
             <p className="text-sm text-gray-400">Service history and preventive schedules</p>
           </div>
         </div>
-        <button onClick={fetchData} className="flex items-center gap-2 text-sm text-gray-500 hover:text-brand-blue bg-white border rounded-xl px-3 py-2 shadow-sm">
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
-        </button>
-        <Button onClick={() => setShowAdd(true)} className="bg-brand-blue hover:bg-blue-800 rounded-xl gap-2">
-          <Plus className="h-4 w-4" /> Add Log
-        </Button>
+        <div className="flex items-center gap-2">
+          <button onClick={fetchData} className="flex items-center gap-2 text-sm text-gray-500 hover:text-brand-blue bg-white border rounded-xl px-3 py-2 shadow-sm">
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </button>
+          <Button onClick={() => setShowAdd(true)} className="bg-brand-blue hover:bg-blue-800 rounded-xl gap-2">
+            <Plus className="h-4 w-4" /> Add Log
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
