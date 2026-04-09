@@ -570,7 +570,7 @@ class FleetAPIController(http.Controller):
             conflicting = request.env['mesob.trip.assignment'].search([
                 ('state', 'in', ['assigned', 'in_progress']),
                 ('start_datetime', '<', end_dt),
-                ('end_datetime', '>', start_dt),
+                ('stop_datetime', '>', start_dt),
             ])
             busy_vehicle_ids = conflicting.mapped('vehicle_id').ids
             busy_driver_ids  = conflicting.mapped('driver_id').ids

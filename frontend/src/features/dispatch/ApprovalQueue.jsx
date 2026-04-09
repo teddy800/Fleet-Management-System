@@ -74,22 +74,24 @@ export default function ApprovalQueue() {
     setSelectedReq(req);
     setMode("assign");
     setAssignVehicle(""); setAssignDriver("");
-    if (req.start_datetime && req.end_datetime) {
-      setLoadingResources(true);
-      try {
+    setLoadingResources(true);
+    try {
+      if (req.start_datetime && req.end_datetime) {
         const res = await resourceApi.available(req.start_datetime, req.end_datetime, req.vehicle_category);
-        setAvailableVehicles(res.vehicles || []);
-        setAvailableDrivers(res.drivers || []);
-      } catch {
-        // fallback to all available
+        const vList = res.vehicles || [];
+        const dList = res.drivers || [];
+        // If time-window query returns empty, fall back to all available
+        setAvailableVehicles(vList.length > 0 ? vList : vehicles);
+        setAvailableDrivers(dList.length > 0 ? dList : drivers);
+      } else {
         setAvailableVehicles(vehicles);
         setAvailableDrivers(drivers);
-      } finally {
-        setLoadingResources(false);
       }
-    } else {
+    } catch {
       setAvailableVehicles(vehicles);
       setAvailableDrivers(drivers);
+    } finally {
+      setLoadingResources(false);
     }
   };
 
@@ -336,7 +338,7 @@ export default function ApprovalQueue() {
             </div>
             <div className="space-y-2">
               <label className="text-xs font-black text-gray-600 uppercase">Available Vehicle</label>
-              <Select onValueChange={setAssignVehicle}>
+              <Select key={`vehicle-${selectedReq?.id}`} value={assignVehicle} onValueChange={setAssignVehicle}>
                 <SelectTrigger className="rounded-xl h-11">
                   <SelectValue placeholder="Select a vehicle..." />
                 </SelectTrigger>
@@ -356,7 +358,7 @@ export default function ApprovalQueue() {
             </div>
             <div className="space-y-2">
               <label className="text-xs font-black text-gray-600 uppercase">Available Driver</label>
-              <Select onValueChange={setAssignDriver}>
+              <Select key={`driver-${selectedReq?.id}`} value={assignDriver} onValueChange={setAssignDriver}>
                 <SelectTrigger className="rounded-xl h-11">
                   <SelectValue placeholder="Select a driver..." />
                 </SelectTrigger>
