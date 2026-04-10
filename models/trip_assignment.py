@@ -69,13 +69,13 @@ class TripAssignment(models.Model):
             if rec.state not in ('assigned', 'in_progress'):
                 continue
             trip = rec.trip_request_id
-            if not trip:
+            if not trip or not trip.start_datetime or not trip.end_datetime:
                 continue
             overlap_domain = [
                 ('state', 'in', ['assigned', 'in_progress']),
                 ('id', '!=', rec.id),
-                ('trip_request_id.start_datetime', '<', trip.end_datetime),
-                ('trip_request_id.end_datetime', '>', trip.start_datetime),
+                ('start_datetime', '<', trip.end_datetime),
+                ('stop_datetime', '>', trip.start_datetime),
             ]
             # BR-2: vehicle conflict
             if self.search(overlap_domain + [('vehicle_id', '=', rec.vehicle_id.id)]):
