@@ -1,0 +1,20 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyc
+
+# Odoo
+*.log
+.odoo_history
+
+# Node / React (handled by frontend/.gitignore)
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/settings.json
+*.swp
