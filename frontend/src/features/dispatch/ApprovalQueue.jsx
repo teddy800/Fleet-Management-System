@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { tripApi, fleetApi, driverApi, resourceApi } from "@/lib/api";
+import { tripApi, fleetApi, driverApi } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
