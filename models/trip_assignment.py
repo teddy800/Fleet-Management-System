@@ -34,6 +34,10 @@ class TripAssignment(models.Model):
     stop_datetime = fields.Datetime(
         string="End", related='trip_request_id.end_datetime', store=True
     )
+    # Alias for compatibility — some code may reference end_datetime
+    end_datetime = fields.Datetime(
+        string="End (alias)", related='trip_request_id.end_datetime', store=False
+    )
     display_name = fields.Char(
         string="Display Name", compute='_compute_display_name'
     )
