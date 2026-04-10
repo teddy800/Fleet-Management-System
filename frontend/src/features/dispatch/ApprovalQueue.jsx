@@ -74,25 +74,11 @@ export default function ApprovalQueue() {
     setSelectedReq(req);
     setMode("assign");
     setAssignVehicle(""); setAssignDriver("");
-    setLoadingResources(true);
-    try {
-      if (req.start_datetime && req.end_datetime) {
-        const res = await resourceApi.available(req.start_datetime, req.end_datetime, req.vehicle_category);
-        const vList = res.vehicles || [];
-        const dList = res.drivers || [];
-        // If time-window query returns empty, fall back to all available
-        setAvailableVehicles(vList.length > 0 ? vList : vehicles);
-        setAvailableDrivers(dList.length > 0 ? dList : drivers);
-      } else {
-        setAvailableVehicles(vehicles);
-        setAvailableDrivers(drivers);
-      }
-    } catch {
-      setAvailableVehicles(vehicles);
-      setAvailableDrivers(drivers);
-    } finally {
-      setLoadingResources(false);
-    }
+    // Use already-loaded available vehicles/drivers directly
+    // (avoids the end_datetime field issue on mesob.trip.assignment)
+    setAvailableVehicles(vehicles.length > 0 ? vehicles : []);
+    setAvailableDrivers(drivers.length > 0 ? drivers : []);
+    setLoadingResources(false);
   };
 
   const handleApprove = async () => {
