@@ -550,6 +550,27 @@ class FleetAPIController(http.Controller):
             _logger.error(f"Acknowledge alert error: {e}")
             return {'success': False, 'error': str(e)}
 
+    @http.route('/api/fleet/alerts/acknowledge-all', type='json', auth='user', methods=['POST'], cors='*')
+    def acknowledge_all_alerts(self):
+        """Bulk acknowledge all unacknowledged alerts"""
+        try:
+            if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
+                    request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            alerts = request.env['mesob.fleet.alert'].search([
+                ('acknowledged', '=', False), ('resolved', '=', False)
+            ])
+            count = len(alerts)
+            for a in alerts:
+                try:
+                    a.action_acknowledge()
+                except Exception:
+                    pass
+            return {'success': True, 'message': f'{count} alerts acknowledged'}
+        except Exception as e:
+            _logger.error(f"Acknowledge all alerts error: {e}")
+            return {'success': False, 'error': str(e)}
+
     @http.route('/api/fleet/available-resources', type='json', auth='user', methods=['POST'], cors='*')
     def get_available_resources(self):
         """FR-2.2: Get vehicles and drivers available for a specific time window.
@@ -631,7 +652,7 @@ class FleetAPIController(http.Controller):
                 data.append({
                     'id': u.id,
                     'name': u.name,
-                    'email': (u.email or '').replace('mailto:', '').strip(),
+                    'email': (u.email or '').replace('mailto:', '').replace('MAILTO:', '').strip(),
                     'login': u.login,
                     'active': u.active,
                     'roles': roles,
@@ -711,9 +732,15 @@ class FleetAPIController(http.Controller):
             if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
                     request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
                 return {'success': False, 'error': 'Insufficient permissions'}
-            drivers = request.env['hr.employee'].search([('is_driver', '=', True)])
+            # Use sudo + distinct to avoid duplicate records from multi-company setups
+            drivers = request.env['hr.employee'].sudo().search([('is_driver', '=', True)])
+            # Deduplicate by id (safety net)
+            seen_ids = set()
             data = []
             for d in drivers:
+                if d.id in seen_ids:
+                    continue
+                seen_ids.add(d.id)
                 data.append({
                     'id': d.id,
                     'name': d.name,

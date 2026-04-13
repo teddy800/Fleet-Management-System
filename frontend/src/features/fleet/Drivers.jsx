@@ -60,7 +60,14 @@ export default function Drivers() {
     setLoading(true);
     try {
       const res = await driverApi.list();
-      setDrivers(res.drivers || []);
+      // Deduplicate by id in case backend returns duplicate employee records
+      const seen = new Set();
+      const unique = (res.drivers || []).filter(d => {
+        if (seen.has(d.id)) return false;
+        seen.add(d.id);
+        return true;
+      });
+      setDrivers(unique);
     } catch (err) {
       toast.error("Failed to load drivers: " + err.message);
     } finally {

@@ -44,7 +44,14 @@ export default function UserManagement() {
     try {
       const [uRes, dRes] = await Promise.all([userMgmtApi.list(), driverApi.list()]);
       setUsers(uRes.users || []);
-      setDrivers(dRes.drivers || []);
+      // Deduplicate drivers by id
+      const seen = new Set();
+      const uniqueDrivers = (dRes.drivers || []).filter(d => {
+        if (seen.has(d.id)) return false;
+        seen.add(d.id);
+        return true;
+      });
+      setDrivers(uniqueDrivers);
     } catch (err) {
       toast.error("Failed to load: " + err.message);
     } finally {
@@ -164,7 +171,9 @@ export default function UserManagement() {
                         <span className="font-bold text-sm text-gray-800">{u.name}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500">{u.email || u.login}</TableCell>
+                    <TableCell className="text-sm text-gray-500">
+                      {(u.email || u.login || "").replace(/^mailto:/i, "")}
+                    </TableCell>
                     <TableCell>
                       <Badge className={`text-xs border ${rm.cls}`}>{rm.label}</Badge>
                     </TableCell>

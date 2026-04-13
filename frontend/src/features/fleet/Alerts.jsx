@@ -1,48 +1,111 @@
 /**
- * Fleet Alerts Management
- * Shows speed violations, geofence violations, maintenance due, fuel low, etc.
- * Allows acknowledge and resolve actions.
+ * FR-4.3: Maintenance alerts visible on dashboard to Admins and Mechanics
+ * Shows individual fleet alerts with severity, type, vehicle, and acknowledge action.
  */
 import { useEffect, useState, useCallback } from "react";
-import { analyticsApi } from "@/lib/api";
+import { alertsApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Bell, AlertCircle, CheckCircle2, Search, RefreshCw, Loader2, Shield, Gauge, Fuel, Wrench, Car, AlertTriangle } from "lucide-react";
+import {
+  Bell, AlertCircle, CheckCircle2, Search, RefreshCw, Loader2,
+  Shield, Gauge, Fuel, Wrench, Car, AlertTriangle, Clock,
+} from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const ALERT_TYPE_META = {
-  speed_violation:    { label: "Speed Violation",    icon: Gauge,         cls: "bg-orange-100 text-orange-700" },
-  geofence_violation: { label: "Geofence Violation", icon: Shield,        cls: "bg-purple-100 text-purple-700" },
-  excessive_idling:   { label: "Excessive Idling",   icon: Car,           cls: "bg-yellow-100 text-yellow-700" },
-  maintenance_due:    { label: "Maintenance Due",    icon: Wrench,        cls: "bg-red-100 text-red-700" },
-  fuel_low:           { label: "Low Fuel",           icon: Fuel,          cls: "bg-amber-100 text-amber-700" },
-  unauthorized_use:   { label: "Unauthorized Use",   icon: AlertTriangle, cls: "bg-red-100 text-red-700" },
-  accident:           { label: "Accident/Emergency", icon: AlertCircle,   cls: "bg-red-100 text-red-700" },
-  system_error:       { label: "System Error",       icon: AlertCircle,   cls: "bg-gray-100 text-gray-700" },
+  speed_violation:    { label: "Speed Violation",    icon: Gauge,         bg: "bg-orange-50", badge: "bg-orange-100 text-orange-700" },
+  geofence_violation: { label: "Geofence Violation", icon: Shield,        bg: "bg-purple-50", badge: "bg-purple-100 text-purple-700" },
+  excessive_idling:   { label: "Excessive Idling",   icon: Car,           bg: "bg-yellow-50", badge: "bg-yellow-100 text-yellow-700" },
+  maintenance_due:    { label: "Maintenance Due",    icon: Wrench,        bg: "bg-red-50",    badge: "bg-red-100 text-red-700" },
+  fuel_low:           { label: "Low Fuel",           icon: Fuel,          bg: "bg-amber-50",  badge: "bg-amber-100 text-amber-700" },
+  unauthorized_use:   { label: "Unauthorized Use",   icon: AlertTriangle, bg: "bg-red-50",    badge: "bg-red-100 text-red-700" },
+  accident:           { label: "Accident/Emergency", icon: AlertCircle,   bg: "bg-red-50",    badge: "bg-red-100 text-red-700" },
+  system_error:       { label: "System Error",       icon: AlertCircle,   bg: "bg-gray-50",   badge: "bg-gray-100 text-gray-700" },
 };
 
 const SEVERITY_META = {
-  critical: { cls: "bg-red-600 text-white",    dot: "bg-red-500 animate-pulse" },
-  high:     { cls: "bg-orange-500 text-white", dot: "bg-orange-500" },
-  medium:   { cls: "bg-yellow-500 text-black", dot: "bg-yellow-500" },
-  low:      { cls: "bg-blue-500 text-white",   dot: "bg-blue-400" },
+  critical: { cls: "bg-red-600 text-white",    dot: "bg-red-500 animate-pulse",  border: "border-l-red-500" },
+  high:     { cls: "bg-orange-500 text-white", dot: "bg-orange-500",             border: "border-l-orange-500" },
+  medium:   { cls: "bg-yellow-500 text-black", dot: "bg-yellow-500",             border: "border-l-yellow-500" },
+  low:      { cls: "bg-blue-500 text-white",   dot: "bg-blue-400",               border: "border-l-blue-400" },
 };
 
-// Since there's no dedicated alerts list endpoint, we derive from dashboard alerts_summary
-// and show a meaningful UI
+function AlertCard({ alert, onAcknowledge, acknowledging }) {
+  const typeMeta = ALERT_TYPE_META[alert.alert_type] || {
+    label: alert.alert_type, icon: AlertCircle, bg: "bg-gray-50", badge: "bg-gray-100 text-gray-700",
+  };
+  const sevMeta = SEVERITY_META[alert.severity] || SEVERITY_META.low;
+  const Icon = typeMeta.icon;
+
+  return (
+    <div className={cn(
+      "bg-white rounded-2xl border border-l-4 shadow-sm p-4 flex items-start gap-4 transition-all hover:shadow-md",
+      sevMeta.border,
+      alert.acknowledged && "opacity-60"
+    )}>
+      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", typeMeta.bg)}>
+        <Icon className="h-5 w-5 text-gray-600" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className={`text-xs font-black px-2 py-0.5 rounded-full ${typeMeta.badge}`}>
+              {typeMeta.label}
+            </span>
+            <Badge className={`text-xs ${sevMeta.cls}`}>{alert.severity}</Badge>
+            {alert.acknowledged && (
+              <Badge className="text-xs bg-gray-100 text-gray-500 border border-gray-200">Acknowledged</Badge>
+            )}
+          </div>
+          <span className="text-xs text-gray-400 flex items-center gap-1 shrink-0">
+            <Clock className="h-3 w-3" />
+            {alert.timestamp
+              ? new Date(alert.timestamp).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+              : "—"}
+          </span>
+        </div>
+        <p className="text-sm text-gray-700 font-medium mt-1.5">{alert.message}</p>
+        <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+          {alert.vehicle_name && (
+            <span className="flex items-center gap-1"><Car className="h-3 w-3" /> {alert.vehicle_name}</span>
+          )}
+          {alert.driver_name && (
+            <span className="flex items-center gap-1">👤 {alert.driver_name}</span>
+          )}
+        </div>
+      </div>
+      {!alert.acknowledged && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="shrink-0 h-8 rounded-xl text-xs border-gray-200 hover:bg-green-50 hover:border-green-300 hover:text-green-700"
+          disabled={acknowledging === alert.id}
+          onClick={() => onAcknowledge(alert.id)}
+        >
+          {acknowledging === alert.id
+            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            : <><CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Ack</>}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 export default function Alerts() {
-  const [alertsSummary, setAlertsSummary] = useState(null);
+  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [acknowledging, setAcknowledging] = useState(null);
   const [search, setSearch] = useState("");
   const [filterSeverity, setFilterSeverity] = useState("all");
+  const [showAcknowledged, setShowAcknowledged] = useState(false);
 
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await analyticsApi.dashboard();
-      setAlertsSummary(res.data?.alerts_summary);
+      const res = await alertsApi.list();
+      setAlerts(res.alerts || []);
     } catch (err) {
       toast.error("Failed to load alerts: " + err.message);
     } finally {
@@ -52,109 +115,166 @@ export default function Alerts() {
 
   useEffect(() => { fetchAlerts(); }, [fetchAlerts]);
 
-  const total = alertsSummary?.total_alerts || 0;
-  const critical = alertsSummary?.critical_alerts || 0;
-  const unacknowledged = alertsSummary?.unacknowledged_alerts || 0;
-  const alertTypes = alertsSummary?.alert_types || [];
+  const handleAcknowledge = async (id) => {
+    setAcknowledging(id);
+    try {
+      await alertsApi.acknowledge(id);
+      toast.success("Alert acknowledged");
+      setAlerts(prev => prev.map(a => a.id === id ? { ...a, acknowledged: true } : a));
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setAcknowledging(null);
+    }
+  };
+
+  const filtered = alerts.filter(a => {
+    if (!showAcknowledged && a.acknowledged) return false;
+    if (filterSeverity !== "all" && a.severity !== filterSeverity) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        a.message?.toLowerCase().includes(q) ||
+        a.vehicle_name?.toLowerCase().includes(q) ||
+        a.alert_type?.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
+
+  const total    = alerts.length;
+  const critical = alerts.filter(a => a.severity === "critical" && !a.acknowledged).length;
+  const unacked  = alerts.filter(a => !a.acknowledged).length;
 
   return (
     <div className="space-y-5 pb-8">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-red-100 flex items-center justify-center">
+          <div className="relative w-10 h-10 rounded-2xl bg-red-100 flex items-center justify-center">
             <Bell className="h-5 w-5 text-red-600" />
+            {critical > 0 && (
+              <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border-2 border-white animate-pulse" />
+            )}
           </div>
           <div>
             <h1 className="text-2xl font-black text-brand-blue">Fleet Alerts</h1>
-            <p className="text-sm text-gray-400">Real-time fleet monitoring alerts</p>
+            <p className="text-sm text-gray-400">Real-time fleet monitoring</p>
           </div>
         </div>
-        <button onClick={fetchAlerts} className="flex items-center gap-2 text-sm text-gray-500 hover:text-brand-blue bg-white border rounded-xl px-3 py-2 shadow-sm">
-          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
-        </button>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4 stagger-children">
-        <div className="card-stat gradient-card-red animate-fade-in-up">
-          <div className="absolute -right-3 -top-3 w-16 h-16 rounded-full bg-white/10 pointer-events-none" />
-          <p className="text-xs text-gray-500 uppercase font-black tracking-widest relative">Total Active</p>
-          <p className="text-3xl font-black text-red-600 mt-1 relative">
-            {loading ? <span className="inline-block w-10 h-8 shimmer rounded-lg" /> : total}
-          </p>
-          {total > 0 && <span className="absolute top-3 right-3 w-3 h-3 rounded-full bg-red-500 pulse-dot pulse-dot-red" />}
-        </div>
-        <div className="card-stat gradient-card-amber animate-fade-in-up" style={{ animationDelay: "60ms" }}>
-          <div className="absolute -right-3 -top-3 w-16 h-16 rounded-full bg-white/10 pointer-events-none" />
-          <p className="text-xs text-gray-500 uppercase font-black tracking-widest relative">Critical</p>
-          <p className="text-3xl font-black text-orange-600 mt-1 relative">
-            {loading ? <span className="inline-block w-10 h-8 shimmer rounded-lg" /> : critical}
-          </p>
-          {critical > 0 && <span className="absolute top-3 right-3 w-3 h-3 rounded-full bg-orange-500 pulse-dot pulse-dot-amber" />}
-        </div>
-        <div className="card-stat gradient-card-amber animate-fade-in-up" style={{ animationDelay: "120ms" }}>
-          <div className="absolute -right-3 -top-3 w-16 h-16 rounded-full bg-white/10 pointer-events-none" />
-          <p className="text-xs text-gray-500 uppercase font-black tracking-widest relative">Unacknowledged</p>
-          <p className="text-3xl font-black text-yellow-600 mt-1 relative">
-            {loading ? <span className="inline-block w-10 h-8 shimmer rounded-lg" /> : unacknowledged}
-          </p>
+        <div className="flex items-center gap-2">
+          {unacked > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 rounded-xl text-xs text-gray-600 hover:text-green-700 hover:border-green-300"
+              onClick={async () => {
+                try {
+                  await fetch("/api/fleet/alerts/acknowledge-all", {
+                    method: "POST", credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: {} }),
+                  });
+                  toast.success("All alerts acknowledged");
+                  fetchAlerts();
+                } catch { toast.error("Failed to acknowledge alerts"); }
+              }}
+            >
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> Acknowledge All ({unacked})
+            </Button>
+          )}
+          <button
+            onClick={fetchAlerts}
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-brand-blue bg-white border rounded-xl px-3 py-2 shadow-sm"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </button>
         </div>
       </div>
-
-      {/* Alert Types Breakdown */}
-      {!loading && alertTypes.length > 0 && (
-        <div className="bg-white rounded-2xl border shadow-sm p-5">
-          <h3 className="font-black text-sm text-brand-blue uppercase tracking-widest mb-4">Alert Types Breakdown</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {alertTypes.map((at, i) => {
-              const meta = ALERT_TYPE_META[at.alert_type] || { label: at.alert_type, icon: AlertCircle, cls: "bg-gray-100 text-gray-600" };
-              const Icon = meta.icon;
-              return (
-                <div key={i} className={`rounded-xl p-3 flex items-center gap-3 ${meta.cls}`}>
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <div>
-                    <p className="text-xs font-bold">{meta.label}</p>
-                    <p className="text-lg font-black">{at.alert_type_count}</p>
-                  </div>
-                </div>
-              );
-            })}
+      {/* Summary */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: "Total Active",     value: total,    color: "text-red-600",    bg: "bg-red-50 border-red-100",       pulse: total > 0 },
+          { label: "Critical",         value: critical, color: "text-orange-600", bg: "bg-orange-50 border-orange-100", pulse: critical > 0 },
+          { label: "Unacknowledged",   value: unacked,  color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-100", pulse: false },
+        ].map(s => (
+          <div key={s.label} className={`relative rounded-2xl p-4 border shadow-sm ${s.bg}`}>
+            <p className="text-xs text-gray-500 uppercase font-black tracking-widest">{s.label}</p>
+            <p className={`text-3xl font-black mt-1 ${s.color}`}>
+              {loading
+                ? <span className="inline-block w-10 h-8 bg-white/60 animate-pulse rounded-lg" />
+                : s.value}
+            </p>
+            {s.pulse && s.value > 0 && (
+              <span className="absolute top-3 right-3 w-3 h-3 rounded-full bg-red-500 animate-ping" />
+            )}
           </div>
-        </div>
-      )}
+        ))}
+      </div>
 
-      {/* All Clear State */}
-      {!loading && total === 0 && (
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search alerts, vehicle, type..."
+            className="pl-9 h-10 rounded-xl border-gray-200"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {["all", "critical", "high", "medium", "low"].map(s => (
+            <button key={s} onClick={() => setFilterSeverity(s)}
+              className={cn(
+                "px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors capitalize",
+                filterSeverity === s
+                  ? "bg-brand-blue text-white border-brand-blue"
+                  : "bg-white text-gray-600 border-gray-200 hover:border-brand-blue"
+              )}>
+              {s}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowAcknowledged(v => !v)}
+            className={cn(
+              "px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors",
+              showAcknowledged
+                ? "bg-gray-700 text-white border-gray-700"
+                : "bg-white text-gray-600 border-gray-200"
+            )}>
+            {showAcknowledged ? "Hide Acked" : "Show Acked"}
+          </button>
+        </div>
+      </div>
+
+      {/* Alert List */}
+      {loading ? (
+        <div className="space-y-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-20 bg-gray-100 animate-pulse rounded-2xl" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-12 text-center">
           <CheckCircle2 className="h-16 w-16 text-green-500 mx-auto mb-4" />
           <h3 className="text-xl font-black text-green-700">All Clear</h3>
-          <p className="text-green-600 text-sm mt-2">No active alerts. Your fleet is operating normally.</p>
-        </div>
-      )}
-
-      {/* Alert Types Info */}
-      {!loading && total > 0 && (
-        <div className="bg-white rounded-2xl border shadow-sm p-5">
-          <h3 className="font-black text-sm text-brand-blue uppercase tracking-widest mb-4">Alert Categories</h3>
-          <div className="grid md:grid-cols-2 gap-3">
-            {Object.entries(ALERT_TYPE_META).map(([type, meta]) => {
-              const Icon = meta.icon;
-              return (
-                <div key={type} className={`flex items-center gap-3 p-3 rounded-xl ${meta.cls}`}>
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-xs font-bold">{meta.label}</p>
-                    <p className="text-[10px] opacity-70 capitalize">{type.replace(/_/g, " ")}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <p className="text-xs text-gray-400 mt-4 text-center">
-            Alerts are automatically generated by the GPS tracking system and maintenance scheduler.
-            Go to <strong>http://localhost:8069</strong> to acknowledge and resolve alerts.
+          <p className="text-green-600 text-sm mt-2">
+            {total === 0
+              ? "No active alerts. Your fleet is operating normally."
+              : "No alerts match your current filters."}
           </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(alert => (
+            <AlertCard
+              key={alert.id}
+              alert={alert}
+              onAcknowledge={handleAcknowledge}
+              acknowledging={acknowledging}
+            />
+          ))}
         </div>
       )}
     </div>
