@@ -52,7 +52,8 @@ export default function ApprovalQueue() {
         (a, b) => new Date(a.create_date) - new Date(b.create_date)
       );
       setRequests(sorted);
-      setVehicles((vehRes.vehicles || []).filter(v => v.mesob_status === "available"));
+      // Store ALL vehicles — dispatcher needs to see all options, backend enforces conflicts
+      setVehicles(vehRes.vehicles || []);
       setDrivers((drvRes.drivers || []).filter(d => d.active_trips === 0));
     } catch (err) {
       toast.error("Failed to load data: " + err.message);
@@ -69,17 +70,27 @@ export default function ApprovalQueue() {
     setAvailableVehicles([]); setAvailableDrivers([]);
   };
 
-  // FR-2.2: fetch time-window filtered resources when assign dialog opens
+  // FR-2.2: show available vehicles matching category; fall back to all vehicles
   const openAssignDialog = async (req) => {
     setSelectedReq(req);
     setMode("assign");
     setAssignVehicle(""); setAssignDriver("");
-    // Filter vehicles by category matching the request (FR-2.2)
-    const categoryFiltered = vehicles.filter(v =>
-      !req.vehicle_category || v.vehicle_category === req.vehicle_category
+
+    // Priority 1: available + matching category
+    const availableMatchingCategory = vehicles.filter(v =>
+      v.mesob_status === "available" &&
+      (!req.vehicle_category || v.vehicle_category === req.vehicle_category)
     );
-    // Fall back to all available if no category match
-    setAvailableVehicles(categoryFiltered.length > 0 ? categoryFiltered : vehicles);
+    // Priority 2: available (any category)
+    const allAvailable = vehicles.filter(v => v.mesob_status === "available");
+    // Priority 3: all vehicles (so dropdown is never empty)
+    const toShow = availableMatchingCategory.length > 0
+      ? availableMatchingCategory
+      : allAvailable.length > 0
+        ? allAvailable
+        : vehicles;
+
+    setAvailableVehicles(toShow);
     setAvailableDrivers(drivers.length > 0 ? drivers : []);
     setLoadingResources(false);
   };
@@ -337,7 +348,7 @@ export default function ApprovalQueue() {
                     : availableVehicles.length > 0
                       ? availableVehicles.map(v => (
                           <SelectItem key={v.id} value={String(v.id)}>
-                            {v.name} — {v.license_plate} ({v.vehicle_category})
+                            {v.name} — {v.license_plate} ({v.vehicle_category}){v.mesob_status !== "available" ? ` [${v.mesob_status.replace("_", " ")}]` : ""}
                           </SelectItem>
                         ))
                       : <SelectItem value="none" disabled>No available vehicles for this time window</SelectItem>
