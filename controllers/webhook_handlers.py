@@ -114,11 +114,12 @@ class WebhookController(http.Controller):
             # Find assigned driver
             driver = vehicle.assigned_driver_id or False
 
+            from odoo import fields as odoo_fields
             # Auto-create fuel log
             fuel_log = request.env['mesob.fuel.log'].sudo().create({
                 'vehicle_id': vehicle.id,
                 'driver_id': driver.id if driver else False,
-                'date': data.get('timestamp', str(request.env['fields.Date'].today()))[:10],
+                'date': data.get('timestamp', str(odoo_fields.Date.today()))[:10],
                 'volume': volume,
                 'cost': cost,
                 'odometer': float(data.get('odometer', 0)),

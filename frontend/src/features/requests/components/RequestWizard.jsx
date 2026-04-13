@@ -37,7 +37,7 @@ const VEHICLE_CATEGORIES = [
 
 // Per-step validation schemas
 const step1Schema = z.object({
-  purpose: z.string().min(3, "Trip purpose must be at least 3 characters"),
+  purpose: z.string().min(10, "Trip purpose must be at least 10 characters"),
   vehicleCategory: z.string().min(1, "Please select a vehicle category"),
 });
 
@@ -65,6 +65,64 @@ function FieldError({ message }) {
     <p className="flex items-center gap-1 text-xs font-semibold text-red-500 mt-1">
       <AlertCircle className="h-3 w-3" /> {message}
     </p>
+  );
+}
+
+// FR-1.1 Step 3 / UI-5: Location input with Nominatim autocomplete
+function LocationInput({ value, onChange, onSelect, placeholder, error, label }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useState(null);
+
+  const handleChange = (e) => {
+    const val = e.target.value;
+    onChange(val);
+    clearTimeout(debounceRef[0]);
+    if (val.length < 3) { setSuggestions([]); return; }
+    debounceRef[0] = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=5&countrycodes=et`,
+          { headers: { "Accept-Language": "en" } }
+        );
+        const data = await res.json();
+        setSuggestions(data);
+      } catch { setSuggestions([]); }
+      finally { setSearching(false); }
+    }, 400);
+  };
+
+  return (
+    <div className="relative">
+      <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">{label} *</Label>
+      <div className="relative mt-2">
+        <MapPin className="absolute left-3 top-3.5 h-4 w-4 text-gray-400 pointer-events-none" />
+        <Input
+          value={value}
+          onChange={handleChange}
+          placeholder={placeholder}
+          className={cn("pl-9 h-12 border-2 rounded-xl", error ? "border-red-400" : "border-gray-200 focus:border-brand-blue")}
+        />
+        {searching && <Loader2 className="absolute right-3 top-3.5 h-4 w-4 animate-spin text-gray-400" />}
+      </div>
+      <FieldError message={error} />
+      {suggestions.length > 0 && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+          {suggestions.map((s, i) => (
+            <button key={i} type="button"
+              className="w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 border-b border-gray-100 last:border-0 flex items-start gap-2"
+              onClick={() => {
+                onSelect(s.display_name, parseFloat(s.lat), parseFloat(s.lon));
+                setSuggestions([]);
+              }}>
+              <MapPin className="h-3.5 w-3.5 text-brand-blue shrink-0 mt-0.5" />
+              <span className="truncate">{s.display_name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -198,7 +256,7 @@ export default function RequestWizard() {
                     className={cn("mt-2 rounded-xl border-2 min-h-[80px]", errors.purpose ? "border-red-400" : "border-gray-200 focus:border-brand-blue")}
                   />
                   <FieldError message={errors.purpose} />
-                  <p className="text-xs text-gray-400 mt-1">{formData.purpose.length} characters {formData.purpose.length < 3 ? `(${3 - formData.purpose.length} more needed)` : "✓"}</p>
+                  <p className="text-xs text-gray-400 mt-1">{formData.purpose.length} characters {formData.purpose.length < 10 ? `(${10 - formData.purpose.length} more needed)` : "✓"}</p>
                 </div>
                 <div>
                   <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Required Vehicle Category *</Label>
@@ -262,20 +320,30 @@ export default function RequestWizard() {
             {/* Step 3: Locations + Passengers */}
             {step === 3 && (
               <div className="space-y-5">
-                <div>
-                  <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Pickup Location *</Label>
-                  <Input value={formData.pickupLocation} onChange={e => update("pickupLocation", e.target.value)}
-                    placeholder="e.g. MESSOB Center HQ, Main Gate"
-                    className={cn("mt-2 h-12 border-2 rounded-xl", errors.pickupLocation ? "border-red-400" : "border-gray-200")} />
-                  <FieldError message={errors.pickupLocation} />
-                </div>
-                <div>
-                  <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Destination *</Label>
-                  <Input value={formData.destinationLocation} onChange={e => update("destinationLocation", e.target.value)}
-                    placeholder="e.g. Adama, Bahir Dar, Tikur Anbessa Hospital"
-                    className={cn("mt-2 h-12 border-2 rounded-xl", errors.destinationLocation ? "border-red-400" : "border-gray-200")} />
-                  <FieldError message={errors.destinationLocation} />
-                </div>
+                <LocationInput
+                  label="Pickup Location"
+                  value={formData.pickupLocation}
+                  onChange={v => update("pickupLocation", v)}
+                  onSelect={(name, lat, lng) => {
+                    update("pickupLocation", name);
+                    update("pickupLatitude", lat);
+                    update("pickupLongitude", lng);
+                  }}
+                  placeholder="e.g. MESSOB Center HQ, Main Gate"
+                  error={errors.pickupLocation}
+                />
+                <LocationInput
+                  label="Destination"
+                  value={formData.destinationLocation}
+                  onChange={v => update("destinationLocation", v)}
+                  onSelect={(name, lat, lng) => {
+                    update("destinationLocation", name);
+                    update("destinationLatitude", lat);
+                    update("destinationLongitude", lng);
+                  }}
+                  placeholder="e.g. Adama, Bahir Dar, Tikur Anbessa Hospital"
+                  error={errors.destinationLocation}
+                />
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Passengers *</Label>

@@ -348,8 +348,8 @@ class TripRequest(models.Model):
 
     def _validate_request_data(self):
         """Validate trip request data"""
-        if not self.purpose or len(self.purpose.strip()) < 3:
-            raise ValidationError("Trip purpose must be at least 3 characters long.")
+        if not self.purpose or len(self.purpose.strip()) < 10:
+            raise ValidationError("Trip purpose must be at least 10 characters long.")
         
         if not self.pickup_location or not self.destination_location:
             raise ValidationError("Both pickup and destination locations are required.")

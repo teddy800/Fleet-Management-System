@@ -74,9 +74,12 @@ export default function ApprovalQueue() {
     setSelectedReq(req);
     setMode("assign");
     setAssignVehicle(""); setAssignDriver("");
-    // Use already-loaded available vehicles/drivers directly
-    // (avoids the end_datetime field issue on mesob.trip.assignment)
-    setAvailableVehicles(vehicles.length > 0 ? vehicles : []);
+    // Filter vehicles by category matching the request (FR-2.2)
+    const categoryFiltered = vehicles.filter(v =>
+      !req.vehicle_category || v.vehicle_category === req.vehicle_category
+    );
+    // Fall back to all available if no category match
+    setAvailableVehicles(categoryFiltered.length > 0 ? categoryFiltered : vehicles);
     setAvailableDrivers(drivers.length > 0 ? drivers : []);
     setLoadingResources(false);
   };

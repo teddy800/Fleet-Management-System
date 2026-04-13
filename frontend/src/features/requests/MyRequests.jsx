@@ -159,8 +159,8 @@ const STATUS_STEPS = ["Draft", "Pending", "Approved", "Assigned", "In Progress",
                       <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs" onClick={() => setSelected(req)}>
                         <Eye className="h-3.5 w-3.5 mr-1" /> View
                       </Button>
-                      {/* FR-1.3: Cancel only if pending */}
-                      {req.state === "pending" && (
+                      {/* FR-1.3: Cancel only if pending or draft */}
+                      {(req.state === "pending" || req.state === "draft") && (
                         <Button size="sm" className="h-8 rounded-lg text-xs bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white"
                           onClick={() => setConfirmCancel(req)}>
                           <XCircle className="h-3.5 w-3.5 mr-1" /> Cancel
