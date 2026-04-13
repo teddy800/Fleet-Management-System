@@ -1,6 +1,6 @@
 {
     'name': 'Mesob Fleet Management',
-    'version': '1.1',
+    'version': '1.2',
     'summary': 'Advanced Fleet Management System for MESOB',
     'author': 'Mesob',
     'category': 'Fleet',

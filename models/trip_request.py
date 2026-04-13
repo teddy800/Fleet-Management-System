@@ -295,13 +295,13 @@ class TripRequest(models.Model):
             raise UserError("Selected driver is not available for the requested time period.")
         
         # Create trip assignment
+        # Note: start_datetime and stop_datetime are related fields derived from
+        # trip_request_id, so we do NOT pass them directly here.
         assignment = self.env['mesob.trip.assignment'].create({
             'trip_request_id': self.id,
             'vehicle_id': vehicle_id,
             'driver_id': driver_id,
-            'start_datetime': self.start_datetime,
-            'end_datetime': self.end_datetime,
-            'state': 'assigned'
+            'state': 'assigned',
         })
         
         self.write({
@@ -379,25 +379,25 @@ class TripRequest(models.Model):
             self.estimated_cost = distance * 2.5  # Assuming 2.5 currency units per km
 
     def _check_vehicle_availability(self, vehicle):
-        """Check if vehicle is available for the requested time period"""
+        """Check if vehicle is available for the requested time period.
+        Uses stop_datetime (stored related) instead of end_datetime (non-stored)."""
         conflicting_assignments = self.env['mesob.trip.assignment'].search([
             ('vehicle_id', '=', vehicle.id),
             ('state', 'in', ['assigned', 'in_progress']),
             ('start_datetime', '<=', self.end_datetime),
-            ('end_datetime', '>=', self.start_datetime)
+            ('stop_datetime', '>=', self.start_datetime),
         ])
-        
         return len(conflicting_assignments) == 0
 
     def _check_driver_availability(self, driver):
-        """Check if driver is available for the requested time period"""
+        """Check if driver is available for the requested time period.
+        Uses stop_datetime (stored related) instead of end_datetime (non-stored)."""
         conflicting_assignments = self.env['mesob.trip.assignment'].search([
             ('driver_id', '=', driver.id),
             ('state', 'in', ['assigned', 'in_progress']),
             ('start_datetime', '<=', self.end_datetime),
-            ('end_datetime', '>=', self.start_datetime)
+            ('stop_datetime', '>=', self.start_datetime),
         ])
-        
         return len(conflicting_assignments) == 0
 
     def _notify_dispatchers(self):

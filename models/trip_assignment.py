@@ -35,8 +35,9 @@ class TripAssignment(models.Model):
         string="End", related='trip_request_id.end_datetime', store=True
     )
     # Alias for compatibility — some code may reference end_datetime
+    # Must be stored=True so it can be used in domain searches
     end_datetime = fields.Datetime(
-        string="End (alias)", related='trip_request_id.end_datetime', store=False
+        string="End (alias)", related='trip_request_id.end_datetime', store=True
     )
     display_name = fields.Char(
         string="Display Name", compute='_compute_display_name'
