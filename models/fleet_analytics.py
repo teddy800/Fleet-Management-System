@@ -83,9 +83,9 @@ class FleetAnalytics(models.AbstractModel):
             
             if assignments:
                 total_hours_used = sum(
-                    (assignment.end_datetime - assignment.start_datetime).total_seconds() / 3600
+                    (assignment.stop_datetime - assignment.start_datetime).total_seconds() / 3600
                     for assignment in assignments
-                    if assignment.end_datetime
+                    if assignment.stop_datetime and assignment.start_datetime
                 )
                 total_available_hours = 30 * 24  # 30 days * 24 hours
                 utilization_rate = (total_hours_used / total_available_hours) * 100
