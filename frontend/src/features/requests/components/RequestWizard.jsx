@@ -25,8 +25,6 @@ import { tripApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
-const BG_URL = null; // reserved for future background image
-
 const VEHICLE_CATEGORIES = [
   { value: "sedan",     label: "Sedan" },
   { value: "suv",       label: "SUV" },

@@ -204,12 +204,17 @@ export default function GPSTracking() {
       const updated = vehicles.find(v => v.id === selected.id);
       if (updated) setSelected(updated);
     }
-  }, [vehicles]);
+  }, [vehicles, selected]);
 
   const filtered = vehicles.filter(v => filterStatus === "all" || v.mesob_status === filterStatus);
   const activeVehicles = vehicles.filter(v => v.mesob_status === "in_use");
   const withGPS = vehicles.filter(v => v.current_location?.latitude);
-  const activeTripForSelected = selected ? trips.find(t => t.assigned_vehicle === selected.name) : null;
+  const activeTripForSelected = selected
+    ? trips.find(t =>
+        (t.assigned_vehicle_id && t.assigned_vehicle_id === selected.id) ||
+        (!t.assigned_vehicle_id && t.assigned_vehicle === selected.name)
+      )
+    : null;
 
   // FR-3.4: Update pickup — calls real backend
   const handlePickupUpdate = async () => {
