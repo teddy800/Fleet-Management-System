@@ -127,12 +127,13 @@ export default function ApprovalQueue() {
       closeDialog();
       fetchAll();
     } catch (err) {
-      // Translate the Odoo field error into a user-friendly message
       const msg = err.message || "";
       if (msg.includes("end_datetime") || msg.includes("Invalid field")) {
         toast.error("Assignment failed: please restart Odoo to apply the latest module update, then try again.");
+      } else if (msg.includes("already assigned")) {
+        toast.error(msg); // Show the double-booking validation message clearly
       } else {
-        toast.error(msg);
+        toast.error(msg || "Assignment failed");
       }
     }
     finally { setActionLoading(false); }

@@ -279,41 +279,40 @@ class TripRequest(models.Model):
         )
 
     def action_assign_vehicle(self, vehicle_id, driver_id):
-        """Assign vehicle and driver to trip request"""
+        """Assign vehicle and driver to trip request.
+        Availability is enforced by _check_conflicts on mesob.trip.assignment (uses stop_datetime).
+        We skip the pre-check methods here to avoid the non-stored end_datetime field issue.
+        """
         self.ensure_one()
         if self.state != 'approved':
             raise UserError("Only approved requests can have vehicles assigned.")
-        
-        # Validate vehicle availability
+
         vehicle = self.env['fleet.vehicle'].browse(vehicle_id)
-        if not self._check_vehicle_availability(vehicle):
-            raise UserError("Selected vehicle is not available for the requested time period.")
-        
-        # Validate driver availability
+        if not vehicle.exists():
+            raise UserError("Selected vehicle not found.")
+
         driver = self.env['hr.employee'].browse(driver_id)
-        if not self._check_driver_availability(driver):
-            raise UserError("Selected driver is not available for the requested time period.")
-        
-        # Create trip assignment
-        # Note: start_datetime and stop_datetime are related fields derived from
-        # trip_request_id, so we do NOT pass them directly here.
+        if not driver.exists():
+            raise UserError("Selected driver not found.")
+
+        # Create trip assignment — _check_conflicts constraint will raise if double-booked
         assignment = self.env['mesob.trip.assignment'].create({
             'trip_request_id': self.id,
             'vehicle_id': vehicle_id,
             'driver_id': driver_id,
             'state': 'assigned',
         })
-        
+
         self.write({
             'state': 'assigned',
             'assigned_vehicle_id': vehicle_id,
             'assigned_driver_id': driver_id,
             'trip_assignment_id': assignment.id
         })
-        
-        # Update vehicle availability
+
+        # Update vehicle status
         vehicle.write({'mesob_status': 'in_use'})
-        
+
         # Notify driver and requester
         self._notify_assignment(vehicle, driver)
 
