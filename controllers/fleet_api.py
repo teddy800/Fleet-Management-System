@@ -115,6 +115,7 @@ class FleetAPIController(http.Controller):
                     'priority': tr.priority,
                     'trip_type': tr.trip_type,
                     'assigned_vehicle': tr.assigned_vehicle_id.name if tr.assigned_vehicle_id else None,
+                    'assigned_vehicle_id': tr.assigned_vehicle_id.id if tr.assigned_vehicle_id else None,
                     'assigned_driver': tr.assigned_driver_id.name if tr.assigned_driver_id else None,
                     'create_date': tr.create_date.isoformat() if tr.create_date else None,
                 })

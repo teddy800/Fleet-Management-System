@@ -85,14 +85,18 @@ export default function FleetCalendar() {
   };
 
   // Map vehicle id → trips
+  // Prefer assigned_vehicle_id (numeric), fall back to name matching
   const tripsByVehicle = {};
   trips.forEach((trip) => {
-    if (!trip.assigned_vehicle) return;
-    const vehicle = vehicles.find(v => v.name === trip.assigned_vehicle);
-    if (!vehicle) return;
-    if (!tripsByVehicle[vehicle.id]) tripsByVehicle[vehicle.id] = [];
+    let vehicleId = trip.assigned_vehicle_id;
+    if (!vehicleId && trip.assigned_vehicle) {
+      const match = vehicles.find(v => v.name === trip.assigned_vehicle);
+      vehicleId = match?.id;
+    }
+    if (!vehicleId) return;
+    if (!tripsByVehicle[vehicleId]) tripsByVehicle[vehicleId] = [];
     const stateColor = TRIP_STATE_COLORS[trip.state] || "bg-blue-400 text-white";
-    tripsByVehicle[vehicle.id].push({ ...trip, _color: stateColor });
+    tripsByVehicle[vehicleId].push({ ...trip, _color: stateColor });
   });
 
   return (

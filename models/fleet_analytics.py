@@ -342,7 +342,10 @@ class FleetAnalytics(models.AbstractModel):
             'driver_statistics': driver_stats,
             'top_performers': driver_stats[:5],
             'total_drivers': len(drivers),
-            'active_drivers': len([d for d in driver_stats if d['total_trips'] > 0])
+            'active_drivers': self.env['mesob.trip.request'].search_count([
+                ('assigned_driver_id', 'in', drivers.ids),
+                ('state', 'in', ['assigned', 'in_progress']),
+            ])
         }
 
     def _get_trip_statistics(self):

@@ -33,10 +33,12 @@ class HrEmployee(models.Model):
     @api.depends('trip_request_ids', 'trip_request_ids.state')
     def _compute_active_trips(self):
         for employee in self:
-            # Count only trips that are actually assigned/in-progress (driver is actively on a trip)
-            employee.active_trip_count = len(employee.trip_request_ids.filtered(
-                lambda r: r.state in ['assigned', 'in_progress']
-            ))
+            # Count trips where this employee is the assigned driver (not just requester)
+            active_as_driver = self.env['mesob.trip.request'].search_count([
+                ('assigned_driver_id', '=', employee.id),
+                ('state', 'in', ['assigned', 'in_progress']),
+            ])
+            employee.active_trip_count = active_as_driver
 
     def _upsert_employee(self, payload):
         """Create or update an hr.employee from an HRMS payload dict.
