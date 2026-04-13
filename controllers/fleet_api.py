@@ -870,10 +870,11 @@ class FleetAPIController(http.Controller):
             if not vehicle.exists():
                 return {'success': False, 'error': 'Vehicle not found'}
             driver = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
+            from odoo import fields as odoo_fields
             log = request.env['mesob.fuel.log'].create({
                 'vehicle_id': int(vehicle_id),
                 'driver_id': driver.id if driver else False,
-                'date': data.get('date') or str(request.env['fields.Date'].today()),
+                'date': data.get('date') or str(odoo_fields.Date.today()),
                 'volume': volume,
                 'cost': cost,
                 'odometer': odometer,
@@ -891,6 +892,30 @@ class FleetAPIController(http.Controller):
     def create_maintenance_log(self):
         """FR-4.4: Create a maintenance log entry — dispatcher/manager only"""
         try:
+            if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
+                    request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            data = request.params or {}
+            vehicle_id = data.get('vehicle_id')
+            if not vehicle_id:
+                return {'success': False, 'error': 'vehicle_id is required'}
+            vehicle = request.env['fleet.vehicle'].browse(int(vehicle_id))
+            if not vehicle.exists():
+                return {'success': False, 'error': 'Vehicle not found'}
+            from odoo import fields as odoo_fields
+            log = request.env['mesob.maintenance.log'].create({
+                'vehicle_id': int(vehicle_id),
+                'date': data.get('date') or str(odoo_fields.Date.today()),
+                'maintenance_type': data.get('maintenance_type') or 'preventive',
+                'description': data.get('description') or '',
+                'cost': float(data.get('cost') or 0),
+                'odometer': float(data.get('odometer') or 0),
+                'state': 'draft',
+            })
+            return {'success': True, 'maintenance_log_id': log.id, 'message': 'Maintenance log created'}
+        except Exception as e:
+            _logger.error(f"Create maintenance log error: {e}")
+            return {'success': False, 'error': str(e)}
             if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
                     request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
                 return {'success': False, 'error': 'Insufficient permissions'}

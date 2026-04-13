@@ -15,7 +15,7 @@ const STATUS_META = {
   unavailable: { label: "Unavailable", cls: "bg-gray-100 text-gray-600 border-gray-200",    dot: "bg-gray-400",   pulse: false },
 };
 
-function VehicleDetailPanel({ vehicle, onClose }) {
+function VehicleDetailPanel({ vehicle }) {
   if (!vehicle) return null;
   const sm = STATUS_META[vehicle.mesob_status] || STATUS_META.unavailable;
   return (
@@ -246,7 +246,7 @@ export default function ManageFleet() {
 
       {/* Detail Dialog */}
       <Dialog open={!!selected} onOpenChange={v => !v && setSelected(null)}>
-        <VehicleDetailPanel vehicle={selected} onClose={() => setSelected(null)} />
+        <VehicleDetailPanel vehicle={selected} />
       </Dialog>
     </div>
   );

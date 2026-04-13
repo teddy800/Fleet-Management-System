@@ -7,29 +7,25 @@
  * UI-4: All forms provide clear validation messages
  */
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import {
-  Calendar as CalendarIcon, Car, MapPin, Users, CheckCircle2,
+  Calendar as CalendarIcon, Car, MapPin, CheckCircle2,
   ChevronRight, ChevronLeft, Loader2, AlertCircle,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { tripApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
-const BG_URL = null; // Use gradient background instead of external image
+const BG_URL = null; // reserved for future background image
 
 const VEHICLE_CATEGORIES = [
   { value: "sedan",     label: "Sedan" },
@@ -204,7 +200,7 @@ export default function RequestWizard() {
                     className={cn("mt-2 rounded-xl border-2 min-h-[80px]", errors.purpose ? "border-red-400" : "border-gray-200 focus:border-brand-blue")}
                   />
                   <FieldError message={errors.purpose} />
-                  <p className="text-xs text-gray-400 mt-1">{formData.purpose.length}/3 min characters</p>
+                  <p className="text-xs text-gray-400 mt-1">{formData.purpose.length} characters {formData.purpose.length < 3 ? `(${3 - formData.purpose.length} more needed)` : "✓"}</p>
                 </div>
                 <div>
                   <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Required Vehicle Category *</Label>

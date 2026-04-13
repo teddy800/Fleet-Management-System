@@ -88,7 +88,7 @@ export default function FuelLog() {
 
   const totalCost = logs.reduce((s, l) => s + (l.cost || 0), 0);
   const totalVolume = logs.reduce((s, l) => s + (l.volume || 0), 0);
-  const avgEfficiency = logs.filter(l => l.fuel_efficiency > 0).reduce((s, l, _, a) => s + l.fuel_efficiency / a.length, 0);
+  const avgEfficiency = logs.filter(l => l.efficiency > 0).reduce((s, l, _, a) => s + l.efficiency / a.length, 0);
   const anomalies = logs.filter(l => l.volume <= 0 || l.cost <= 0).length;
 
   return (
@@ -161,9 +161,9 @@ export default function FuelLog() {
                   <TableCell>
                     <div className="flex items-center gap-1.5">
                       <div className="w-12 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-teal-500 rounded-full" style={{ width: `${Math.min((log.fuel_efficiency / 20) * 100, 100)}%` }} />
+                        <div className="h-full bg-teal-500 rounded-full" style={{ width: `${Math.min((log.efficiency / 20) * 100, 100)}%` }} />
                       </div>
-                      <span className="text-xs font-bold text-gray-600">{log.fuel_efficiency?.toFixed(2)}</span>
+                      <span className="text-xs font-bold text-gray-600">{log.efficiency?.toFixed(2)}</span>
                     </div>
                   </TableCell>
                 </TableRow>

@@ -6,7 +6,7 @@ import { useEffect, useState, useCallback } from "react";
 import { analyticsApi } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, TrendingUp, TrendingDown, BarChart3, Fuel, Wrench, Users, Car, DollarSign, Zap, Target } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, BarChart3, Fuel, Users, Car, DollarSign, Zap, Target } from "lucide-react";
 import { toast } from "sonner";
 
 function MetricRow({ label, value, sub, trend }) {
@@ -72,10 +72,7 @@ export default function Analytics() {
   const fuel = data?.fuel_analytics;
   const drivers = data?.driver_performance;
   const kpis = data?.kpis;
-  const utilization = data?.utilization_metrics;
   const predictive = data?.predictive_insights;
-
-  const Skeleton = () => <span className="inline-block w-16 h-5 bg-gray-100 animate-pulse rounded" />;
 
   return (
     <div className="space-y-6 pb-8">
