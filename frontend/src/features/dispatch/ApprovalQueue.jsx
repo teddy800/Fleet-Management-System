@@ -126,7 +126,15 @@ export default function ApprovalQueue() {
       toast.success("Vehicle assigned successfully");
       closeDialog();
       fetchAll();
-    } catch (err) { toast.error(err.message); }
+    } catch (err) {
+      // Translate the Odoo field error into a user-friendly message
+      const msg = err.message || "";
+      if (msg.includes("end_datetime") || msg.includes("Invalid field")) {
+        toast.error("Assignment failed: please restart Odoo to apply the latest module update, then try again.");
+      } else {
+        toast.error(msg);
+      }
+    }
     finally { setActionLoading(false); }
   };
 
