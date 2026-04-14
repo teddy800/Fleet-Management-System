@@ -32,44 +32,44 @@ class FleetAPIController(http.Controller):
     
     @http.route('/api/fleet/vehicles', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def get_vehicles(self):
-        """Get all vehicles with enhanced data — dispatcher/manager only for full list"""
+        """Get all vehicles with essential data — dispatcher/manager only"""
         try:
             is_dispatcher = request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or \
                             request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')
             if not is_dispatcher:
                 return {'success': False, 'error': 'Insufficient permissions'}
-            vehicles = request.env['fleet.vehicle'].search([])
+            # Only read fields the frontend actually uses — faster query
+            vehicles = request.env['fleet.vehicle'].search_read(
+                [],
+                fields=['id', 'name', 'license_plate', 'mesob_status', 'current_odometer',
+                        'maintenance_due', 'fuel_efficiency', 'utilization_rate',
+                        'current_latitude', 'current_longitude', 'last_gps_update',
+                        'mesob_vehicle_category', 'assigned_driver_id'],
+            )
             vehicle_data = []
-            
-            for vehicle in vehicles:
+            for v in vehicles:
+                driver = request.env['hr.employee'].browse(v['assigned_driver_id'][0]) if v.get('assigned_driver_id') else None
                 vehicle_data.append({
-                    'id': vehicle.id,
-                    'name': vehicle.name,
-                    'license_plate': vehicle.license_plate,
-                    'mesob_status': vehicle.mesob_status or 'available',
-                    'current_odometer': vehicle.current_odometer,
-                    'maintenance_due': vehicle.maintenance_due,
-                    'fuel_efficiency': vehicle.fuel_efficiency,
-                    'utilization_rate': vehicle.utilization_rate,
+                    'id': v['id'],
+                    'name': v['name'],
+                    'license_plate': v['license_plate'] or '',
+                    'mesob_status': v['mesob_status'] or 'available',
+                    'current_odometer': v['current_odometer'] or 0,
+                    'maintenance_due': v['maintenance_due'] or False,
+                    'fuel_efficiency': v['fuel_efficiency'] or 0,
+                    'utilization_rate': v['utilization_rate'] or 0,
                     'current_location': {
-                        'latitude': vehicle.current_latitude,
-                        'longitude': vehicle.current_longitude,
-                        'last_update': vehicle.last_gps_update.isoformat() if vehicle.last_gps_update else None
+                        'latitude': v['current_latitude'] or 0,
+                        'longitude': v['current_longitude'] or 0,
+                        'last_update': v['last_gps_update'].isoformat() if v.get('last_gps_update') else None,
                     },
-                    'vehicle_category': vehicle.mesob_vehicle_category or 'sedan',
-                    'assigned_driver': vehicle.assigned_driver_id.name if vehicle.assigned_driver_id else None
+                    'vehicle_category': v['mesob_vehicle_category'] or 'sedan',
+                    'assigned_driver': driver.name if driver else None,
                 })
-            
-            return {
-                'success': True,
-                'vehicles': vehicle_data
-            }
+            return {'success': True, 'vehicles': vehicle_data}
         except Exception as e:
             _logger.error(f"Vehicles API error: {e}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            return {'success': False, 'error': str(e)}
     
     @http.route('/api/fleet/trip-requests', type='json', auth='user', methods=['GET', 'POST'], cors='*')
     def trip_requests(self, **kwargs):
@@ -84,40 +84,51 @@ class FleetAPIController(http.Controller):
         return self._list_trip_requests()
 
     def _list_trip_requests(self):
-        """List trip requests - all pending for dispatcher (oldest first per FR-2.1), own for staff"""
+        """List trip requests - all for dispatcher (oldest first per FR-2.1), own for staff"""
         try:
             is_dispatcher = request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or \
                             request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')
+
+            FIELDS = ['id', 'name', 'purpose', 'state', 'employee_id', 'vehicle_category',
+                      'start_datetime', 'end_datetime', 'pickup_location', 'destination_location',
+                      'passenger_count', 'priority', 'trip_type', 'assigned_vehicle_id',
+                      'assigned_driver_id', 'create_date']
+
             if is_dispatcher:
-                # FR-2.1: sorted by request date, oldest first
-                trip_requests = request.env['mesob.trip.request'].search([], order='create_date asc', limit=100)
+                records = request.env['mesob.trip.request'].search_read(
+                    [], FIELDS, order='create_date asc', limit=100
+                )
             else:
                 employee = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
                 if not employee:
                     return {'success': False, 'error': 'Employee record not found'}
-                trip_requests = request.env['mesob.trip.request'].search(
-                    [('employee_id', '=', employee.id)], order='create_date desc', limit=50)
+                records = request.env['mesob.trip.request'].search_read(
+                    [('employee_id', '=', employee.id)], FIELDS, order='create_date desc', limit=50
+                )
 
             data = []
-            for tr in trip_requests:
+            for tr in records:
+                emp = tr.get('employee_id')
+                veh = tr.get('assigned_vehicle_id')
+                drv = tr.get('assigned_driver_id')
                 data.append({
-                    'id': tr.id,
-                    'name': tr.name,
-                    'purpose': tr.purpose,
-                    'state': tr.state,
-                    'employee_name': tr.employee_id.name if tr.employee_id else '',
-                    'vehicle_category': tr.vehicle_category,
-                    'start_datetime': tr.start_datetime.isoformat() if tr.start_datetime else None,
-                    'end_datetime': tr.end_datetime.isoformat() if tr.end_datetime else None,
-                    'pickup_location': tr.pickup_location,
-                    'destination_location': tr.destination_location,
-                    'passenger_count': tr.passenger_count,
-                    'priority': tr.priority,
-                    'trip_type': tr.trip_type,
-                    'assigned_vehicle': tr.assigned_vehicle_id.name if tr.assigned_vehicle_id else None,
-                    'assigned_vehicle_id': tr.assigned_vehicle_id.id if tr.assigned_vehicle_id else None,
-                    'assigned_driver': tr.assigned_driver_id.name if tr.assigned_driver_id else None,
-                    'create_date': tr.create_date.isoformat() if tr.create_date else None,
+                    'id': tr['id'],
+                    'name': tr['name'],
+                    'purpose': tr['purpose'],
+                    'state': tr['state'],
+                    'employee_name': emp[1] if emp else '',
+                    'vehicle_category': tr['vehicle_category'],
+                    'start_datetime': tr['start_datetime'].isoformat() if tr.get('start_datetime') else None,
+                    'end_datetime': tr['end_datetime'].isoformat() if tr.get('end_datetime') else None,
+                    'pickup_location': tr['pickup_location'],
+                    'destination_location': tr['destination_location'],
+                    'passenger_count': tr['passenger_count'],
+                    'priority': tr['priority'],
+                    'trip_type': tr['trip_type'],
+                    'assigned_vehicle': veh[1] if veh else None,
+                    'assigned_vehicle_id': veh[0] if veh else None,
+                    'assigned_driver': drv[1] if drv else None,
+                    'create_date': tr['create_date'].isoformat() if tr.get('create_date') else None,
                 })
             return {'success': True, 'trip_requests': data}
         except Exception as e:

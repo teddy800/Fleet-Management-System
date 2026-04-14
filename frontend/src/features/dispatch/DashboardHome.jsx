@@ -119,8 +119,16 @@ export default function DashboardHome() {
   useEffect(() => {
     fetchDashboard();
     fetchMyRequests();
-    const interval = setInterval(fetchDashboard, 60000);
-    return () => clearInterval(interval);
+    // Poll every 2 minutes; pause when tab is hidden to save resources
+    const interval = setInterval(() => {
+      if (!document.hidden) fetchDashboard();
+    }, 120_000);
+    const onVisible = () => { if (!document.hidden) fetchDashboard(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [fetchDashboard, fetchMyRequests]);
 
   const fleet = data?.fleet_overview;

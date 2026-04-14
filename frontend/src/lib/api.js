@@ -1,21 +1,24 @@
 const BASE_URL = "";
 
 // ─── In-memory cache ──────────────────────────────────────────────────────────
-// Stores { data, ts } per cache key. TTL in ms.
 const _cache = new Map();
-const _inflight = new Map(); // deduplicates concurrent identical requests
+const _inflight = new Map();
 
 const CACHE_TTL = {
-  default:   30_000,  // 30s for most read endpoints
-  dashboard: 60_000,  // 60s for dashboard (heavy query)
-  vehicles:  20_000,  // 20s for vehicles (GPS updates)
-  alerts:    15_000,  // 15s for alerts
+  default:   60_000,   // 60s — reduced re-fetches
+  dashboard: 120_000,  // 2min — heavy query, changes slowly
+  vehicles:  30_000,   // 30s — GPS updates
+  alerts:    20_000,   // 20s — alerts
+  drivers:   60_000,   // 60s — drivers change rarely
+  trips:     15_000,   // 15s — trips change more often
 };
 
 function getCacheTTL(path) {
   if (path.includes("/dashboard")) return CACHE_TTL.dashboard;
   if (path.includes("/vehicles"))  return CACHE_TTL.vehicles;
   if (path.includes("/alerts"))    return CACHE_TTL.alerts;
+  if (path.includes("/drivers"))   return CACHE_TTL.drivers;
+  if (path.includes("/trip-requests")) return CACHE_TTL.trips;
   return CACHE_TTL.default;
 }
 

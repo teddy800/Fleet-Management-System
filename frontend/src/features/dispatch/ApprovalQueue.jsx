@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { tripApi, fleetApi, driverApi } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -151,16 +151,16 @@ export default function ApprovalQueue() {
     finally { setActionLoading(false); }
   }
 
-  const filtered = requests.filter(r => {
+  const filtered = useMemo(() => requests.filter(r => {
     const matchState = filterState === "all" || r.state === filterState;
     const matchSearch = !search || r.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
       r.destination_location?.toLowerCase().includes(search.toLowerCase()) ||
       r.name?.toLowerCase().includes(search.toLowerCase());
     return matchState && matchSearch;
-  });
+  }), [requests, filterState, search]);
 
-  const pendingCount = requests.filter(r => r.state === "pending").length;
-  const approvedCount = requests.filter(r => r.state === "approved").length;
+  const pendingCount = useMemo(() => requests.filter(r => r.state === "pending").length, [requests]);
+  const approvedCount = useMemo(() => requests.filter(r => r.state === "approved").length, [requests]);
 
   return (
     <div className="space-y-5 pb-8">
