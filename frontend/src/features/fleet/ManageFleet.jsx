@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { fleetApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -107,21 +107,21 @@ export default function ManageFleet() {
 
   useEffect(() => { fetchVehicles(); }, [fetchVehicles]);
 
-  const filtered = vehicles.filter(v => {
+  const filtered = useMemo(() => vehicles.filter(v => {
     const matchStatus = filterStatus === "all" || v.mesob_status === filterStatus;
     const matchSearch = !search || v.name?.toLowerCase().includes(search.toLowerCase()) ||
       v.license_plate?.toLowerCase().includes(search.toLowerCase()) ||
       v.assigned_driver?.toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
-  });
+  }), [vehicles, filterStatus, search]);
 
-  const counts = {
+  const counts = useMemo(() => ({
     total: vehicles.length,
     available: vehicles.filter(v => v.mesob_status === "available").length,
     in_use: vehicles.filter(v => v.mesob_status === "in_use").length,
     maintenance: vehicles.filter(v => v.mesob_status === "maintenance").length,
     due: vehicles.filter(v => v.maintenance_due).length,
-  };
+  }), [vehicles]);
 
   return (
     <div className="space-y-5 pb-8">

@@ -3,7 +3,7 @@
  * Lists all drivers with license info, active trips, performance metrics
  * Backend: /api/fleet/drivers
  */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { driverApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -77,18 +77,18 @@ export default function Drivers() {
 
   useEffect(() => { fetchDrivers(); }, []);
 
-  const filtered = drivers.filter(d =>
+  const filtered = useMemo(() => drivers.filter(d =>
     !search || d.name?.toLowerCase().includes(search.toLowerCase()) ||
     d.license_number?.toLowerCase().includes(search.toLowerCase())
-  );
+  ), [drivers, search]);
 
-  const available = drivers.filter(d => d.active_trips === 0).length;
-  const onTrip = drivers.filter(d => d.active_trips > 0).length;
-  const expiringSoon = drivers.filter(d => {
+  const available = useMemo(() => drivers.filter(d => d.active_trips === 0).length, [drivers]);
+  const onTrip = useMemo(() => drivers.filter(d => d.active_trips > 0).length, [drivers]);
+  const expiringSoon = useMemo(() => drivers.filter(d => {
     if (!d.license_expiry) return false;
     const days = (new Date(d.license_expiry) - new Date()) / (1000 * 60 * 60 * 24);
     return days <= 30;
-  }).length;
+  }).length, [drivers]);
 
   return (
     <div className="space-y-5 pb-8">

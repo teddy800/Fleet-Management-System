@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { fuelApi, fleetApi } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -79,17 +79,20 @@ export default function FuelLog() {
     }
   };
 
-  const filtered = logs.filter(l =>
+  const filtered = useMemo(() => logs.filter(l =>
     !search ||
     l.vehicle_name?.toLowerCase().includes(search.toLowerCase()) ||
     l.driver_name?.toLowerCase().includes(search.toLowerCase()) ||
     l.fuel_station?.toLowerCase().includes(search.toLowerCase())
-  );
+  ), [logs, search]);
 
-  const totalCost = logs.reduce((s, l) => s + (l.cost || 0), 0);
-  const totalVolume = logs.reduce((s, l) => s + (l.volume || 0), 0);
-  const avgEfficiency = logs.filter(l => l.efficiency > 0).reduce((s, l, _, a) => s + l.efficiency / a.length, 0);
-  const anomalies = logs.filter(l => l.volume <= 0 || l.cost <= 0).length;
+  const totalCost = useMemo(() => logs.reduce((s, l) => s + (l.cost || 0), 0), [logs]);
+  const totalVolume = useMemo(() => logs.reduce((s, l) => s + (l.volume || 0), 0), [logs]);
+  const avgEfficiency = useMemo(() => {
+    const withEff = logs.filter(l => l.efficiency > 0);
+    return withEff.length > 0 ? withEff.reduce((s, l) => s + l.efficiency, 0) / withEff.length : 0;
+  }, [logs]);
+  const anomalies = useMemo(() => logs.filter(l => l.volume <= 0 || l.cost <= 0).length, [logs]);
 
   return (
     <div className="space-y-5 pb-8">
