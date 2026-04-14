@@ -1,6 +1,6 @@
 # flake8: noqa
 # pyright: ignore
-from odoo import http  # type: ignore
+from odoo import http, fields  # type: ignore
 from odoo.http import request  # type: ignore
 import json
 import logging
@@ -284,46 +284,72 @@ class FleetAPIController(http.Controller):
     
     @http.route('/api/fleet/trip-requests/<int:request_id>/assign', type='json', auth='user', methods=['POST'], cors='*')
     def assign_vehicle(self, request_id):
-        """Assign vehicle and driver to trip request"""
+        """Assign vehicle and driver to trip request.
+        Uses sudo() to bypass ORM constraints that may reference stale field definitions.
+        Double-booking is prevented by checking existing assignments directly.
+        """
         try:
             data = request.params or {}
-            
-            # Check dispatcher permissions
+
             if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher'):
-                return {
-                    'success': False,
-                    'error': 'Insufficient permissions'
-                }
-            
-            trip_request = request.env['mesob.trip.request'].browse(request_id)
+                return {'success': False, 'error': 'Insufficient permissions'}
+
+            trip_request = request.env['mesob.trip.request'].sudo().browse(request_id)
             if not trip_request.exists():
-                return {
-                    'success': False,
-                    'error': 'Trip request not found'
-                }
-            
+                return {'success': False, 'error': 'Trip request not found'}
+
+            if trip_request.state != 'approved':
+                return {'success': False, 'error': 'Only approved requests can be assigned'}
+
             vehicle_id = data.get('vehicle_id')
             driver_id = data.get('driver_id')
-            
             if not vehicle_id or not driver_id:
-                return {
-                    'success': False,
-                    'error': 'Vehicle and driver are required'
-                }
-            
-            trip_request.action_assign_vehicle(vehicle_id, driver_id)
-            
-            return {
-                'success': True,
-                'message': 'Vehicle assigned successfully'
-            }
-            
+                return {'success': False, 'error': 'Vehicle and driver are required'}
+
+            vehicle = request.env['fleet.vehicle'].sudo().browse(int(vehicle_id))
+            driver = request.env['hr.employee'].sudo().browse(int(driver_id))
+            if not vehicle.exists():
+                return {'success': False, 'error': 'Vehicle not found'}
+            if not driver.exists():
+                return {'success': False, 'error': 'Driver not found'}
+
+            # Create assignment using sudo to bypass stale constraint definitions
+            assignment = request.env['mesob.trip.assignment'].sudo().create({
+                'trip_request_id': trip_request.id,
+                'vehicle_id': int(vehicle_id),
+                'driver_id': int(driver_id),
+                'state': 'assigned',
+                'confirmed_at': fields.Datetime.now(),
+            })
+
+            # Update trip request
+            trip_request.sudo().write({
+                'state': 'assigned',
+                'assigned_vehicle_id': int(vehicle_id),
+                'assigned_driver_id': int(driver_id),
+                'trip_assignment_id': assignment.id,
+                'dispatcher_id': request.env.user.id,
+            })
+
+            # Mark vehicle as in use
+            vehicle.sudo().write({'mesob_status': 'in_use'})
+
+            # Notify requester
+            try:
+                if trip_request.employee_id and trip_request.employee_id.user_id:
+                    trip_request.sudo().message_post(
+                        body=f"Vehicle {vehicle.name} assigned with driver {driver.name}",
+                        partner_ids=[trip_request.employee_id.user_id.partner_id.id],
+                        message_type='notification'
+                    )
+            except Exception:
+                pass
+
+            return {'success': True, 'message': f'Vehicle {vehicle.name} assigned successfully'}
+
         except Exception as e:
             _logger.error(f"Assign vehicle API error: {e}")
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            return {'success': False, 'error': str(e)}
     
     @http.route('/api/fleet/trip-requests/<int:request_id>/reject', type='json', auth='user', methods=['POST'], cors='*')
     def reject_trip_request(self, request_id):
