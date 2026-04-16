@@ -215,6 +215,38 @@ export default function Analytics() {
 
       {/* Fuel Analytics + Driver Performance */}
       <div className="grid lg:grid-cols-2 gap-6">
+        {/* Trip Statistics */}
+        <Card className="border-0 shadow-md">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-black text-brand-blue uppercase tracking-widest flex items-center gap-2">
+              <Target className="h-4 w-4" /> Trip Statistics (This Month)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {loading ? (
+              <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-10 bg-gray-100 animate-pulse rounded-xl" />)}</div>
+            ) : data?.trip_statistics ? (
+              <>
+                <MetricRow label="Total Requests" value={data.trip_statistics.total_requests} />
+                <MetricRow label="Pending Requests" value={data.trip_statistics.pending_requests} />
+                <MetricRow label="Approved Requests" value={data.trip_statistics.approved_requests} />
+                <MetricRow label="Completed Trips" value={data.trip_statistics.completed_trips} />
+                <div className="bg-brand-blue/5 rounded-xl p-3 border border-brand-blue/10 mt-2">
+                  <p className="text-xs text-gray-400 uppercase font-bold">Approval Rate</p>
+                  <p className="text-2xl font-black text-brand-blue mt-1">
+                    {data.trip_statistics.approval_rate?.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Avg processing: {data.trip_statistics.average_processing_time?.toFixed(1)}h
+                  </p>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-gray-400 text-center py-4">No trip data available</p>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Fuel Analytics */}
         <Card className="border-0 shadow-md">
           <CardHeader className="pb-3">

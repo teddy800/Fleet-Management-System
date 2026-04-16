@@ -63,19 +63,28 @@ function VehicleDetailPanel({ vehicle }) {
         </div>
 
         {/* GPS */}
-        {vehicle.current_location?.latitude && vehicle.current_location?.longitude ? (
-          <div className="bg-gray-50 rounded-xl p-3">
-            <p className="text-xs text-gray-400 font-bold uppercase mb-2 flex items-center gap-1">
+        {vehicle.current_location?.latitude && vehicle.current_location?.latitude !== 0 &&
+         vehicle.current_location?.longitude && vehicle.current_location?.longitude !== 0 ? (
+          <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+            <p className="text-xs text-gray-400 font-bold uppercase flex items-center gap-1">
               <MapPin className="h-3 w-3" /> Last Known Location
             </p>
             <p className="text-xs font-mono text-gray-600">
               {vehicle.current_location.latitude.toFixed(6)}, {vehicle.current_location.longitude.toFixed(6)}
             </p>
             {vehicle.current_location.last_update && (
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-gray-400">
                 Updated: {new Date(vehicle.current_location.last_update).toLocaleString()}
               </p>
             )}
+            <a
+              href={`https://www.openstreetmap.org/?mlat=${vehicle.current_location.latitude}&mlon=${vehicle.current_location.longitude}#map=15/${vehicle.current_location.latitude}/${vehicle.current_location.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-brand-blue font-bold hover:underline"
+            >
+              <MapPin className="h-3 w-3" /> View on Map ↗
+            </a>
           </div>
         ) : (
           <div className="bg-gray-50 rounded-xl p-3 text-center text-xs text-gray-400">

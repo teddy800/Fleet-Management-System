@@ -424,6 +424,15 @@ export default function RequestWizard() {
                       ["To", formData.destinationLocation],
                       ["Passengers", formData.passengerCount],
                       ["Trip Type", formData.tripType],
+                      ...(formData.pickupLatitude && formData.destinationLatitude ? [
+                        ["Est. Distance", (() => {
+                          const R = 6371;
+                          const dLat = (formData.destinationLatitude - formData.pickupLatitude) * Math.PI / 180;
+                          const dLng = (formData.destinationLongitude - formData.pickupLongitude) * Math.PI / 180;
+                          const a = Math.sin(dLat/2)**2 + Math.cos(formData.pickupLatitude * Math.PI/180) * Math.cos(formData.destinationLatitude * Math.PI/180) * Math.sin(dLng/2)**2;
+                          return `~${(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))).toFixed(1)} km`;
+                        })()]
+                      ] : []),
                     ].map(([label, value]) => (
                       <div key={label} className="bg-white rounded-xl p-3 border animate-fade-in-up">
                         <p className="text-xs text-gray-400 font-bold uppercase">{label}</p>

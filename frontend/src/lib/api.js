@@ -5,8 +5,8 @@ const _cache = new Map();
 const _inflight = new Map();
 
 const CACHE_TTL = {
-  default:   60_000,   // 60s — reduced re-fetches
-  dashboard: 120_000,  // 2min — heavy query, changes slowly
+  default:   60_000,   // 60s
+  dashboard: 55_000,   // 55s — slightly under the 60s refresh interval so data is always fresh
   vehicles:  30_000,   // 30s — GPS updates
   alerts:    20_000,   // 20s — alerts
   drivers:   60_000,   // 60s — drivers change rarely

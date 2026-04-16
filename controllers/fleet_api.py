@@ -92,7 +92,8 @@ class FleetAPIController(http.Controller):
             FIELDS = ['id', 'name', 'purpose', 'state', 'employee_id', 'vehicle_category',
                       'start_datetime', 'end_datetime', 'pickup_location', 'destination_location',
                       'passenger_count', 'priority', 'trip_type', 'assigned_vehicle_id',
-                      'assigned_driver_id', 'create_date']
+                      'assigned_driver_id', 'create_date', 'rejection_reason',
+                      'approved_date', 'estimated_distance']
 
             if is_dispatcher:
                 records = request.env['mesob.trip.request'].search_read(
@@ -129,6 +130,9 @@ class FleetAPIController(http.Controller):
                     'assigned_vehicle_id': veh[0] if veh else None,
                     'assigned_driver': drv[1] if drv else None,
                     'create_date': tr['create_date'].isoformat() if tr.get('create_date') else None,
+                    'rejection_reason': tr.get('rejection_reason') or '',
+                    'approved_date': tr['approved_date'].isoformat() if tr.get('approved_date') else None,
+                    'estimated_distance': tr.get('estimated_distance') or 0,
                 })
             return {'success': True, 'trip_requests': data}
         except Exception as e:
@@ -953,21 +957,6 @@ class FleetAPIController(http.Controller):
         except Exception as e:
             _logger.error(f"Create maintenance log error: {e}")
             return {'success': False, 'error': str(e)}
-            if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
-                    request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
-                return {'success': False, 'error': 'Insufficient permissions'}
-            data = request.params or {}
-            vehicle_id = data.get('vehicle_id')
-            maintenance_type = data.get('maintenance_type')
-            odometer = float(data.get('odometer', 0))
-            if not vehicle_id or not maintenance_type:
-                return {'success': False, 'error': 'vehicle_id and maintenance_type are required'}
-            vehicle = request.env['fleet.vehicle'].browse(int(vehicle_id))
-            if not vehicle.exists():
-                return {'success': False, 'error': 'Vehicle not found'}
-            log = request.env['mesob.maintenance.log'].create({
-                'vehicle_id': int(vehicle_id),
-                'date': data.get('date') or str(request.env['fields.Date'].today()),
                 'maintenance_type': maintenance_type,
                 'description': data.get('description', ''),
                 'cost': float(data.get('cost', 0)),

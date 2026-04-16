@@ -54,9 +54,10 @@ class MaintenanceLog(models.Model):
                 raise ValidationError("Odometer must be positive.")
 
     def action_start(self):
+        """FR-6.3: When in_progress, set vehicle to maintenance (not in_use)"""
         for rec in self:
             rec.state = 'in_progress'
-            rec.vehicle_id.mesob_status = 'in_use'
+            rec.vehicle_id.mesob_status = 'maintenance'
 
     def action_complete(self):
         for rec in self:

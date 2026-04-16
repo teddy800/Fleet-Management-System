@@ -212,6 +212,20 @@ export default function MyRequests() {
               </div>
             ))}
           </div>
+          {/* Show rejection reason prominently if rejected */}
+          {selected?.state === "rejected" && selected?.rejection_reason && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+              <p className="text-xs font-black uppercase mb-1">Rejection Reason</p>
+              <p className="font-medium">{selected.rejection_reason}</p>
+            </div>
+          )}
+          {/* Show estimated distance if available */}
+          {selected?.estimated_distance > 0 && (
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 flex items-center gap-2">
+              <span className="font-black uppercase">Est. Distance:</span>
+              <span className="font-bold">{selected.estimated_distance.toFixed(1)} km</span>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

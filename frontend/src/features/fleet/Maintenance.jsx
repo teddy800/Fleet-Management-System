@@ -331,6 +331,7 @@ export default function Maintenance() {
                     <SelectItem value="preventive">Preventive</SelectItem>
                     <SelectItem value="corrective">Corrective</SelectItem>
                     <SelectItem value="emergency">Emergency</SelectItem>
+                    <SelectItem value="inspection">Inspection</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
