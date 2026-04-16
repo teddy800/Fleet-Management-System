@@ -1,7 +1,8 @@
 import { useUserStore } from "@/store/useUserStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Shield, Building, MapPin, Edit3, Hash } from "lucide-react";
+import { User, Mail, Shield, Building, MapPin, Edit3, Hash, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const BG_URL = "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070&auto=format&fit=crop";
 
@@ -32,10 +33,13 @@ export default function Profile() {
         
         <div className="flex items-end justify-between mb-8">
           <div>
-            <h1 className="text-4xl font-black text-brand-blue drop-shadow-sm">Account Settings</h1>
+            <h1 className="text-4xl font-black text-brand-blue drop-shadow-sm">My Profile</h1>
             <p className="text-gray-600 font-medium">Manage your MESSOB-FMS identity</p>
           </div>
-          <Button className="bg-brand-blue hover:bg-blue-900 gap-2 rounded-xl">
+          <Button
+            className="bg-brand-blue hover:bg-blue-900 gap-2 rounded-xl"
+            onClick={() => toast.info("Profile editing is managed through Odoo. Go to Settings → Users to update your details.")}
+          >
             <Edit3 className="h-4 w-4" /> Edit Profile
           </Button>
         </div>

@@ -55,6 +55,9 @@ function AlertCard({ alert, onAcknowledge, acknowledging }) {
               {typeMeta.label}
             </span>
             <Badge className={`text-xs ${sevMeta.cls}`}>{alert.severity}</Badge>
+            {alert._count > 1 && (
+              <Badge className="text-xs bg-gray-700 text-white border-0">×{alert._count} occurrences</Badge>
+            )}
             {alert.acknowledged && (
               <Badge className="text-xs bg-gray-100 text-gray-500 border border-gray-200">Acknowledged</Badge>
             )}
@@ -100,6 +103,7 @@ export default function Alerts() {
   const [search, setSearch] = useState("");
   const [filterSeverity, setFilterSeverity] = useState("all");
   const [showAcknowledged, setShowAcknowledged] = useState(false);
+  const [groupDuplicates, setGroupDuplicates] = useState(true);
 
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
@@ -141,6 +145,25 @@ export default function Alerts() {
     }
     return true;
   });
+
+  // Group duplicate alerts by type+vehicle+message to avoid noise
+  const displayAlerts = groupDuplicates
+    ? (() => {
+        const groups = new Map();
+        filtered.forEach(a => {
+          const key = `${a.alert_type}|${a.vehicle_name}|${a.message}|${a.acknowledged}`;
+          if (!groups.has(key)) {
+            groups.set(key, { ...a, _count: 1, _latestId: a.id });
+          } else {
+            const g = groups.get(key);
+            g._count += 1;
+            // Keep the most recent (highest id) for acknowledge action
+            if (a.id > g._latestId) { g._latestId = a.id; g.timestamp = a.timestamp; }
+          }
+        });
+        return Array.from(groups.values());
+      })()
+    : filtered;
 
   const total    = alerts.length;
   const critical = alerts.filter(a => a.severity === "critical" && !a.acknowledged).length;
@@ -245,6 +268,16 @@ export default function Alerts() {
             )}>
             {showAcknowledged ? "Hide Acked" : "Show Acked"}
           </button>
+          <button
+            onClick={() => setGroupDuplicates(v => !v)}
+            className={cn(
+              "px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors",
+              groupDuplicates
+                ? "bg-brand-blue text-white border-brand-blue"
+                : "bg-white text-gray-600 border-gray-200"
+            )}>
+            {groupDuplicates ? "Grouped" : "All"}
+          </button>
         </div>
       </div>
 
@@ -267,10 +300,10 @@ export default function Alerts() {
         </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map(alert => (
+          {displayAlerts.map(alert => (
             <AlertCard
-              key={alert.id}
-              alert={alert}
+              key={alert._latestId || alert.id}
+              alert={{ ...alert, id: alert._latestId || alert.id }}
               onAcknowledge={handleAcknowledge}
               acknowledging={acknowledging}
             />

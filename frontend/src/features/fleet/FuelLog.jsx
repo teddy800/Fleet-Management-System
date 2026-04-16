@@ -89,8 +89,8 @@ export default function FuelLog() {
   const totalCost = useMemo(() => logs.reduce((s, l) => s + (l.cost || 0), 0), [logs]);
   const totalVolume = useMemo(() => logs.reduce((s, l) => s + (l.volume || 0), 0), [logs]);
   const avgEfficiency = useMemo(() => {
-    const withEff = logs.filter(l => l.efficiency > 0);
-    return withEff.length > 0 ? withEff.reduce((s, l) => s + l.efficiency, 0) / withEff.length : 0;
+    const withEff = logs.filter(l => (l.fuel_efficiency || l.efficiency) > 0);
+    return withEff.length > 0 ? withEff.reduce((s, l) => s + (l.fuel_efficiency || l.efficiency || 0), 0) / withEff.length : 0;
   }, [logs]);
   const anomalies = useMemo(() => logs.filter(l => l.volume <= 0 || l.cost <= 0).length, [logs]);
 
@@ -164,9 +164,9 @@ export default function FuelLog() {
                   <TableCell>
                     <div className="flex items-center gap-1.5">
                       <div className="w-12 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-teal-500 rounded-full" style={{ width: `${Math.min((log.efficiency / 20) * 100, 100)}%` }} />
+                        <div className="h-full bg-teal-500 rounded-full" style={{ width: `${Math.min(((log.fuel_efficiency || log.efficiency || 0) / 20) * 100, 100)}%` }} />
                       </div>
-                      <span className="text-xs font-bold text-gray-600">{log.efficiency?.toFixed(2)}</span>
+                      <span className="text-xs font-bold text-gray-600">{(log.fuel_efficiency || log.efficiency || 0).toFixed(2)}</span>
                     </div>
                   </TableCell>
                 </TableRow>

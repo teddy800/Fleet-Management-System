@@ -117,11 +117,15 @@ export default function Analytics() {
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-gray-400 uppercase font-bold">Fleet Value</p>
-                  <p className="text-lg font-black text-brand-blue">{kpis.total_fleet_value?.toLocaleString()} ETB</p>
+                  <p className="text-lg font-black text-brand-blue">
+                    {kpis.total_fleet_value > 0 ? `${kpis.total_fleet_value?.toLocaleString()} ETB` : "Not set"}
+                  </p>
                 </div>
                 <div className="text-center">
                   <p className="text-xs text-gray-400 uppercase font-bold">Avg Efficiency</p>
-                  <p className="text-lg font-black text-brand-blue">{fuel?.average_efficiency?.toFixed(2)} KM/L</p>
+                  <p className="text-lg font-black text-brand-blue">
+                    {fuel?.average_efficiency > 0 ? `${fuel.average_efficiency?.toFixed(2)} KM/L` : "No data"}
+                  </p>
                 </div>
               </div>
             </>
@@ -223,7 +227,13 @@ export default function Analytics() {
               <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 animate-pulse rounded-xl" />)}</div>
             ) : fuel ? (
               <div className="space-y-3">
-                <MetricRow label="Fleet Avg Efficiency" value={`${fuel.average_efficiency?.toFixed(2)} KM/L`} />
+                <MetricRow label="Fleet Avg Efficiency" value={
+                  fuel.average_efficiency > 0
+                    ? `${fuel.average_efficiency?.toFixed(2)} KM/L`
+                    : fuel.top_consumers?.some(v => v.efficiency > 0)
+                      ? `${(fuel.top_consumers.filter(v => v.efficiency > 0).reduce((s, v) => s + v.efficiency, 0) / fuel.top_consumers.filter(v => v.efficiency > 0).length).toFixed(2)} KM/L`
+                      : "No data yet"
+                } />
                 {fuel.top_consumers?.slice(0, 5).map((v, i) => (
                   <div key={v.vehicle_id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${i === 0 ? "bg-red-100 text-red-600" : "bg-gray-100 text-gray-600"}`}>

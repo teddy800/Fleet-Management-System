@@ -266,7 +266,7 @@ export default function DashboardHome() {
         />
         <StatCard
           title="Avg Efficiency"
-          value={fuel?.average_efficiency ? `${fuel.average_efficiency.toFixed(2)} KM/L` : "—"}
+          value={fuel?.average_efficiency > 0 ? `${fuel.average_efficiency.toFixed(2)} KM/L` : "—"}
           subtitle="fleet average"
           icon={Zap}
           gradient="gradient-card-teal"
@@ -322,7 +322,9 @@ export default function DashboardHome() {
                   </div>
                   <div className="text-center">
                     <p className="text-xs text-gray-400 uppercase font-bold">Fleet Value</p>
-                    <p className="text-xl font-black text-brand-blue">{kpis.total_fleet_value?.toLocaleString()} ETB</p>
+                    <p className="text-xl font-black text-brand-blue">
+                      {kpis.total_fleet_value > 0 ? `${kpis.total_fleet_value?.toLocaleString()} ETB` : "Not set"}
+                    </p>
                   </div>
                 </div>
               </>

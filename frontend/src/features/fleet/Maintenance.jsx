@@ -19,10 +19,10 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
 const STATE_META = {
-  draft:       { label: "Draft",       cls: "bg-gray-100 text-gray-600 border-gray-200" },
-  in_progress: { label: "In Progress", cls: "bg-blue-100 text-blue-700 border-blue-200" },
-  done:        { label: "Completed",   cls: "bg-green-100 text-green-700 border-green-200" },
-  cancelled:   { label: "Cancelled",   cls: "bg-red-100 text-red-600 border-red-200" },
+  draft:       { label: "Draft",       cls: "bg-gray-100 text-gray-600 border border-gray-300" },
+  in_progress: { label: "In Progress", cls: "bg-blue-100 text-blue-700 border border-blue-200" },
+  done:        { label: "Completed",   cls: "bg-green-100 text-green-700 border border-green-200" },
+  cancelled:   { label: "Cancelled",   cls: "bg-red-100 text-red-600 border border-red-200" },
 };
 
 const TYPE_META = {

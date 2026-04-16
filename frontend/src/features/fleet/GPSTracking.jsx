@@ -39,7 +39,8 @@ function isStale(lastUpdate) {
 
 function VehicleCard({ vehicle, onSelect, selected }) {
   const stale = isStale(vehicle.current_location?.last_update);
-  const hasGPS = vehicle.current_location?.latitude && vehicle.current_location?.longitude;
+  const hasGPS = vehicle.current_location?.latitude != null && vehicle.current_location.latitude !== 0 &&
+    vehicle.current_location?.longitude != null && vehicle.current_location.longitude !== 0;
   return (
     <div
       onClick={() => onSelect(vehicle)}
@@ -208,7 +209,7 @@ export default function GPSTracking() {
 
   const filtered = vehicles.filter(v => filterStatus === "all" || v.mesob_status === filterStatus);
   const activeVehicles = vehicles.filter(v => v.mesob_status === "in_use");
-  const withGPS = vehicles.filter(v => v.current_location?.latitude);
+  const withGPS = vehicles.filter(v => v.current_location?.latitude && v.current_location.latitude !== 0);
   const activeTripForSelected = selected
     ? trips.find(t =>
         (t.assigned_vehicle_id && t.assigned_vehicle_id === selected.id) ||
@@ -235,7 +236,8 @@ export default function GPSTracking() {
     }
   };
 
-  const mapUrl = selected?.current_location?.latitude && selected?.current_location?.longitude
+  const mapUrl = selected?.current_location?.latitude && selected?.current_location?.latitude !== 0 &&
+    selected?.current_location?.longitude && selected?.current_location?.longitude !== 0
     ? (() => {
         const lat = selected.current_location.latitude;
         const lng = selected.current_location.longitude;

@@ -60,14 +60,19 @@ export default function Drivers() {
     setLoading(true);
     try {
       const res = await driverApi.list();
-      // Deduplicate by id in case backend returns duplicate employee records
-      const seen = new Set();
-      const unique = (res.drivers || []).filter(d => {
-        if (seen.has(d.id)) return false;
-        seen.add(d.id);
-        return true;
+      // Deduplicate: prefer record with a license number; deduplicate by name
+      const byName = new Map();
+      (res.drivers || []).forEach(d => {
+        const key = d.name?.trim().toLowerCase();
+        if (!byName.has(key)) {
+          byName.set(key, d);
+        } else {
+          // Keep the one with a license number, or the one with a later expiry
+          const existing = byName.get(key);
+          if (!existing.license_number && d.license_number) byName.set(key, d);
+        }
       });
-      setDrivers(unique);
+      setDrivers(Array.from(byName.values()));
     } catch (err) {
       toast.error("Failed to load drivers: " + err.message);
     } finally {

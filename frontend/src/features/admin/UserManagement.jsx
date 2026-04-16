@@ -44,14 +44,18 @@ export default function UserManagement() {
     try {
       const [uRes, dRes] = await Promise.all([userMgmtApi.list(), driverApi.list()]);
       setUsers(uRes.users || []);
-      // Deduplicate drivers by id
-      const seen = new Set();
-      const uniqueDrivers = (dRes.drivers || []).filter(d => {
-        if (seen.has(d.id)) return false;
-        seen.add(d.id);
-        return true;
+      // Deduplicate drivers by name (same person may have multiple HR records)
+      const byName = new Map();
+      (dRes.drivers || []).forEach(d => {
+        const key = d.name?.trim().toLowerCase();
+        if (!byName.has(key)) {
+          byName.set(key, d);
+        } else {
+          const existing = byName.get(key);
+          if (!existing.license_number && d.license_number) byName.set(key, d);
+        }
       });
-      setDrivers(uniqueDrivers);
+      setDrivers(Array.from(byName.values()));
     } catch (err) {
       toast.error("Failed to load: " + err.message);
     } finally {
