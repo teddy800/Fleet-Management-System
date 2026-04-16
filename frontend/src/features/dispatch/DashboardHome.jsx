@@ -375,8 +375,8 @@ export default function DashboardHome() {
                 <Link to="/dispatch/approvals" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold transition-colors">
                   <CheckCircle2 className="h-4 w-4 text-brand-gold" />
                   Review Pending Requests
-                  {trips?.total_requests > 0 && (
-                    <Badge className="ml-auto bg-brand-gold text-brand-blue text-xs px-2">{trips.total_requests}</Badge>
+                  {trips?.pending_requests > 0 && (
+                    <Badge className="ml-auto bg-brand-gold text-brand-blue text-xs px-2">{trips.pending_requests}</Badge>
                   )}
                 </Link>
               )}

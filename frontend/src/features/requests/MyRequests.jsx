@@ -24,7 +24,9 @@ const STATE_META = {
   cancelled:   { label: "Cancelled",   cls: "bg-gray-100 text-gray-500 border-gray-200",      bar: "bg-gray-300",    step: -1 },
 };
 
-const STATUS_STEPS = ["Draft", "Pending", "Approved", "Assigned", "In Progress", "Completed"];export default function MyRequests() {
+const STATUS_STEPS = ["Draft", "Pending", "Approved", "Assigned", "In Progress", "Completed"];
+
+export default function MyRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -39,6 +41,7 @@ const STATUS_STEPS = ["Draft", "Pending", "Approved", "Assigned", "In Progress",
       if (err.message?.includes("Employee record not found")) {
         // Admin user without an HR employee record — show empty state gracefully
         setRequests([]);
+        toast.info("No employee record linked to your account. Contact HR to link your profile.");
       } else {
         toast.error("Failed to load requests: " + err.message);
       }
@@ -95,7 +98,7 @@ const STATUS_STEPS = ["Draft", "Pending", "Approved", "Assigned", "In Progress",
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Pending", value: counts.pending, color: "text-yellow-600", bg: "bg-yellow-50" },
-          { label: "Active", value: counts.active, color: "text-blue-600", bg: "bg-blue-50" },
+          { label: "Approved / Active", value: counts.active, color: "text-blue-600", bg: "bg-blue-50" },
           { label: "Completed", value: counts.completed, color: "text-teal-600", bg: "bg-teal-50" },
         ].map(s => (
           <div key={s.label} className={`${s.bg} rounded-2xl p-4 border shadow-sm text-center`}>

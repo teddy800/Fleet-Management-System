@@ -6,7 +6,7 @@
  * Step 4: Review & Submit
  * UI-4: All forms provide clear validation messages
  */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import * as z from "zod";
 import { format } from "date-fns";
 import {
@@ -26,13 +26,13 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 const VEHICLE_CATEGORIES = [
-  { value: "sedan",     label: "Sedan" },
-  { value: "suv",       label: "SUV" },
-  { value: "pickup",    label: "Pickup Truck" },
-  { value: "bus",       label: "Bus" },
-  { value: "minibus",   label: "Mini-Bus" },
-  { value: "motorcycle",label: "Motorcycle" },
-  { value: "truck",     label: "Truck" },
+  { value: "sedan",      label: "Sedan" },
+  { value: "suv",        label: "SUV" },
+  { value: "pickup",     label: "Pickup Truck" },
+  { value: "bus",        label: "Bus" },
+  { value: "minibus",    label: "Mini-Bus" },
+  { value: "motorcycle", label: "Motorcycle" },
+  { value: "truck",      label: "Truck" },
 ];
 
 // Per-step validation schemas
@@ -72,23 +72,29 @@ function FieldError({ message }) {
 function LocationInput({ value, onChange, onSelect, placeholder, error, label }) {
   const [suggestions, setSuggestions] = useState([]);
   const [searching, setSearching] = useState(false);
-  const debounceRef = useState(null);
+  const debounceRef = useRef(null);
+  const abortRef = useRef(null);
 
   const handleChange = (e) => {
     const val = e.target.value;
     onChange(val);
-    clearTimeout(debounceRef[0]);
+    clearTimeout(debounceRef.current);
     if (val.length < 3) { setSuggestions([]); return; }
-    debounceRef[0] = setTimeout(async () => {
+    debounceRef.current = setTimeout(async () => {
+      // Cancel previous in-flight request
+      if (abortRef.current) abortRef.current.abort();
+      abortRef.current = new AbortController();
       setSearching(true);
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=5&countrycodes=et`,
-          { headers: { "Accept-Language": "en" } }
+          { headers: { "Accept-Language": "en" }, signal: abortRef.current.signal }
         );
         const data = await res.json();
         setSuggestions(data);
-      } catch { setSuggestions([]); }
+      } catch (err) {
+        if (err.name !== "AbortError") setSuggestions([]);
+      }
       finally { setSearching(false); }
     }, 400);
   };
@@ -169,6 +175,11 @@ export default function RequestWizard() {
   const prevStep = () => { setErrors({}); setStep(s => Math.max(s - 1, 1)); };
 
   const onSubmit = async () => {
+    // Final validation across all steps before submitting
+    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
+      toast.error("Please fix all validation errors before submitting");
+      return;
+    }
     setSubmitting(true);
     try {
       const startDt = new Date(`${formData.startDate}T${formData.startTime}`);

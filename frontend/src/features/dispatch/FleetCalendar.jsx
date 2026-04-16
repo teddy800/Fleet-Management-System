@@ -188,12 +188,17 @@ export default function FleetCalendar() {
                             </div>
                           ) : dayTrips.length > 0 ? (
                             <div className="space-y-0.5">
-                              {dayTrips.map(trip => (
+                              {dayTrips.slice(0, 2).map(trip => (
                                 <div key={trip.id} title={`${trip.name}: ${trip.pickup_location} → ${trip.destination_location}`}
                                   className={`mx-auto w-full h-7 rounded ${trip._color} flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity animate-scale-in`}>
                                   <span className="text-[9px] font-black text-white truncate px-1">{trip.name || `#${trip.id}`}</span>
                                 </div>
                               ))}
+                              {dayTrips.length > 2 && (
+                                <div className="mx-auto w-full h-5 rounded bg-gray-200 flex items-center justify-center">
+                                  <span className="text-[9px] font-bold text-gray-600">+{dayTrips.length - 2} more</span>
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="mx-auto w-full h-7 rounded bg-green-50 border border-green-100 flex items-center justify-center">

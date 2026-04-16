@@ -190,7 +190,7 @@ export default function ApprovalQueue() {
           {["all", "pending", "approved", "assigned", "in_progress", "completed"].map(s => (
             <button key={s} onClick={() => setFilterState(s)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${filterState === s ? "bg-brand-blue text-white border-brand-blue" : "bg-white text-gray-600 border-gray-200 hover:border-brand-blue"}`}>
-              {s === "all" ? "All" : STATE_META[s]?.label}
+              {s === "all" ? "All" : s === "in_progress" ? "In Progress" : STATE_META[s]?.label}
             </button>
           ))}
         </div>
@@ -249,10 +249,10 @@ export default function ApprovalQueue() {
                     </Button>
                     {req.state === "pending" && (
                       <>
-                        <Button size="sm" className="h-8 rounded-lg text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => handleApproveImmediate(req)}>
+                        <Button size="sm" aria-label="Approve request" className="h-8 rounded-lg text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => handleApproveImmediate(req)}>
                           <CheckCircle className="h-3.5 w-3.5" />
                         </Button>
-                        <Button size="sm" className="h-8 rounded-lg text-xs bg-red-600 hover:bg-red-700 text-white" onClick={() => { setSelectedReq(req); setMode("reject"); }}>
+                        <Button size="sm" aria-label="Reject request" className="h-8 rounded-lg text-xs bg-red-600 hover:bg-red-700 text-white" onClick={() => { setSelectedReq(req); setMode("reject"); }}>
                           <XCircle className="h-3.5 w-3.5" />
                         </Button>
                       </>
