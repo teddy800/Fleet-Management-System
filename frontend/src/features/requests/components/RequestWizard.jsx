@@ -355,6 +355,33 @@ export default function RequestWizard() {
                   placeholder="e.g. Adama, Bahir Dar, Tikur Anbessa Hospital"
                   error={errors.destinationLocation}
                 />
+
+                {/* FR-3.1 / UI-5: Route preview map — shown when both coordinates are set */}
+                {formData.pickupLatitude && formData.destinationLatitude ? (
+                  <div className="rounded-xl overflow-hidden border-2 border-brand-blue/20">
+                    <p className="text-xs font-black text-brand-blue uppercase tracking-widest px-3 py-2 bg-brand-blue/5 flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" /> Route Preview
+                    </p>
+                    <iframe
+                      title="Route preview"
+                      className="w-full h-40 border-0"
+                      loading="lazy"
+                      src={(() => {
+                        const minLat = Math.min(formData.pickupLatitude, formData.destinationLatitude) - 0.05;
+                        const maxLat = Math.max(formData.pickupLatitude, formData.destinationLatitude) + 0.05;
+                        const minLng = Math.min(formData.pickupLongitude, formData.destinationLongitude) - 0.05;
+                        const maxLng = Math.max(formData.pickupLongitude, formData.destinationLongitude) + 0.05;
+                        return `https://www.openstreetmap.org/export/embed.html?bbox=${minLng}%2C${minLat}%2C${maxLng}%2C${maxLat}&layer=mapnik&marker=${formData.pickupLatitude}%2C${formData.pickupLongitude}`;
+                      })()}
+                    />
+                  </div>
+                ) : (formData.pickupLocation && formData.destinationLocation) ? (
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 flex items-center gap-2">
+                    <MapPin className="h-3.5 w-3.5 shrink-0" />
+                    Select locations from the autocomplete suggestions to see a map preview
+                  </div>
+                ) : null}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label className="text-brand-blue font-black uppercase text-xs tracking-widest">Passengers *</Label>

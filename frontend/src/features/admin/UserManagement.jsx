@@ -222,8 +222,14 @@ export default function UserManagement() {
                     <p className="text-xs text-gray-300 mt-1">Drivers are synced from the HR system</p>
                   </TableCell>
                 </TableRow>
-              ) : filteredDrivers.map(d => (
-                <TableRow key={d.id} className="hover:bg-gray-50 transition-colors">
+              ) : filteredDrivers.map(d => {
+                const expiry = d.license_expiry ? new Date(d.license_expiry) : null;
+                const now = new Date();
+                const daysLeft = expiry ? Math.ceil((expiry - now) / (1000 * 60 * 60 * 24)) : null;
+                const isExpired = daysLeft !== null && daysLeft <= 0;
+                const isExpiringSoon = daysLeft !== null && daysLeft > 0 && daysLeft <= 30;
+                return (
+                <TableRow key={d.id} className={`hover:bg-gray-50 transition-colors ${isExpired ? "bg-red-50/40" : ""}`}>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white text-xs font-black shrink-0">
@@ -233,8 +239,14 @@ export default function UserManagement() {
                     </div>
                   </TableCell>
                   <TableCell className="font-mono text-sm text-gray-600">{d.license_number || "—"}</TableCell>
-                  <TableCell className="text-sm text-gray-500">
-                    {d.license_expiry ? new Date(d.license_expiry).toLocaleDateString("en-GB") : "—"}
+                  <TableCell>
+                    <div className="space-y-0.5">
+                      <p className={`text-sm font-bold ${isExpired ? "text-red-600" : isExpiringSoon ? "text-orange-600" : "text-gray-600"}`}>
+                        {expiry ? expiry.toLocaleDateString("en-GB") : "—"}
+                      </p>
+                      {isExpired && <Badge className="text-[10px] bg-red-100 text-red-700 border-red-200">Expired</Badge>}
+                      {isExpiringSoon && <Badge className="text-[10px] bg-orange-100 text-orange-700 border-orange-200">Expires in {daysLeft}d</Badge>}
+                    </div>
                   </TableCell>
                   <TableCell className="text-sm font-bold">{d.active_trips}</TableCell>
                   <TableCell>
@@ -248,7 +260,7 @@ export default function UserManagement() {
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))}
+              )})}
             </TableBody>
           </Table>
         </div>

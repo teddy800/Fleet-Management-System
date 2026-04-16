@@ -60,7 +60,14 @@ export default function MyRequests() {
       setConfirmCancel(null);
       fetchRequests();
     } catch (err) {
-      toast.error(err.message);
+      const msg = err.message || "";
+      if (msg.includes("cannot be cancelled") || msg.includes("current state")) {
+        toast.error("This request cannot be cancelled — it may have already been assigned or completed.");
+      } else if (msg.includes("permission") || msg.includes("Permission")) {
+        toast.error("You do not have permission to cancel this request.");
+      } else {
+        toast.error(msg || "Failed to cancel request");
+      }
     } finally {
       setCancelling(false);
     }

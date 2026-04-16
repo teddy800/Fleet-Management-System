@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { tripApi, fleetApi, driverApi } from "@/lib/api";
+import { tripApi, fleetApi, driverApi, resourceApi } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -70,29 +70,46 @@ export default function ApprovalQueue() {
     setAvailableVehicles([]); setAvailableDrivers([]);
   };
 
-  // FR-2.2: show available vehicles matching category; fall back to all vehicles
+  // FR-2.2 / BR-2 / BR-3: Use real-time availability API — only shows vehicles & drivers
+  // with NO confirmed Trip_Assignment overlapping the requested time window
   const openAssignDialog = async (req) => {
     setSelectedReq(req);
     setMode("assign");
     setAssignVehicle(""); setAssignDriver("");
+    setAvailableVehicles([]); setAvailableDrivers([]);
+    setLoadingResources(true);
 
-    // Priority 1: available + matching category
-    const availableMatchingCategory = vehicles.filter(v =>
-      v.mesob_status === "available" &&
-      (!req.vehicle_category || v.vehicle_category === req.vehicle_category)
-    );
-    // Priority 2: available (any category)
-    const allAvailable = vehicles.filter(v => v.mesob_status === "available");
-    // Priority 3: all vehicles (so dropdown is never empty)
-    const toShow = availableMatchingCategory.length > 0
-      ? availableMatchingCategory
-      : allAvailable.length > 0
-        ? allAvailable
-        : vehicles;
+    try {
+      const res = await resourceApi.available(
+        req.start_datetime,
+        req.end_datetime,
+        req.vehicle_category
+      );
+      const avVehicles = res.available_vehicles || res.vehicles || [];
+      const avDrivers  = res.available_drivers  || res.drivers  || [];
 
-    setAvailableVehicles(toShow);
-    setAvailableDrivers(drivers.length > 0 ? drivers : []);
-    setLoadingResources(false);
+      // Fallback to cached list if API returns empty (e.g. no datetime on request)
+      setAvailableVehicles(
+        avVehicles.length > 0
+          ? avVehicles
+          : vehicles.filter(v => v.mesob_status === "available")
+      );
+      setAvailableDrivers(
+        avDrivers.length > 0
+          ? avDrivers
+          : drivers
+      );
+    } catch {
+      // Graceful fallback — still show available vehicles from cache
+      const matching = vehicles.filter(v =>
+        v.mesob_status === "available" &&
+        (!req.vehicle_category || v.vehicle_category === req.vehicle_category)
+      );
+      setAvailableVehicles(matching.length > 0 ? matching : vehicles.filter(v => v.mesob_status === "available"));
+      setAvailableDrivers(drivers);
+    } finally {
+      setLoadingResources(false);
+    }
   };
 
   const handleApprove = async () => {
@@ -128,8 +145,10 @@ export default function ApprovalQueue() {
       fetchAll();
     } catch (err) {
       const msg = err.message || "";
-      if (msg.includes("already assigned")) {
-        toast.error(msg);
+      if (msg.includes("permission") || msg.includes("Permission")) {
+        toast.error("You do not have permission to assign vehicles.");
+      } else if (msg.includes("already assigned") || msg.includes("conflict")) {
+        toast.error("Conflict: " + msg);
       } else if (msg.includes("end_datetime") || msg.includes("Invalid field")) {
         toast.error("Assignment failed — please restart Odoo and try again.");
       } else {

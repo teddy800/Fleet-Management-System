@@ -21,12 +21,13 @@ class InventoryAllocation(models.Model):
         ('installed', 'Installed'),
         ('returned', 'Returned')
     ], default='allocated', string="Status")
-    
+    notes = fields.Text(string="Notes")
+
     # Integration with stock module
     stock_move_id = fields.Many2one('stock.move', string="Stock Movement")
     location_id = fields.Many2one('stock.location', string="Source Location")
     destination_location_id = fields.Many2one('stock.location', string="Destination Location")
-    
+
     display_name = fields.Char(string="Display Name", compute="_compute_display_name")
 
     @api.depends('product_id', 'vehicle_id', 'quantity')
@@ -44,9 +45,19 @@ class InventoryAllocation(models.Model):
 
     @api.constrains('quantity')
     def _check_quantity(self):
+        """Req 8.2: quantity must be > 0"""
         for rec in self:
             if rec.quantity <= 0:
                 raise ValidationError("Quantity must be greater than zero.")
+
+    @api.constrains('vehicle_id')
+    def _check_vehicle_active(self):
+        """Prevent allocation to disposed/inactive vehicles"""
+        for rec in self:
+            if rec.vehicle_id and not rec.vehicle_id.active:
+                raise ValidationError(
+                    f"Cannot allocate parts to inactive vehicle: {rec.vehicle_id.name}"
+                )
 
     def action_install_part(self):
         """Mark part as installed and create stock movement"""
@@ -57,7 +68,7 @@ class InventoryAllocation(models.Model):
                 rec._create_stock_movement()
 
     def _create_stock_movement(self):
-        """Create stock movement for inventory tracking"""
+        """Create stock movement for inventory tracking — Req 8.3 cross-linking"""
         if not self.stock_move_id and self.product_id:
             move_vals = {
                 'name': f"Fleet allocation: {self.product_id.name} to {self.vehicle_id.name}",

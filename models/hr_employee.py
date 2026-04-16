@@ -18,6 +18,19 @@ class HrEmployee(models.Model):
     synced_from_hr = fields.Boolean(
         string="Synced from HR", default=False, readonly=True
     )
+    last_hr_sync = fields.Datetime(
+        string="Last HR Sync", readonly=True
+    )
+    hr_sync_error = fields.Text(
+        string="Last Sync Error", readonly=True
+    )
+
+    # Uniqueness constraint on external_hr_id (skip NULL values)
+    _sql_constraints = [
+        ('external_hr_id_unique',
+         'UNIQUE(external_hr_id)',
+         'External HR ID must be unique across all employees.'),
+    ]
     
     # Fleet-specific fields
     is_driver = fields.Boolean(string="Is Driver", default=False)
@@ -43,6 +56,7 @@ class HrEmployee(models.Model):
     def _upsert_employee(self, payload):
         """Create or update an hr.employee from an HRMS payload dict.
         Maps all fleet-relevant fields including driver license info.
+        Req 9.2: match on external_hr_id, update if exists, create if not.
         """
         ext_id = payload.get('external_hr_id')
         if not ext_id:
@@ -52,6 +66,8 @@ class HrEmployee(models.Model):
             'work_email': payload.get('email', ''),
             'external_hr_id': ext_id,
             'synced_from_hr': True,
+            'last_hr_sync': fields.Datetime.now(),
+            'hr_sync_error': False,
         }
         if payload.get('job_title'):
             vals['job_title'] = payload['job_title']
@@ -74,7 +90,9 @@ class HrEmployee(models.Model):
             self.create(vals)
 
     def _cron_sync_employees(self):
-        """Scheduled action: fetch employees from external HRMS and upsert."""
+        """Scheduled action: fetch employees from external HRMS and upsert.
+        Req 9.5: log errors per-record without aborting the full sync.
+        """
         if not HAS_REQUESTS:
             _logger.error("HR Sync requires the 'requests' library. Install it on the server.")
             return
@@ -97,7 +115,19 @@ class HrEmployee(models.Model):
                 self.sudo()._upsert_employee(payload)
                 success += 1
             except Exception as e:
-                _logger.error("HR Sync skipped record %s: %s", payload, e)
+                # Req 9.5: log error and skip — do NOT abort the full sync
+                _logger.error("HR Sync skipped record %s: %s", payload.get('external_hr_id', '?'), e)
+                # Store error on existing record if we can find it
+                try:
+                    ext_id = payload.get('external_hr_id')
+                    if ext_id:
+                        rec = self.search([('external_hr_id', '=', ext_id)], limit=1)
+                        if rec:
+                            rec.sudo().write({'hr_sync_error': str(e)})
+                except Exception:
+                    pass
                 errors += 1
+
+        _logger.info("HR Sync complete: %d synced, %d errors", success, errors)
 
         _logger.info("HR Sync complete: %d synced, %d errors.", success, errors)

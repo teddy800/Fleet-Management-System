@@ -80,18 +80,25 @@ function VehicleCard({ vehicle, onSelect, selected }) {
   );
 }
 
-// FR-3.3: Co-passenger pickup points panel
+// FR-3.3: Co-passenger pickup points panel — polls every 10s for real-time updates
 function CoPassengerPanel({ tripId }) {
   const [coPassengers, setCoPassengers] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchCoPassengers = useCallback(() => {
     if (!tripId) return;
     tripApi.coPassengers(tripId)
       .then(res => setCoPassengers(res.co_passengers || []))
-      .catch(() => setCoPassengers([]))
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, [tripId]);
+
+  useEffect(() => {
+    fetchCoPassengers();
+    // FR-3.3: Poll every 10s so pickup updates from co-passengers appear in real time
+    const interval = setInterval(fetchCoPassengers, 10_000);
+    return () => clearInterval(interval);
+  }, [fetchCoPassengers]);
 
   if (loading) {
     return (
@@ -108,7 +115,7 @@ function CoPassengerPanel({ tripId }) {
     return (
       <div className="bg-purple-50 border border-purple-100 rounded-xl p-3">
         <p className="text-xs font-black text-purple-700 uppercase flex items-center gap-1 mb-1">
-          <Users className="h-3.5 w-3.5" /> Co-Passengers (FR-3.3)
+          <Users className="h-3.5 w-3.5" /> Co-Passengers
         </p>
         <p className="text-xs text-gray-400">No other passengers on this trip</p>
       </div>
@@ -311,7 +318,14 @@ export default function GPSTracking() {
               </p>
               {selected && (
                 isStale(selected.current_location?.last_update)
-                  ? <Badge className="bg-gray-200 text-gray-600 text-xs">GPS Stale</Badge>
+                  ? (
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-amber-100 text-amber-700 text-xs border border-amber-200">GPS Stale</Badge>
+                      <button onClick={() => fetchData(true)} className="text-xs text-brand-blue font-bold hover:underline">
+                        Refresh
+                      </button>
+                    </div>
+                  )
                   : <Badge className="bg-green-100 text-green-700 text-xs flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Live</Badge>
               )}
             </div>

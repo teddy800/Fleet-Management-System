@@ -109,8 +109,24 @@ async function _doFetch(path, body, isJsonRpc, options) {
     throw new Error("Session expired. Please log in again.");
   }
 
+  // NFR-3.2: Surface permission errors with a clear, actionable message
+  if (res.status === 403 || data?.error === "Insufficient permissions" ||
+      (typeof data?.error === "string" && data.error.toLowerCase().includes("permission"))) {
+    throw new Error("You do not have permission to perform this action.");
+  }
+
   if (!res.ok) throw new Error(data?.error?.message || data?.error || "Request failed");
-  if (data?.success === false && data?.error) throw new Error(data.error);
+  if (data?.success === false && data?.error) {
+    const errStr = data.error;
+    // Translate common backend errors to user-friendly messages
+    if (errStr.toLowerCase().includes("permission") || errStr.toLowerCase().includes("access")) {
+      throw new Error("You do not have permission to perform this action.");
+    }
+    if (errStr.toLowerCase().includes("cannot be cancelled") || errStr.toLowerCase().includes("can't cancel")) {
+      throw new Error("This request cannot be cancelled in its current state.");
+    }
+    throw new Error(errStr);
+  }
   return data;
 }
 
