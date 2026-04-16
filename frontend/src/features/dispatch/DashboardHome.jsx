@@ -246,7 +246,7 @@ export default function DashboardHome() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
         <StatCard title="Total Fleet" value={fleet?.total_vehicles} subtitle={`${fleet?.available_vehicles ?? "—"} available`} icon={Car} gradient="gradient-card-blue" iconBg="bg-brand-blue/10" iconColor="text-brand-blue" loading={loading} />
         <StatCard title="Active Trips" value={fleet?.in_use_vehicles} subtitle="vehicles in use" icon={Activity} gradient="gradient-card-green" iconBg="bg-green-500/10" iconColor="text-green-600" loading={loading} pulse />
-        <StatCard title="Pending Requests" value={trips?.total_requests} subtitle={`${trips?.approval_rate?.toFixed(0) ?? "—"}% approval rate`} icon={Clock} gradient="gradient-card-amber" iconBg="bg-amber-500/10" iconColor="text-amber-600" loading={loading} />
+        <StatCard title="Pending Requests" value={trips?.pending_requests} subtitle={`${trips?.approval_rate?.toFixed(0) ?? "—"}% approval rate`} icon={Clock} gradient="gradient-card-amber" iconBg="bg-amber-500/10" iconColor="text-amber-600" loading={loading} />
         <StatCard title="Maintenance Due" value={fleet?.maintenance_vehicles} subtitle="vehicles need service" icon={Wrench} gradient="gradient-card-red" iconBg="bg-red-500/10" iconColor="text-red-600" loading={loading} />
       </div>
 
@@ -377,8 +377,7 @@ export default function DashboardHome() {
                   Review Pending Requests
                   {trips?.pending_requests > 0 && (
                     <Badge className="ml-auto bg-brand-gold text-brand-blue text-xs px-2">{trips.pending_requests}</Badge>
-                  )}
-                </Link>
+                  )}                </Link>
               )}
               {isAdmin && (
                 <Link to="/fleet" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold transition-colors">

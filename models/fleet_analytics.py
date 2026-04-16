@@ -357,6 +357,7 @@ class FleetAnalytics(models.AbstractModel):
         current_month = fields.Date.today().replace(day=1)
 
         total_requests = TripRequest.search_count([('create_date', '>=', current_month)])
+        pending_requests = TripRequest.search_count([('state', '=', 'pending')])
         approved_requests = TripRequest.search_count([
             ('state', '=', 'approved'),
             ('approved_date', '>=', current_month)
@@ -395,6 +396,7 @@ class FleetAnalytics(models.AbstractModel):
 
         return {
             'total_requests': total_requests,
+            'pending_requests': pending_requests,
             'approved_requests': approved_requests,
             'completed_trips': completed_trips,
             'approval_rate': approval_rate,
