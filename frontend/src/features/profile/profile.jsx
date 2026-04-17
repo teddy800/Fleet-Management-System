@@ -1,6 +1,6 @@
 import { useUserStore } from "@/store/useUserStore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Mail, Shield, Building, MapPin, Edit3, Hash, CheckCircle2 } from "lucide-react";
+import { User, Mail, Shield, Building, MapPin, Edit3, Hash } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 

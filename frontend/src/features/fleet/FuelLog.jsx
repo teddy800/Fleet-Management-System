@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { fuelApi, fleetApi } from "@/lib/api";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -40,17 +40,18 @@ export default function FuelLog() {
     volume: "", cost: "", odometer: "", fuel_station: "",
   });
 
-  const fetchLogs = () => {
+  const fetchLogs = useCallback(() => {
+    setLoading(true);
     fuelApi.list()
       .then(res => setLogs(res.fuel_logs || []))
       .catch(err => toast.error("Failed to load fuel logs: " + err.message))
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     fetchLogs();
     fleetApi.list().then(res => setVehicles(res.vehicles || [])).catch(() => {});
-  }, []);
+  }, [fetchLogs]);
 
   const handleAdd = async () => {
     if (!form.vehicle_id || !form.volume || !form.cost) {
@@ -70,7 +71,6 @@ export default function FuelLog() {
       toast.success("Fuel log added");
       setShowAdd(false);
       setForm({ vehicle_id: "", date: format(new Date(), "yyyy-MM-dd"), volume: "", cost: "", odometer: "", fuel_station: "" });
-      setLoading(true);
       fetchLogs();
     } catch (err) {
       toast.error(err.message);

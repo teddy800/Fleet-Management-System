@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Search, RefreshCw, Loader2, CheckCircle2, AlertCircle, Car, Shield } from "lucide-react";
+import { Users, Search, RefreshCw, Loader2, CheckCircle2, Car, Shield } from "lucide-react";
 import { toast } from "sonner";
 
 const AVATAR_COLORS = [

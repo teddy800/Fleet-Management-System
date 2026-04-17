@@ -213,40 +213,48 @@ export default function Analytics() {
         </Card>
       </div>
 
+      {/* Trip Statistics — full width */}
+      <Card className="border-0 shadow-md">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-black text-brand-blue uppercase tracking-widest flex items-center gap-2">
+            <Target className="h-4 w-4" /> Trip Statistics (This Month)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">{[1,2,3,4].map(i => <div key={i} className="h-16 bg-gray-100 animate-pulse rounded-xl" />)}</div>
+          ) : data?.trip_statistics ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Total Requests", value: data.trip_statistics.total_requests, color: "text-brand-blue", bg: "bg-blue-50" },
+                { label: "Pending", value: data.trip_statistics.pending_requests, color: "text-yellow-600", bg: "bg-yellow-50" },
+                { label: "Approved", value: data.trip_statistics.approved_requests, color: "text-green-600", bg: "bg-green-50" },
+                { label: "Completed", value: data.trip_statistics.completed_trips, color: "text-teal-600", bg: "bg-teal-50" },
+              ].map(s => (
+                <div key={s.label} className={`${s.bg} rounded-xl p-4 text-center`}>
+                  <p className="text-xs text-gray-500 uppercase font-bold">{s.label}</p>
+                  <p className={`text-2xl font-black mt-1 ${s.color}`}>{s.value ?? "—"}</p>
+                </div>
+              ))}
+              <div className="col-span-2 bg-brand-blue/5 rounded-xl p-3 border border-brand-blue/10 flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-gray-400 uppercase font-bold">Approval Rate</p>
+                  <p className="text-2xl font-black text-brand-blue mt-0.5">{data.trip_statistics.approval_rate?.toFixed(1)}%</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-400 uppercase font-bold">Avg Processing</p>
+                  <p className="text-2xl font-black text-brand-blue mt-0.5">{data.trip_statistics.average_processing_time?.toFixed(1)}h</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-4">No trip data available</p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Fuel Analytics + Driver Performance */}
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Trip Statistics */}
-        <Card className="border-0 shadow-md">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-black text-brand-blue uppercase tracking-widest flex items-center gap-2">
-              <Target className="h-4 w-4" /> Trip Statistics (This Month)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {loading ? (
-              <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-10 bg-gray-100 animate-pulse rounded-xl" />)}</div>
-            ) : data?.trip_statistics ? (
-              <>
-                <MetricRow label="Total Requests" value={data.trip_statistics.total_requests} />
-                <MetricRow label="Pending Requests" value={data.trip_statistics.pending_requests} />
-                <MetricRow label="Approved Requests" value={data.trip_statistics.approved_requests} />
-                <MetricRow label="Completed Trips" value={data.trip_statistics.completed_trips} />
-                <div className="bg-brand-blue/5 rounded-xl p-3 border border-brand-blue/10 mt-2">
-                  <p className="text-xs text-gray-400 uppercase font-bold">Approval Rate</p>
-                  <p className="text-2xl font-black text-brand-blue mt-1">
-                    {data.trip_statistics.approval_rate?.toFixed(1)}%
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    Avg processing: {data.trip_statistics.average_processing_time?.toFixed(1)}h
-                  </p>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-gray-400 text-center py-4">No trip data available</p>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Fuel Analytics */}
         <Card className="border-0 shadow-md">
           <CardHeader className="pb-3">

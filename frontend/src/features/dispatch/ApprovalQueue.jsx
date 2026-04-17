@@ -352,7 +352,12 @@ export default function ApprovalQueue() {
           )}
           {selectedReq?.state === "approved" && (
             <DialogFooter>
-              <Button className="w-full bg-brand-blue hover:bg-blue-800" onClick={() => { openAssignDialog(selectedReq); }}>
+              <Button className="w-full bg-brand-blue hover:bg-blue-800" onClick={() => {
+                const req = selectedReq;
+                setMode(null); // close view dialog first
+                // Small delay to let the view dialog close before opening assign dialog
+                setTimeout(() => openAssignDialog(req), 50);
+              }}>
                 <Car className="mr-2 h-4 w-4" /> Assign Vehicle & Driver
               </Button>
             </DialogFooter>
