@@ -153,10 +153,8 @@ export default function ApprovalQueue() {
       const msg = err.message || "";
       if (msg.includes("permission") || msg.includes("Permission")) {
         toast.error("You do not have permission to assign vehicles.");
-      } else if (msg.includes("already assigned") || msg.includes("conflict")) {
-        toast.error("Conflict: " + msg);
-      } else if (msg.includes("end_datetime") || msg.includes("Invalid field")) {
-        toast.error("Assignment failed — please restart Odoo and try again.");
+      } else if (msg.includes("already assigned") || msg.includes("conflict") || msg.includes("period")) {
+        toast.error("Scheduling conflict: " + msg);
       } else {
         toast.error(msg || "Assignment failed");
       }

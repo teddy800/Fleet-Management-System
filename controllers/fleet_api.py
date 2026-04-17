@@ -317,14 +317,18 @@ class FleetAPIController(http.Controller):
             if not driver.exists():
                 return {'success': False, 'error': 'Driver not found'}
 
-            # Create assignment using sudo to bypass stale constraint definitions
+            # Create assignment in draft first so related fields (start_datetime, stop_datetime)
+            # are populated before _check_conflicts fires on the state change to 'assigned'
             assignment = request.env['mesob.trip.assignment'].sudo().create({
                 'trip_request_id': trip_request.id,
                 'vehicle_id': int(vehicle_id),
                 'driver_id': int(driver_id),
-                'state': 'assigned',
+                'state': 'draft',
                 'confirmed_at': fields.Datetime.now(),
             })
+
+            # Now transition to 'assigned' — related fields are now stored, conflict check works
+            assignment.sudo().write({'state': 'assigned'})
 
             # Update trip request
             trip_request.sudo().write({
@@ -656,17 +660,25 @@ class FleetAPIController(http.Controller):
                 'current_odometer': v.current_odometer,
             } for v in vehicles]
 
-            # Available drivers: is_driver, not busy
+            # Available drivers: is_driver, not busy — deduplicate by name (same person may have multiple HR records)
             drivers = request.env['hr.employee'].search([
                 ('is_driver', '=', True),
                 ('id', 'not in', busy_driver_ids),
             ])
+            seen_names = {}
+            for d in drivers:
+                key = (d.name or '').strip().lower()
+                if key not in seen_names:
+                    seen_names[key] = d
+                elif d.driver_license_number and not seen_names[key].driver_license_number:
+                    # Prefer the record that has a license number
+                    seen_names[key] = d
             driver_data = [{
                 'id': d.id,
                 'name': d.name,
                 'license_number': d.driver_license_number,
                 'license_expiry': d.license_expiry_date.isoformat() if d.license_expiry_date else None,
-            } for d in drivers]
+            } for d in seen_names.values()]
 
             return {'success': True, 'vehicles': vehicle_data, 'drivers': driver_data}
         except Exception as e:
@@ -775,13 +787,16 @@ class FleetAPIController(http.Controller):
                 return {'success': False, 'error': 'Insufficient permissions'}
             # Use sudo + distinct to avoid duplicate records from multi-company setups
             drivers = request.env['hr.employee'].sudo().search([('is_driver', '=', True)])
-            # Deduplicate by id (safety net)
-            seen_ids = set()
-            data = []
+            # Deduplicate by name — same person may have multiple HR records
+            seen_names = {}
             for d in drivers:
-                if d.id in seen_ids:
-                    continue
-                seen_ids.add(d.id)
+                key = (d.name or '').strip().lower()
+                if key not in seen_names:
+                    seen_names[key] = d
+                elif d.driver_license_number and not seen_names[key].driver_license_number:
+                    seen_names[key] = d
+            data = []
+            for d in seen_names.values():
                 data.append({
                     'id': d.id,
                     'name': d.name,
