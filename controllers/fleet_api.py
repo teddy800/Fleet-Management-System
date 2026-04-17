@@ -317,18 +317,51 @@ class FleetAPIController(http.Controller):
             if not driver.exists():
                 return {'success': False, 'error': 'Driver not found'}
 
-            # Create assignment in draft first so related fields (start_datetime, stop_datetime)
-            # are populated before _check_conflicts fires on the state change to 'assigned'
-            assignment = request.env['mesob.trip.assignment'].sudo().create({
+            # Manual conflict check using direct SQL — avoids ORM field resolution issues
+            # with stored related fields (stop_datetime) that may not be cached yet
+            start_dt = trip_request.start_datetime
+            end_dt = trip_request.end_datetime
+            if start_dt and end_dt:
+                request.env.cr.execute("""
+                    SELECT ta.id, tr.name
+                    FROM mesob_trip_assignment ta
+                    JOIN mesob_trip_request tr ON tr.id = ta.trip_request_id
+                    WHERE ta.state IN ('assigned', 'in_progress')
+                      AND ta.vehicle_id = %s
+                      AND ta.start_datetime < %s
+                      AND ta.stop_datetime > %s
+                    LIMIT 1
+                """, (int(vehicle_id), end_dt, start_dt))
+                row = request.env.cr.fetchone()
+                if row:
+                    return {'success': False, 'error': f'Vehicle is already assigned to trip {row[1]} during this period.'}
+
+                request.env.cr.execute("""
+                    SELECT ta.id, tr.name
+                    FROM mesob_trip_assignment ta
+                    JOIN mesob_trip_request tr ON tr.id = ta.trip_request_id
+                    WHERE ta.state IN ('assigned', 'in_progress')
+                      AND ta.driver_id = %s
+                      AND ta.start_datetime < %s
+                      AND ta.stop_datetime > %s
+                    LIMIT 1
+                """, (int(driver_id), end_dt, start_dt))
+                row = request.env.cr.fetchone()
+                if row:
+                    return {'success': False, 'error': f'Driver is already assigned to trip {row[1]} during this period.'}
+
+            # Create assignment with skip_conflict_check context to avoid ORM constraint
+            # re-running the same check (we already verified above)
+            AssignmentModel = request.env['mesob.trip.assignment'].sudo().with_context(
+                skip_conflict_check=True
+            )
+            assignment = AssignmentModel.create({
                 'trip_request_id': trip_request.id,
                 'vehicle_id': int(vehicle_id),
                 'driver_id': int(driver_id),
-                'state': 'draft',
+                'state': 'assigned',
                 'confirmed_at': fields.Datetime.now(),
             })
-
-            # Now transition to 'assigned' — related fields are now stored, conflict check works
-            assignment.sudo().write({'state': 'assigned'})
 
             # Update trip request
             trip_request.sudo().write({
@@ -984,3 +1017,75 @@ class FleetAPIController(http.Controller):
             return {'success': False, 'error': str(e)}
 
 
+
+    @http.route('/api/fleet/admin/deduplicate-drivers', type='json', auth='user', methods=['POST'], cors='*')
+    def deduplicate_drivers(self):
+        """Admin endpoint: remove duplicate driver records from the database.
+        Keeps the record with external_hr_id (synced from HR), or the one with
+        a license number, or the lowest ID. Deactivates duplicates rather than
+        deleting to preserve referential integrity.
+        """
+        try:
+            if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                return {'success': False, 'error': 'Insufficient permissions'}
+
+            # Get ALL driver records including inactive ones, sorted by id asc (keep oldest/lowest)
+            drivers = request.env['hr.employee'].sudo().with_context(active_test=False).search(
+                [('is_driver', '=', True)], order='id asc'
+            )
+
+            seen = {}       # name_lower -> kept record
+            removed = []    # list of removed records
+
+            for d in drivers:
+                key = (d.name or '').strip().lower()
+                if key not in seen:
+                    seen[key] = d
+                    continue
+
+                kept = seen[key]
+                # Priority: has external_hr_id > has license_number > lower id (already asc)
+                if d.external_hr_id and not kept.external_hr_id:
+                    seen[key] = d
+                    duplicate = kept
+                elif kept.external_hr_id and not d.external_hr_id:
+                    duplicate = d
+                elif d.driver_license_number and not kept.driver_license_number:
+                    seen[key] = d
+                    duplicate = kept
+                else:
+                    duplicate = d  # keep lower id
+
+                kept_rec = seen[key]
+
+                # Reassign any trip requests / assignments pointing to the duplicate
+                try:
+                    request.env['mesob.trip.request'].sudo().search([
+                        ('assigned_driver_id', '=', duplicate.id)
+                    ]).write({'assigned_driver_id': kept_rec.id})
+                    request.env['mesob.trip.assignment'].sudo().search([
+                        ('driver_id', '=', duplicate.id)
+                    ]).write({'driver_id': kept_rec.id})
+                except Exception as reassign_err:
+                    _logger.warning("Could not reassign trips from duplicate %s: %s",
+                                    duplicate.name, reassign_err)
+
+                # Deactivate the duplicate (safer than unlink — preserves audit history)
+                try:
+                    duplicate.sudo().write({'active': False})
+                    removed.append({'id': duplicate.id, 'name': duplicate.name})
+                    _logger.info("Deactivated duplicate driver: %s (id=%s), kept id=%s",
+                                 duplicate.name, duplicate.id, kept_rec.id)
+                except Exception as deact_err:
+                    _logger.warning("Could not deactivate duplicate %s: %s",
+                                    duplicate.name, deact_err)
+
+            return {
+                'success': True,
+                'message': f'Deduplication complete. Removed {len(removed)} duplicate(s).',
+                'removed': removed,
+                'unique_drivers': len(seen),
+            }
+        except Exception as e:
+            _logger.error(f"Deduplicate drivers error: {e}")
+            return {'success': False, 'error': str(e)}

@@ -65,9 +65,14 @@ class TripAssignment(models.Model):
         for rec in self:
             if rec.state not in ('assigned', 'in_progress'):
                 continue
+            # Allow skipping constraint check via context (used by API controller
+            # which does its own conflict check before creating the assignment)
+            if self.env.context.get('skip_conflict_check'):
+                continue
             trip = rec.trip_request_id
             if not trip or not trip.start_datetime or not trip.end_datetime:
                 continue
+            # Use stop_datetime (stored related) — never end_datetime (non-stored)
             overlap_domain = [
                 ('state', 'in', ['assigned', 'in_progress']),
                 ('id', '!=', rec.id),

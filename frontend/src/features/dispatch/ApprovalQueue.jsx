@@ -154,7 +154,8 @@ export default function ApprovalQueue() {
       if (msg.includes("permission") || msg.includes("Permission")) {
         toast.error("You do not have permission to assign vehicles.");
       } else if (msg.includes("already assigned") || msg.includes("conflict") || msg.includes("period")) {
-        toast.error("Scheduling conflict: " + msg);
+        // Show the specific conflict message from the backend
+        toast.error(msg);
       } else {
         toast.error(msg || "Assignment failed");
       }

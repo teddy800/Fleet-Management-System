@@ -261,3 +261,10 @@ export const analyticsApi = {
   kpis:      () => request("/api/fleet/analytics/kpis"),
   dashboard: () => request("/api/fleet/dashboard"),
 };
+
+// ─── Admin utilities ──────────────────────────────────────────────────────────
+export const adminApi = {
+  deduplicateDrivers: () => request("/api/fleet/admin/deduplicate-drivers", {
+    body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: {} }),
+  }),
+};

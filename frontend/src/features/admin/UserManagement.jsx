@@ -3,14 +3,14 @@
  * FR-5.2: Driver CRUD — Admin can toggle driver status and update license info
  */
 import { useEffect, useState, useCallback } from "react";
-import { userMgmtApi, driverApi } from "@/lib/api";
+import { userMgmtApi, driverApi, adminApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Search, RefreshCw, Loader2, ShieldCheck, Edit3, Car } from "lucide-react";
+import { Users, Search, RefreshCw, Loader2, ShieldCheck, Edit3, Car, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +38,7 @@ export default function UserManagement() {
   const [driverExpiry, setDriverExpiry] = useState("");
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("users");
+  const [deduplicating, setDeduplicating] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -119,9 +120,40 @@ export default function UserManagement() {
             <p className="text-sm text-gray-400">{users.length} users · {drivers.length} drivers</p>
           </div>
         </div>
-        <button onClick={fetchData} className="p-2 rounded-xl border bg-white hover:bg-gray-50 shadow-sm">
-          <RefreshCw className={`h-4 w-4 text-gray-500 ${loading ? "animate-spin" : ""}`} />
-        </button>
+        <div className="flex items-center gap-2">
+          {tab === "drivers" && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-9 rounded-xl text-xs text-red-600 border-red-200 hover:bg-red-50 hover:border-red-400"
+              disabled={deduplicating}
+              onClick={async () => {
+                setDeduplicating(true);
+                try {
+                  const res = await adminApi.deduplicateDrivers();
+                  if (res.removed?.length > 0) {
+                    toast.success(`Removed ${res.removed.length} duplicate driver(s). ${res.unique_drivers} unique drivers remain.`);
+                  } else {
+                    toast.success("No duplicates found — all drivers are unique.");
+                  }
+                  fetchData();
+                } catch (err) {
+                  toast.error("Deduplication failed: " + err.message);
+                } finally {
+                  setDeduplicating(false);
+                }
+              }}
+            >
+              {deduplicating
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                : <Trash2 className="h-3.5 w-3.5 mr-1" />}
+              Remove Duplicates
+            </Button>
+          )}
+          <button onClick={fetchData} className="p-2 rounded-xl border bg-white hover:bg-gray-50 shadow-sm">
+            <RefreshCw className={`h-4 w-4 text-gray-500 ${loading ? "animate-spin" : ""}`} />
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

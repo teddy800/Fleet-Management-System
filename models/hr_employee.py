@@ -129,5 +129,54 @@ class HrEmployee(models.Model):
                 errors += 1
 
         _logger.info("HR Sync complete: %d synced, %d errors", success, errors)
+        # After sync, clean up any duplicate driver records
+        self.sudo()._deduplicate_drivers()
 
+    def _deduplicate_drivers(self):
+        """Remove duplicate hr.employee driver records that share the same name.
+        Keeps the record with an external_hr_id (synced), or the one with a
+        license number, or the one with the lowest ID (oldest). Reassigns any
+        trip requests pointing to the removed duplicate to the kept record.
+        """
+        drivers = self.search([('is_driver', '=', True)])
+        seen = {}  # name_lower -> kept record
+
+        for d in drivers.sorted('id'):
+            key = (d.name or '').strip().lower()
+            if key not in seen:
+                seen[key] = d
+            else:
+                kept = seen[key]
+                # Prefer the record with external_hr_id over one without
+                if d.external_hr_id and not kept.external_hr_id:
+                    seen[key] = d
+                    duplicate = kept
+                elif kept.driver_license_number and not d.driver_license_number:
+                    duplicate = d  # kept already has license, remove d
+                elif d.driver_license_number and not kept.driver_license_number:
+                    seen[key] = d
+                    duplicate = kept
+                else:
+                    duplicate = d  # keep the first (lower id), remove d
+
+                # Reassign trip requests from duplicate to kept
+                kept_rec = seen[key]
+                dup_rec = duplicate
+                try:
+                    self.env['mesob.trip.request'].sudo().search([
+                        ('assigned_driver_id', '=', dup_rec.id)
+                    ]).write({'assigned_driver_id': kept_rec.id})
+                    self.env['mesob.trip.assignment'].sudo().search([
+                        ('driver_id', '=', dup_rec.id)
+                    ]).write({'driver_id': kept_rec.id})
+                except Exception as e:
+                    _logger.warning("Could not reassign trips from duplicate driver %s: %s", dup_rec.name, e)
+
+                _logger.info("Removing duplicate driver record: %s (id=%s), keeping id=%s",
+                             dup_rec.name, dup_rec.id, kept_rec.id)
+                try:
+                    # Deactivate rather than unlink — preserves referential integrity
+                    dup_rec.sudo().write({'active': False})
+                except Exception as e:
+                    _logger.warning("Could not deactivate duplicate driver %s: %s", dup_rec.name, e)
         _logger.info("HR Sync complete: %d synced, %d errors.", success, errors)
