@@ -119,10 +119,10 @@ export default function DashboardHome() {
   useEffect(() => {
     fetchDashboard();
     fetchMyRequests();
-    // Poll every 2 minutes; pause when tab is hidden to save resources
+    // Poll every 60 seconds per requirement 5.5; pause when tab is hidden to save resources
     const interval = setInterval(() => {
       if (!document.hidden) fetchDashboard();
-    }, 120_000);
+    }, 60_000);
     const onVisible = () => { if (!document.hidden) fetchDashboard(); };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
@@ -379,7 +379,8 @@ export default function DashboardHome() {
                   Review Pending Requests
                   {trips?.pending_requests > 0 && (
                     <Badge className="ml-auto bg-brand-gold text-brand-blue text-xs px-2">{trips.pending_requests}</Badge>
-                  )}                </Link>
+                  )}
+                </Link>
               )}
               {isAdmin && (
                 <Link to="/fleet" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold transition-colors">

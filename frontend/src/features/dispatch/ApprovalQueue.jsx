@@ -52,6 +52,12 @@ export default function ApprovalQueue() {
         (a, b) => new Date(a.create_date) - new Date(b.create_date)
       );
       setRequests(sorted);
+      // If a request is currently selected in view mode, refresh it from the new data
+      setSelectedReq(prev => {
+        if (!prev) return prev;
+        const updated = sorted.find(r => r.id === prev.id);
+        return updated || prev;
+      });
       // Store ALL vehicles — dispatcher needs to see all options, backend enforces conflicts
       setVehicles(vehRes.vehicles || []);
       setDrivers((drvRes.drivers || []).filter(d => d.active_trips === 0));
@@ -300,7 +306,7 @@ export default function ApprovalQueue() {
           <div className="grid grid-cols-2 gap-3 text-sm py-2">
             {[
               ["Requester", selectedReq?.employee_name],
-              ["Status", STATE_META[selectedReq?.state]?.label],
+              ["Status", <Badge key="s" className={`text-xs border ${STATE_META[selectedReq?.state]?.cls || "bg-gray-100"}`}>{STATE_META[selectedReq?.state]?.label || selectedReq?.state}</Badge>],
               ["Priority", selectedReq?.priority],
               ["Trip Type", selectedReq?.trip_type?.replace("_", " ")],
               ["Passengers", selectedReq?.passenger_count],
@@ -314,10 +320,26 @@ export default function ApprovalQueue() {
             ].map(([label, value]) => (
               <div key={label} className="bg-gray-50 rounded-xl p-3">
                 <p className="text-xs text-gray-400 font-bold uppercase">{label}</p>
-                <p className="font-bold text-gray-800 capitalize">{value || "—"}</p>
+                <div className="font-bold text-gray-800 capitalize mt-0.5">{value || "—"}</div>
               </div>
             ))}
           </div>
+          {/* Show rejection reason if rejected */}
+          {selectedReq?.state === "rejected" && selectedReq?.rejection_reason && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
+              <p className="text-xs font-black uppercase mb-1">Rejection Reason</p>
+              <p className="font-medium">{selectedReq.rejection_reason}</p>
+            </div>
+          )}
+          {/* Show assignment info if assigned */}
+          {selectedReq?.state === "assigned" && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-700 flex items-center gap-2">
+              <Car className="h-4 w-4 shrink-0" />
+              <span className="font-medium">
+                {selectedReq.assigned_vehicle || "Vehicle"} assigned to {selectedReq.assigned_driver || "driver"} — trip is scheduled.
+              </span>
+            </div>
+          )}
           {selectedReq?.state === "pending" && (
             <DialogFooter className="gap-2">
               <Button className="flex-1 bg-red-600 hover:bg-red-700" onClick={() => setMode("reject")}>
@@ -325,6 +347,13 @@ export default function ApprovalQueue() {
               </Button>
               <Button className="flex-1 bg-green-600 hover:bg-green-700" disabled={actionLoading} onClick={handleApprove}>
                 {actionLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><CheckCircle className="mr-2 h-4 w-4" /> Approve</>}
+              </Button>
+            </DialogFooter>
+          )}
+          {selectedReq?.state === "approved" && (
+            <DialogFooter>
+              <Button className="w-full bg-brand-blue hover:bg-blue-800" onClick={() => { openAssignDialog(selectedReq); }}>
+                <Car className="mr-2 h-4 w-4" /> Assign Vehicle & Driver
               </Button>
             </DialogFooter>
           )}

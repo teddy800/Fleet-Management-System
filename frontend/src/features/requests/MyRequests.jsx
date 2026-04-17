@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Plus, Eye, XCircle, RefreshCw, ClipboardList } from "lucide-react";
+import { Loader2, Plus, Eye, XCircle, RefreshCw, ClipboardList, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -217,6 +217,16 @@ export default function MyRequests() {
             <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
               <p className="text-xs font-black uppercase mb-1">Rejection Reason</p>
               <p className="font-medium">{selected.rejection_reason}</p>
+            </div>
+          )}
+          {/* Show assignment confirmation when assigned */}
+          {selected?.state === "assigned" && selected?.assigned_vehicle && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-800 flex items-start gap-2">
+              <CheckCircle className="h-4 w-4 shrink-0 mt-0.5 text-green-600" />
+              <div>
+                <p className="font-black text-xs uppercase mb-0.5">Vehicle Assigned</p>
+                <p className="font-medium">{selected.assigned_vehicle} with driver {selected.assigned_driver || "TBD"}</p>
+              </div>
             </div>
           )}
           {/* Show estimated distance if available */}
