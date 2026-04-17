@@ -329,7 +329,7 @@ class FleetAPIController(http.Controller):
                     WHERE ta.state IN ('assigned', 'in_progress')
                       AND ta.vehicle_id = %s
                       AND ta.start_datetime < %s
-                      AND ta.stop_datetime > %s
+                      AND ta.end_datetime > %s
                     LIMIT 1
                 """, (int(vehicle_id), end_dt, start_dt))
                 row = request.env.cr.fetchone()
@@ -343,7 +343,7 @@ class FleetAPIController(http.Controller):
                     WHERE ta.state IN ('assigned', 'in_progress')
                       AND ta.driver_id = %s
                       AND ta.start_datetime < %s
-                      AND ta.stop_datetime > %s
+                      AND ta.end_datetime > %s
                     LIMIT 1
                 """, (int(driver_id), end_dt, start_dt))
                 row = request.env.cr.fetchone()
@@ -670,7 +670,7 @@ class FleetAPIController(http.Controller):
             conflicting = request.env['mesob.trip.assignment'].search([
                 ('state', 'in', ['assigned', 'in_progress']),
                 ('start_datetime', '<', end_dt),
-                ('stop_datetime', '>', start_dt),
+                ('end_datetime', '>', start_dt),
             ])
             busy_vehicle_ids = conflicting.mapped('vehicle_id').ids
             busy_driver_ids  = conflicting.mapped('driver_id').ids

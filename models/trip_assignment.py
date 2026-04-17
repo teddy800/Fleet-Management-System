@@ -34,7 +34,11 @@ class TripAssignment(models.Model):
     stop_datetime = fields.Datetime(
         string="End", related='trip_request_id.end_datetime', store=True
     )
-    # NOTE: end_datetime alias removed — use stop_datetime for all domain searches
+    # end_datetime alias — kept for backward compatibility with any cached ORM references
+    # Always use stop_datetime in new code
+    end_datetime = fields.Datetime(
+        string="End (alias)", related='trip_request_id.end_datetime', store=True
+    )
     display_name = fields.Char(
         string="Display Name", compute='_compute_display_name'
     )
@@ -72,12 +76,12 @@ class TripAssignment(models.Model):
             trip = rec.trip_request_id
             if not trip or not trip.start_datetime or not trip.end_datetime:
                 continue
-            # Use stop_datetime (stored related) — never end_datetime (non-stored)
+            # Use end_datetime (stored related) for overlap detection
             overlap_domain = [
                 ('state', 'in', ['assigned', 'in_progress']),
                 ('id', '!=', rec.id),
                 ('start_datetime', '<', trip.end_datetime),
-                ('stop_datetime', '>', trip.start_datetime),
+                ('end_datetime', '>', trip.start_datetime),
             ]
             # BR-2: vehicle conflict
             if self.search(overlap_domain + [('vehicle_id', '=', rec.vehicle_id.id)]):
