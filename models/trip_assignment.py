@@ -34,11 +34,24 @@ class TripAssignment(models.Model):
     stop_datetime = fields.Datetime(
         string="End", related='trip_request_id.end_datetime', store=True
     )
-    # end_datetime alias — kept for backward compatibility with any cached ORM references
-    # Always use stop_datetime in new code
+    # end_datetime: non-stored computed alias of stop_datetime.
+    # Exists purely so any ORM domain using 'end_datetime' doesn't raise
+    # "Invalid field" — the actual DB column is stop_datetime.
+    @api.depends('stop_datetime')
+    def _compute_end_datetime(self):
+        for rec in self:
+            rec.end_datetime = rec.stop_datetime
+
     end_datetime = fields.Datetime(
-        string="End (alias)", related='trip_request_id.end_datetime', store=True
+        string="End (alias)",
+        compute='_compute_end_datetime',
+        store=False,
+        search='_search_end_datetime',
     )
+
+    def _search_end_datetime(self, operator, value):
+        """Allow searching by end_datetime — delegates to stop_datetime."""
+        return [('stop_datetime', operator, value)]
     display_name = fields.Char(
         string="Display Name", compute='_compute_display_name'
     )
