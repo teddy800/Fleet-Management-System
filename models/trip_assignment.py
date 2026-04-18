@@ -76,21 +76,31 @@ class TripAssignment(models.Model):
             trip = rec.trip_request_id
             if not trip or not trip.start_datetime or not trip.end_datetime:
                 continue
-            # Use end_datetime (stored related) for overlap detection
-            overlap_domain = [
-                ('state', 'in', ['assigned', 'in_progress']),
-                ('id', '!=', rec.id),
-                ('start_datetime', '<', trip.end_datetime),
-                ('end_datetime', '>', trip.start_datetime),
-            ]
-            # BR-2: vehicle conflict
-            if self.search(overlap_domain + [('vehicle_id', '=', rec.vehicle_id.id)]):
+            # Use raw SQL to avoid ORM field resolution issues with stored related fields
+            self.env.cr.execute("""
+                SELECT id FROM mesob_trip_assignment
+                WHERE state IN ('assigned', 'in_progress')
+                  AND id != %s
+                  AND vehicle_id = %s
+                  AND start_datetime < %s
+                  AND COALESCE(end_datetime, stop_datetime) > %s
+                LIMIT 1
+            """, (rec.id or 0, rec.vehicle_id.id, trip.end_datetime, trip.start_datetime))
+            if self.env.cr.fetchone():
                 raise ValidationError(
                     _("Vehicle %s is already assigned to another trip during this period.")
                     % rec.vehicle_id.name
                 )
-            # BR-3: driver conflict
-            if self.search(overlap_domain + [('driver_id', '=', rec.driver_id.id)]):
+            self.env.cr.execute("""
+                SELECT id FROM mesob_trip_assignment
+                WHERE state IN ('assigned', 'in_progress')
+                  AND id != %s
+                  AND driver_id = %s
+                  AND start_datetime < %s
+                  AND COALESCE(end_datetime, stop_datetime) > %s
+                LIMIT 1
+            """, (rec.id or 0, rec.driver_id.id, trip.end_datetime, trip.start_datetime))
+            if self.env.cr.fetchone():
                 raise ValidationError(
                     _("Driver %s is already assigned to another trip during this period.")
                     % rec.driver_id.name
