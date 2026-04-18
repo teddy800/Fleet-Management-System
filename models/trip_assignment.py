@@ -27,31 +27,22 @@ class TripAssignment(models.Model):
     end_odometer = fields.Float(string="End Odometer (KM)")
     notes = fields.Text(string="Trip Notes")
 
-    # Computed fields for calendar view (FR-2.3)
+    # Stored related fields for calendar view and conflict detection (FR-2.3)
     start_datetime = fields.Datetime(
         string="Start", related='trip_request_id.start_datetime', store=True
     )
     stop_datetime = fields.Datetime(
         string="End", related='trip_request_id.end_datetime', store=True
     )
-    # end_datetime: non-stored computed alias of stop_datetime.
-    # Exists purely so any ORM domain using 'end_datetime' doesn't raise
-    # "Invalid field" — the actual DB column is stop_datetime.
-    @api.depends('stop_datetime')
-    def _compute_end_datetime(self):
-        for rec in self:
-            rec.end_datetime = rec.stop_datetime
-
+    # end_datetime: stored related field required by Odoo's account_lock_exception
+    # module which applies a global domain ('end_datetime', '>=', now()) to ALL
+    # models on create/write. Must be stored so the ORM can resolve it in SQL.
     end_datetime = fields.Datetime(
-        string="End (alias)",
-        compute='_compute_end_datetime',
-        store=False,
-        search='_search_end_datetime',
+        string="End Date",
+        related='trip_request_id.end_datetime',
+        store=True,
     )
 
-    def _search_end_datetime(self, operator, value):
-        """Allow searching by end_datetime — delegates to stop_datetime."""
-        return [('stop_datetime', operator, value)]
     display_name = fields.Char(
         string="Display Name", compute='_compute_display_name'
     )
@@ -82,14 +73,13 @@ class TripAssignment(models.Model):
         for rec in self:
             if rec.state not in ('assigned', 'in_progress'):
                 continue
-            # Allow skipping constraint check via context (used by API controller
-            # which does its own conflict check before creating the assignment)
+            # Skip when API controller has already done its own SQL conflict check
             if self.env.context.get('skip_conflict_check'):
                 continue
             trip = rec.trip_request_id
             if not trip or not trip.start_datetime or not trip.end_datetime:
                 continue
-            # Use raw SQL to avoid ORM field resolution issues with stored related fields
+            # Use raw SQL — avoids any ORM field resolution issues
             self.env.cr.execute("""
                 SELECT id FROM mesob_trip_assignment
                 WHERE state IN ('assigned', 'in_progress')
