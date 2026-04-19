@@ -35,6 +35,17 @@ class TripAssignment(models.Model):
         string="End", related='trip_request_id.end_datetime', store=True
     )
 
+    # end_datetime: independent stored field required by Odoo's account_lock_exception
+    # module which applies ('end_datetime', '>=', now()) to ALL models on create/write.
+    # Populated automatically via create/write overrides below.
+    end_datetime = fields.Datetime(
+        string="End Date",
+        store=True,
+        copy=False,
+        index=True,
+        help="Mirror of stop_datetime. Required by Odoo account_lock_exception module.",
+    )
+
     display_name = fields.Char(
         string="Display Name", compute='_compute_display_name'
     )
@@ -55,10 +66,27 @@ class TripAssignment(models.Model):
         ):
             raise AccessError(_("Only Fleet Dispatchers or Managers can manage trip assignments."))
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        """Populate end_datetime from trip_request on create."""
+        records = super().create(vals_list)
+        for rec in records:
+            if rec.trip_request_id and rec.trip_request_id.end_datetime:
+                rec.sudo().write({'end_datetime': rec.trip_request_id.end_datetime})
+        return records
+
     def write(self, vals):
-        if not self.env.su:
+        if not self.env.su and 'state' in vals:
             self._check_dispatcher()
-        return super().write(vals)
+        result = super().write(vals)
+        # Keep end_datetime in sync with trip_request.end_datetime
+        for rec in self:
+            if rec.trip_request_id and rec.trip_request_id.end_datetime:
+                if rec.end_datetime != rec.trip_request_id.end_datetime:
+                    super(TripAssignment, rec).write(
+                        {'end_datetime': rec.trip_request_id.end_datetime}
+                    )
+        return result
 
     @api.constrains('vehicle_id', 'driver_id', 'state')
     def _check_conflicts(self):
@@ -120,3 +148,38 @@ class TripAssignment(models.Model):
         self._check_dispatcher()
         for rec in self:
             rec.state = 'cancelled'
+
+    def init(self):
+        """Ensure end_datetime column exists and is populated from stop_datetime."""
+        super().init()
+        try:
+            self.env.cr.execute("""
+                ALTER TABLE mesob_trip_assignment
+                ADD COLUMN IF NOT EXISTS end_datetime timestamp without time zone
+            """)
+            self.env.cr.execute("""
+                UPDATE mesob_trip_assignment
+                SET end_datetime = stop_datetime
+                WHERE end_datetime IS NULL AND stop_datetime IS NOT NULL
+            """)
+            # Create trigger to keep end_datetime in sync with stop_datetime
+            self.env.cr.execute("""
+                CREATE OR REPLACE FUNCTION mesob_sync_end_datetime()
+                RETURNS TRIGGER AS $func$
+                BEGIN
+                    NEW.end_datetime := NEW.stop_datetime;
+                    RETURN NEW;
+                END;
+                $func$ LANGUAGE plpgsql
+            """)
+            self.env.cr.execute("""
+                DROP TRIGGER IF EXISTS trg_mesob_sync_end_datetime
+                ON mesob_trip_assignment
+            """)
+            self.env.cr.execute("""
+                CREATE TRIGGER trg_mesob_sync_end_datetime
+                BEFORE INSERT OR UPDATE OF stop_datetime ON mesob_trip_assignment
+                FOR EACH ROW EXECUTE FUNCTION mesob_sync_end_datetime()
+            """)
+        except Exception:
+            pass  # Column/trigger already exists or DB not ready yet
