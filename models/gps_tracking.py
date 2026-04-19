@@ -2,7 +2,11 @@ from odoo import models, fields, api
 from datetime import datetime, timedelta
 import json
 import logging
-import requests
+try:
+    import requests as _requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
 
 _logger = logging.getLogger(__name__)
 
@@ -243,12 +247,15 @@ class GPSLog(models.Model):
     @api.model
     def fetch_all_vehicle_locations(self):
         """Cron: fetch GPS data from external gateway for all vehicles"""
+        if not HAS_REQUESTS:
+            _logger.warning("GPS fetch requires 'requests' library.")
+            return
         url = self.env['ir.config_parameter'].sudo().get_param('mesob.gps_gateway_url')
         if not url:
             _logger.warning("mesob.gps_gateway_url not configured; skipping GPS fetch.")
             return
         try:
-            response = requests.get(url, timeout=15)
+            response = _requests.get(url, timeout=15)
             response.raise_for_status()
             gps_records = response.json()
             for record in gps_records:
