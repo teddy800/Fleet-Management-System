@@ -31,22 +31,21 @@ class HrEmployee(models.Model):
          'UNIQUE(external_hr_id)',
          'External HR ID must be unique across all employees.'),
     ]
-    
+
     # Fleet-specific fields
     is_driver = fields.Boolean(string="Is Driver", default=False)
     driver_license_number = fields.Char(string="Driver License Number")
     license_expiry_date = fields.Date(string="License Expiry Date")
     is_fleet_dispatcher = fields.Boolean(string="Is Fleet Dispatcher", default=False)
     is_fleet_manager = fields.Boolean(string="Is Fleet Manager", default=False)
-    
+
     # Trip request fields
     trip_request_ids = fields.One2many('mesob.trip.request', 'employee_id', string="Trip Requests")
     active_trip_count = fields.Integer(string="Active Trips", compute="_compute_active_trips")
-    
+
     @api.depends('trip_request_ids', 'trip_request_ids.state')
     def _compute_active_trips(self):
         for employee in self:
-            # Count trips where this employee is the assigned driver (not just requester)
             active_as_driver = self.env['mesob.trip.request'].search_count([
                 ('assigned_driver_id', '=', employee.id),
                 ('state', 'in', ['assigned', 'in_progress']),
@@ -55,7 +54,6 @@ class HrEmployee(models.Model):
 
     def _upsert_employee(self, payload):
         """Create or update an hr.employee from an HRMS payload dict.
-        Maps all fleet-relevant fields including driver license info.
         Req 9.2: match on external_hr_id, update if exists, create if not.
         """
         ext_id = payload.get('external_hr_id')
@@ -75,7 +73,6 @@ class HrEmployee(models.Model):
             vals['department_id'] = self.env['hr.department'].search(
                 [('name', '=', payload['department'])], limit=1
             ).id or False
-        # Map driver-specific fields from HR payload
         if 'is_driver' in payload:
             vals['is_driver'] = bool(payload['is_driver'])
         if payload.get('driver_license_number'):
@@ -115,9 +112,7 @@ class HrEmployee(models.Model):
                 self.sudo()._upsert_employee(payload)
                 success += 1
             except Exception as e:
-                # Req 9.5: log error and skip — do NOT abort the full sync
                 _logger.error("HR Sync skipped record %s: %s", payload.get('external_hr_id', '?'), e)
-                # Store error on existing record if we can find it
                 try:
                     ext_id = payload.get('external_hr_id')
                     if ext_id:
@@ -134,9 +129,8 @@ class HrEmployee(models.Model):
 
     def _deduplicate_drivers(self):
         """Remove duplicate hr.employee driver records that share the same name.
-        Keeps the record with an external_hr_id (synced), or the one with a
-        license number, or the one with the lowest ID (oldest). Reassigns any
-        trip requests pointing to the removed duplicate to the kept record.
+        Keeps the record with external_hr_id (synced), or license number, or lowest ID.
+        Reassigns any trip requests/assignments from duplicates to the kept record.
         """
         drivers = self.search([('is_driver', '=', True)])
         seen = {}  # name_lower -> kept record
@@ -147,21 +141,22 @@ class HrEmployee(models.Model):
                 seen[key] = d
             else:
                 kept = seen[key]
-                # Prefer the record with external_hr_id over one without
+                # Prefer: has external_hr_id > has license > lower id (already sorted asc)
                 if d.external_hr_id and not kept.external_hr_id:
                     seen[key] = d
                     duplicate = kept
                 elif kept.driver_license_number and not d.driver_license_number:
-                    duplicate = d  # kept already has license, remove d
+                    duplicate = d
                 elif d.driver_license_number and not kept.driver_license_number:
                     seen[key] = d
                     duplicate = kept
                 else:
-                    duplicate = d  # keep the first (lower id), remove d
+                    duplicate = d  # keep lower id
 
-                # Reassign trip requests from duplicate to kept
                 kept_rec = seen[key]
                 dup_rec = duplicate
+
+                # Reassign trip requests from duplicate to kept
                 try:
                     self.env['mesob.trip.request'].sudo().search([
                         ('assigned_driver_id', '=', dup_rec.id)
@@ -170,13 +165,15 @@ class HrEmployee(models.Model):
                         ('driver_id', '=', dup_rec.id)
                     ]).write({'driver_id': kept_rec.id})
                 except Exception as e:
-                    _logger.warning("Could not reassign trips from duplicate driver %s: %s", dup_rec.name, e)
+                    _logger.warning("Could not reassign trips from duplicate driver %s: %s",
+                                    dup_rec.name, e)
 
-                _logger.info("Removing duplicate driver record: %s (id=%s), keeping id=%s",
+                _logger.info("Deactivating duplicate driver: %s (id=%s), keeping id=%s",
                              dup_rec.name, dup_rec.id, kept_rec.id)
                 try:
-                    # Deactivate rather than unlink — preserves referential integrity
                     dup_rec.sudo().write({'active': False})
                 except Exception as e:
-                    _logger.warning("Could not deactivate duplicate driver %s: %s", dup_rec.name, e)
-        _logger.info("HR Sync complete: %d synced, %d errors.", success, errors)
+                    _logger.warning("Could not deactivate duplicate driver %s: %s",
+                                    dup_rec.name, e)
+
+        _logger.info("Driver deduplication complete. %d unique drivers.", len(seen))

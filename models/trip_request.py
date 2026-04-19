@@ -379,25 +379,31 @@ class TripRequest(models.Model):
 
     def _check_vehicle_availability(self, vehicle):
         """Check if vehicle is available for the requested time period.
-        Uses stop_datetime (stored related) instead of end_datetime (non-stored)."""
-        conflicting_assignments = self.env['mesob.trip.assignment'].search([
-            ('vehicle_id', '=', vehicle.id),
-            ('state', 'in', ['assigned', 'in_progress']),
-            ('start_datetime', '<=', self.end_datetime),
-            ('stop_datetime', '>=', self.start_datetime),
-        ])
-        return len(conflicting_assignments) == 0
+        Uses raw SQL against stop_datetime to avoid ORM field resolution issues.
+        """
+        self.env.cr.execute("""
+            SELECT id FROM mesob_trip_assignment
+            WHERE state IN ('assigned', 'in_progress')
+              AND vehicle_id = %s
+              AND start_datetime <= %s
+              AND stop_datetime >= %s
+            LIMIT 1
+        """, (vehicle.id, self.end_datetime, self.start_datetime))
+        return self.env.cr.fetchone() is None
 
     def _check_driver_availability(self, driver):
         """Check if driver is available for the requested time period.
-        Uses stop_datetime (stored related) instead of end_datetime (non-stored)."""
-        conflicting_assignments = self.env['mesob.trip.assignment'].search([
-            ('driver_id', '=', driver.id),
-            ('state', 'in', ['assigned', 'in_progress']),
-            ('start_datetime', '<=', self.end_datetime),
-            ('stop_datetime', '>=', self.start_datetime),
-        ])
-        return len(conflicting_assignments) == 0
+        Uses raw SQL against stop_datetime to avoid ORM field resolution issues.
+        """
+        self.env.cr.execute("""
+            SELECT id FROM mesob_trip_assignment
+            WHERE state IN ('assigned', 'in_progress')
+              AND driver_id = %s
+              AND start_datetime <= %s
+              AND stop_datetime >= %s
+            LIMIT 1
+        """, (driver.id, self.end_datetime, self.start_datetime))
+        return self.env.cr.fetchone() is None
 
     def _notify_dispatchers(self):
         """Send notification to dispatchers about new request"""

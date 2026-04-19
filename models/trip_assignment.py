@@ -27,20 +27,12 @@ class TripAssignment(models.Model):
     end_odometer = fields.Float(string="End Odometer (KM)")
     notes = fields.Text(string="Trip Notes")
 
-    # Stored related fields for calendar view and conflict detection (FR-2.3)
+    # Stored related fields for calendar view (FR-2.3)
     start_datetime = fields.Datetime(
         string="Start", related='trip_request_id.start_datetime', store=True
     )
     stop_datetime = fields.Datetime(
         string="End", related='trip_request_id.end_datetime', store=True
-    )
-    # end_datetime: stored related field required by Odoo's account_lock_exception
-    # module which applies a global domain ('end_datetime', '>=', now()) to ALL
-    # models on create/write. Must be stored so the ORM can resolve it in SQL.
-    end_datetime = fields.Datetime(
-        string="End Date",
-        related='trip_request_id.end_datetime',
-        store=True,
     )
 
     display_name = fields.Char(
@@ -70,23 +62,25 @@ class TripAssignment(models.Model):
 
     @api.constrains('vehicle_id', 'driver_id', 'state')
     def _check_conflicts(self):
+        """BR-2 / BR-3: Prevent double-booking of vehicles and drivers.
+        Uses raw SQL against stop_datetime to avoid ORM field resolution issues.
+        """
         for rec in self:
             if rec.state not in ('assigned', 'in_progress'):
                 continue
-            # Skip when API controller has already done its own SQL conflict check
             if self.env.context.get('skip_conflict_check'):
                 continue
             trip = rec.trip_request_id
             if not trip or not trip.start_datetime or not trip.end_datetime:
                 continue
-            # Use raw SQL — avoids any ORM field resolution issues
+            # BR-2: vehicle conflict
             self.env.cr.execute("""
                 SELECT id FROM mesob_trip_assignment
                 WHERE state IN ('assigned', 'in_progress')
                   AND id != %s
                   AND vehicle_id = %s
                   AND start_datetime < %s
-                  AND COALESCE(end_datetime, stop_datetime) > %s
+                  AND stop_datetime > %s
                 LIMIT 1
             """, (rec.id or 0, rec.vehicle_id.id, trip.end_datetime, trip.start_datetime))
             if self.env.cr.fetchone():
@@ -94,13 +88,14 @@ class TripAssignment(models.Model):
                     _("Vehicle %s is already assigned to another trip during this period.")
                     % rec.vehicle_id.name
                 )
+            # BR-3: driver conflict
             self.env.cr.execute("""
                 SELECT id FROM mesob_trip_assignment
                 WHERE state IN ('assigned', 'in_progress')
                   AND id != %s
                   AND driver_id = %s
                   AND start_datetime < %s
-                  AND COALESCE(end_datetime, stop_datetime) > %s
+                  AND stop_datetime > %s
                 LIMIT 1
             """, (rec.id or 0, rec.driver_id.id, trip.end_datetime, trip.start_datetime))
             if self.env.cr.fetchone():

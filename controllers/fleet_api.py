@@ -317,45 +317,10 @@ class FleetAPIController(http.Controller):
             if not driver.exists():
                 return {'success': False, 'error': 'Driver not found'}
 
-            # Manual conflict check using direct SQL — avoids ORM field resolution issues
-            # with stored related fields (stop_datetime) that may not be cached yet
-            start_dt = trip_request.start_datetime
-            end_dt = trip_request.end_datetime
-            if start_dt and end_dt:
-                request.env.cr.execute("""
-                    SELECT ta.id, tr.name
-                    FROM mesob_trip_assignment ta
-                    JOIN mesob_trip_request tr ON tr.id = ta.trip_request_id
-                    WHERE ta.state IN ('assigned', 'in_progress')
-                      AND ta.vehicle_id = %s
-                      AND ta.start_datetime < %s
-                      AND ta.end_datetime > %s
-                    LIMIT 1
-                """, (int(vehicle_id), end_dt, start_dt))
-                row = request.env.cr.fetchone()
-                if row:
-                    return {'success': False, 'error': f'Vehicle is already assigned to trip {row[1]} during this period.'}
-
-                request.env.cr.execute("""
-                    SELECT ta.id, tr.name
-                    FROM mesob_trip_assignment ta
-                    JOIN mesob_trip_request tr ON tr.id = ta.trip_request_id
-                    WHERE ta.state IN ('assigned', 'in_progress')
-                      AND ta.driver_id = %s
-                      AND ta.start_datetime < %s
-                      AND ta.end_datetime > %s
-                    LIMIT 1
-                """, (int(driver_id), end_dt, start_dt))
-                row = request.env.cr.fetchone()
-                if row:
-                    return {'success': False, 'error': f'Driver is already assigned to trip {row[1]} during this period.'}
-
-            # Create assignment with skip_conflict_check context to avoid ORM constraint
-            # re-running the same check (we already verified above)
-            AssignmentModel = request.env['mesob.trip.assignment'].sudo().with_context(
+            # Create assignment — _check_conflicts uses raw SQL so no ORM field issues
+            assignment = request.env['mesob.trip.assignment'].sudo().with_context(
                 skip_conflict_check=True
-            )
-            assignment = AssignmentModel.create({
+            ).create({
                 'trip_request_id': trip_request.id,
                 'vehicle_id': int(vehicle_id),
                 'driver_id': int(driver_id),
@@ -670,7 +635,7 @@ class FleetAPIController(http.Controller):
             conflicting = request.env['mesob.trip.assignment'].search([
                 ('state', 'in', ['assigned', 'in_progress']),
                 ('start_datetime', '<', end_dt),
-                ('end_datetime', '>', start_dt),
+                ('stop_datetime', '>', start_dt),
             ])
             busy_vehicle_ids = conflicting.mapped('vehicle_id').ids
             busy_driver_ids  = conflicting.mapped('driver_id').ids
