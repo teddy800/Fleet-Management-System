@@ -1041,16 +1041,6 @@ class FleetAPIController(http.Controller):
         except Exception as e:
             _logger.error(f"Create maintenance log error: {e}")
             return {'success': False, 'error': str(e)}
-                'maintenance_type': maintenance_type,
-                'description': data.get('description', ''),
-                'cost': float(data.get('cost', 0)),
-                'odometer': odometer,
-                'state': 'draft',
-            })
-            return {'success': True, 'maintenance_log_id': log.id, 'message': 'Maintenance log created'}
-        except Exception as e:
-            _logger.error(f"Create maintenance log error: {e}")
-            return {'success': False, 'error': str(e)}
 
 
 
