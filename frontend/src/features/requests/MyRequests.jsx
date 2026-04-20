@@ -39,9 +39,8 @@ export default function MyRequests() {
       setRequests(res.trip_requests || []);
     } catch (err) {
       if (err.message?.includes("Employee record not found")) {
-        // Admin user without an HR employee record — show empty state gracefully
+        // Admin user without an HR employee record — show empty state gracefully, no toast
         setRequests([]);
-        toast.info("No employee record linked to your account. Contact HR to link your profile.");
       } else {
         toast.error("Failed to load requests: " + err.message);
       }

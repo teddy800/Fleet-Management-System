@@ -29,6 +29,12 @@ export function invalidateCache(prefix) {
   }
 }
 
+// Clear entire cache — used in tests to bypass caching
+export function clearCache() {
+  _cache.clear();
+  _inflight.clear();
+}
+
 // ─── Core fetch ───────────────────────────────────────────────────────────────
 async function request(path, options = {}) {
   const isJsonRpc = !options._raw;
@@ -79,7 +85,7 @@ async function _doFetch(path, body, isJsonRpc, options) {
 
   const contentType = res.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) {
-    if (!window.location.pathname.includes("/login")) {
+    if (!(window.location?.pathname || "").includes("/login")) {
       try {
         const { useUserStore } = await import("@/store/useUserStore");
         useUserStore.getState().logout();

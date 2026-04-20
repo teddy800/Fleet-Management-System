@@ -5,11 +5,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 
-// --- Mock maintenanceApi ---
+// --- Mock maintenanceApi and fleetApi ---
 vi.mock('@/lib/api', () => ({
   maintenanceApi: {
     list: vi.fn(),
     schedules: vi.fn(),
+  },
+  fleetApi: {
+    list: vi.fn(),
   },
 }))
 
@@ -26,17 +29,16 @@ vi.mock('sonner', () => ({
   },
 }))
 
-import { maintenanceApi } from '@/lib/api'
+import { maintenanceApi, fleetApi } from '@/lib/api'
 import { useUserStore } from '@/store/useUserStore'
 import Maintenance from '@/features/fleet/Maintenance'
 
 beforeEach(() => {
   vi.clearAllMocks()
-
   useUserStore.mockReturnValue({ role: 'Dispatcher', name: 'Test Dispatcher' })
-
   maintenanceApi.list.mockResolvedValue({ maintenance_logs: [] })
   maintenanceApi.schedules.mockResolvedValue({ schedules: [] })
+  fleetApi.list.mockResolvedValue({ vehicles: [] })
 })
 
 describe('Maintenance — parallel API calls on mount', () => {

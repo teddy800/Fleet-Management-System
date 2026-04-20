@@ -120,7 +120,8 @@ describe('Property 1: Every API call includes credentials', () => {
           const fetchSpy = vi.fn().mockResolvedValue(mockResponse)
           globalThis.fetch = fetchSpy
 
-          const { tripApi } = await import('../../lib/api.js')
+          const { tripApi, clearCache } = await import('../../lib/api.js')
+          clearCache()
 
           try {
             await tripApi.list()
