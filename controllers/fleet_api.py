@@ -288,9 +288,8 @@ class FleetAPIController(http.Controller):
     
     @http.route('/api/fleet/trip-requests/<int:request_id>/assign', type='json', auth='user', methods=['POST'], cors='*')
     def assign_vehicle(self, request_id):
-        """Assign vehicle and driver to trip request.
-        Uses sudo() to bypass ORM constraints that may reference stale field definitions.
-        Double-booking is prevented by checking existing assignments directly.
+        """Assign vehicle and driver to trip request using raw SQL to bypass
+        Odoo ORM field validation issues with end_datetime on mesob.trip.assignment.
         """
         try:
             data = request.params or {}
@@ -317,30 +316,102 @@ class FleetAPIController(http.Controller):
             if not driver.exists():
                 return {'success': False, 'error': 'Driver not found'}
 
-            # Create assignment — _check_conflicts uses raw SQL so no ORM field issues
-            assignment = request.env['mesob.trip.assignment'].sudo().with_context(
-                skip_conflict_check=True
-            ).create({
-                'trip_request_id': trip_request.id,
-                'vehicle_id': int(vehicle_id),
-                'driver_id': int(driver_id),
-                'state': 'assigned',
-                'confirmed_at': fields.Datetime.now(),
-            })
+            start_dt = trip_request.start_datetime
+            end_dt = trip_request.end_datetime
 
-            # Update trip request
-            trip_request.sudo().write({
-                'state': 'assigned',
-                'assigned_vehicle_id': int(vehicle_id),
-                'assigned_driver_id': int(driver_id),
-                'trip_assignment_id': assignment.id,
-                'dispatcher_id': request.env.user.id,
-            })
+            # BR-2: vehicle conflict check via raw SQL
+            if start_dt and end_dt:
+                request.env.cr.execute("""
+                    SELECT ta.id, tr.name
+                    FROM mesob_trip_assignment ta
+                    JOIN mesob_trip_request tr ON tr.id = ta.trip_request_id
+                    WHERE ta.state IN ('assigned', 'in_progress')
+                      AND ta.vehicle_id = %s
+                      AND ta.start_datetime < %s
+                      AND ta.stop_datetime > %s
+                    LIMIT 1
+                """, (int(vehicle_id), end_dt, start_dt))
+                row = request.env.cr.fetchone()
+                if row:
+                    return {'success': False, 'error': f'Vehicle is already assigned to trip {row[1]} during this period.'}
 
-            # Mark vehicle as in use
-            vehicle.sudo().write({'mesob_status': 'in_use'})
+                # BR-3: driver conflict check via raw SQL
+                request.env.cr.execute("""
+                    SELECT ta.id, tr.name
+                    FROM mesob_trip_assignment ta
+                    JOIN mesob_trip_request tr ON tr.id = ta.trip_request_id
+                    WHERE ta.state IN ('assigned', 'in_progress')
+                      AND ta.driver_id = %s
+                      AND ta.start_datetime < %s
+                      AND ta.stop_datetime > %s
+                    LIMIT 1
+                """, (int(driver_id), end_dt, start_dt))
+                row = request.env.cr.fetchone()
+                if row:
+                    return {'success': False, 'error': f'Driver is already assigned to trip {row[1]} during this period.'}
 
-            # Notify requester
+            # Insert assignment directly via raw SQL — completely bypasses ORM field validation
+            # This avoids the 'end_datetime' ORM error from Odoo's account module
+            now_str = fields.Datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            uid = request.env.uid
+            try:
+                request.env.cr.execute("""
+                    INSERT INTO mesob_trip_assignment
+                        (trip_request_id, vehicle_id, driver_id, state, confirmed_at,
+                         start_datetime, stop_datetime, end_datetime,
+                         create_uid, write_uid, create_date, write_date)
+                    SELECT
+                        %s, %s, %s, 'assigned', %s,
+                        start_datetime, end_datetime, end_datetime,
+                        %s, %s, %s, %s
+                    FROM mesob_trip_request
+                    WHERE id = %s
+                    RETURNING id
+                """, (trip_request.id, int(vehicle_id), int(driver_id), now_str,
+                      uid, uid, now_str, now_str, trip_request.id))
+                assignment_id = request.env.cr.fetchone()[0]
+                _logger.info(f"Assignment created via SQL: id={assignment_id}")
+            except Exception as sql_err:
+                _logger.error(f"SQL insert failed: {sql_err}", exc_info=True)
+                raise
+
+            # Update trip request via raw SQL to avoid triggering ORM recomputes
+            # that search mesob.trip.assignment with end_datetime
+            try:
+                request.env.cr.execute("""
+                    UPDATE mesob_trip_request
+                    SET state = 'assigned',
+                        assigned_vehicle_id = %s,
+                        assigned_driver_id = %s,
+                        trip_assignment_id = %s,
+                        dispatcher_id = %s,
+                        write_uid = %s,
+                        write_date = %s
+                    WHERE id = %s
+                """, (int(vehicle_id), int(driver_id), assignment_id,
+                      request.env.uid, request.env.uid, now_str, trip_request.id))
+                _logger.info(f"Trip request updated via SQL")
+            except Exception as sql_err:
+                _logger.error(f"SQL update trip_request failed: {sql_err}", exc_info=True)
+                raise
+
+            # Invalidate ORM cache for this record so subsequent reads are fresh
+            trip_request.invalidate_recordset()
+
+            # Mark vehicle as in use via raw SQL
+            try:
+                request.env.cr.execute("""
+                    UPDATE fleet_vehicle SET mesob_status = 'in_use',
+                        write_uid = %s, write_date = %s
+                    WHERE id = %s
+                """, (request.env.uid, now_str, int(vehicle_id)))
+                vehicle.invalidate_recordset()
+                _logger.info(f"Vehicle status updated via SQL")
+            except Exception as sql_err:
+                _logger.error(f"SQL update vehicle failed: {sql_err}", exc_info=True)
+                raise
+
+            # Notify requester (best-effort)
             try:
                 if trip_request.employee_id and trip_request.employee_id.user_id:
                     trip_request.sudo().message_post(
@@ -354,7 +425,7 @@ class FleetAPIController(http.Controller):
             return {'success': True, 'message': f'Vehicle {vehicle.name} assigned successfully'}
 
         except Exception as e:
-            _logger.error(f"Assign vehicle API error: {e}")
+            _logger.error(f"Assign vehicle API error: {e}", exc_info=True)
             return {'success': False, 'error': str(e)}
     
     @http.route('/api/fleet/trip-requests/<int:request_id>/reject', type='json', auth='user', methods=['POST'], cors='*')
