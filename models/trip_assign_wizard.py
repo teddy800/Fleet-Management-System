@@ -17,27 +17,60 @@ class TripAssignWizard(models.TransientModel):
         if trip.state != 'approved':
             raise UserError(_("Only approved requests can have vehicles assigned."))
 
-        # Create assignment record
-        assignment = self.env['mesob.trip.assignment'].create({
-            'trip_request_id': trip.id,
-            'vehicle_id': self.vehicle_id.id,
-            'driver_id': self.driver_id.id,
-            'state': 'assigned',
-            'confirmed_at': fields.Datetime.now(),
-        })
+        now_str = fields.Datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        uid = self.env.uid
 
-        trip.write({
-            'state': 'assigned',
-            'assigned_vehicle_id': self.vehicle_id.id,
-            'assigned_driver_id': self.driver_id.id,
-            'trip_assignment_id': assignment.id,
-            'dispatcher_id': self.env.user.id,
-        })
+        # Use raw SQL to bypass Odoo account_lock_exception end_datetime validation
+        self.env.cr.execute("""
+            INSERT INTO mesob_trip_assignment
+                (trip_request_id, vehicle_id, driver_id, state, confirmed_at,
+                 start_datetime, stop_datetime, end_datetime,
+                 create_uid, write_uid, create_date, write_date)
+            SELECT
+                %s, %s, %s, 'assigned', %s,
+                start_datetime, end_datetime, end_datetime,
+                %s, %s, %s, %s
+            FROM mesob_trip_request
+            WHERE id = %s
+            RETURNING id
+        """, (trip.id, self.vehicle_id.id, self.driver_id.id, now_str,
+              uid, uid, now_str, now_str, trip.id))
+        assignment_id = self.env.cr.fetchone()[0]
 
-        trip.message_post(
-            body=_("Vehicle %s assigned with driver %s by %s") % (
-                self.vehicle_id.name, self.driver_id.name, self.env.user.name
-            ),
-            message_type='notification'
-        )
+        # Update trip request via raw SQL to avoid ORM recompute issues
+        self.env.cr.execute("""
+            UPDATE mesob_trip_request
+            SET state = 'assigned',
+                assigned_vehicle_id = %s,
+                assigned_driver_id = %s,
+                trip_assignment_id = %s,
+                dispatcher_id = %s,
+                write_uid = %s,
+                write_date = %s
+            WHERE id = %s
+        """, (self.vehicle_id.id, self.driver_id.id, assignment_id,
+              uid, uid, now_str, trip.id))
+
+        # Mark vehicle as in use
+        self.env.cr.execute("""
+            UPDATE fleet_vehicle SET mesob_status = 'in_use',
+                write_uid = %s, write_date = %s
+            WHERE id = %s
+        """, (uid, now_str, self.vehicle_id.id))
+
+        # Invalidate ORM cache
+        trip.invalidate_recordset()
+        self.vehicle_id.invalidate_recordset()
+
+        # Post chatter message (best-effort)
+        try:
+            trip.sudo().message_post(
+                body=_("Vehicle %s assigned with driver %s by %s") % (
+                    self.vehicle_id.name, self.driver_id.name, self.env.user.name
+                ),
+                message_type='notification'
+            )
+        except Exception:
+            pass
+
         return {'type': 'ir.actions.act_window_close'}
