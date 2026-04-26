@@ -184,8 +184,6 @@ class WebhookController(http.Controller):
 
         signature = request.httprequest.headers.get('X-Webhook-Signature', '')
         body = request.httprequest.get_data()
-        expected = hmac.new(
-            secret.encode(), body, hashlib.sha256
-        ).hexdigest()
+        expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
 
         return hmac.compare_digest(signature, expected)

@@ -39,24 +39,31 @@ export default defineConfig({
   build: {
     // Increase chunk size warning threshold
     chunkSizeWarningLimit: 600,
-    // Minify with esbuild (default, fastest)
-    minify: 'esbuild',
+    // Minify with oxc (default for Vite 8 with rolldown)
+    minify: 'oxc',
     // Enable CSS code splitting
     cssCodeSplit: true,
     rollupOptions: {
       output: {
         // Manual chunk splitting for vendor libraries
-        manualChunks: {
-          // React core — loaded once, cached forever
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // UI components — shared across all pages
-          'vendor-ui': ['lucide-react', 'sonner', 'clsx', 'tailwind-merge', 'class-variance-authority'],
-          // Form/validation — only needed on form pages
-          'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
-          // Date utilities
-          'vendor-date': ['date-fns'],
-          // State management
-          'vendor-state': ['zustand'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (['react', 'react-dom', 'react-router-dom'].some(p => id.includes(`/node_modules/${p}/`))) {
+              return 'vendor-react';
+            }
+            if (['lucide-react', 'sonner', 'clsx', 'tailwind-merge', 'class-variance-authority'].some(p => id.includes(`/node_modules/${p}/`))) {
+              return 'vendor-ui';
+            }
+            if (['react-hook-form', '@hookform', 'zod'].some(p => id.includes(`/node_modules/${p}/`))) {
+              return 'vendor-forms';
+            }
+            if (id.includes('/node_modules/date-fns/')) {
+              return 'vendor-date';
+            }
+            if (id.includes('/node_modules/zustand/')) {
+              return 'vendor-state';
+            }
+          }
         },
       },
     },

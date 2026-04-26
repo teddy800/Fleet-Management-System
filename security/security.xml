@@ -14,10 +14,5 @@
             <field name="name">Fleet Manager</field>
             <field name="implied_ids" eval="[(4, ref('mesob_fleet_customizations.group_fleet_dispatcher'))]"/>
         </record>
-
-        <!-- Give all internal users Fleet User access by default -->
-        <record id="base.group_user" model="res.groups">
-            <field name="implied_ids" eval="[(4, ref('mesob_fleet_customizations.group_fleet_user'))]"/>
-        </record>
     </data>
 </odoo>

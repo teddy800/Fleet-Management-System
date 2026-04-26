@@ -24,8 +24,6 @@ const STATE_META = {
   cancelled:   { label: "Cancelled",   cls: "bg-gray-100 text-gray-500 border-gray-200",      bar: "bg-gray-300",    step: -1 },
 };
 
-const STATUS_STEPS = ["Draft", "Pending", "Approved", "Assigned", "In Progress", "Completed"];
-
 export default function MyRequests() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);

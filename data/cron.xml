@@ -24,7 +24,7 @@
         <field name="model_id" ref="mesob_fleet_customizations.model_mesob_gps_log"/>
         <field name="state">code</field>
         <field name="code">model.fetch_all_vehicle_locations()</field>
-        <field name="interval_number">1</field>
+        <field name="interval_number">5</field>
         <field name="interval_type">minutes</field>
         <field name="active">True</field>
     </record>
