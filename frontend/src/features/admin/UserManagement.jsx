@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Search, RefreshCw, Loader2, ShieldCheck, Edit3, Car, Trash2 } from "lucide-react";
+import { Users, Search, RefreshCw, Loader2, ShieldCheck, Edit3, Car, Trash2, UserPlus, UserX, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +39,8 @@ export default function UserManagement() {
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("users");
   const [deduplicating, setDeduplicating] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: "", login: "", password: "", role: "fleet_user" });
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -73,6 +75,40 @@ export default function UserManagement() {
       await userMgmtApi.setRole(editUser.id, editRole);
       toast.success(`Role updated for ${editUser.name}`);
       setEditUser(null);
+      fetchData();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleActive = async (user) => {
+    try {
+      if (user.active !== false) {
+        await userMgmtApi.deactivate(user.id);
+        toast.success(`${user.name} deactivated`);
+      } else {
+        await userMgmtApi.activate(user.id);
+        toast.success(`${user.name} activated`);
+      }
+      fetchData();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!createForm.name || !createForm.login || !createForm.password) {
+      toast.error("Name, email/login, and password are required");
+      return;
+    }
+    setSaving(true);
+    try {
+      await userMgmtApi.create(createForm);
+      toast.success(`User ${createForm.name} created`);
+      setShowCreate(false);
+      setCreateForm({ name: "", login: "", password: "", role: "fleet_user" });
       fetchData();
     } catch (err) {
       toast.error(err.message);
@@ -122,32 +158,31 @@ export default function UserManagement() {
         </div>
         <div className="flex items-center gap-2">
           {tab === "drivers" && (
-            <Button
-              size="sm"
-              variant="outline"
+            <Button size="sm" variant="outline"
               className="h-9 rounded-xl text-xs text-red-600 border-red-200 hover:bg-red-50 hover:border-red-400"
               disabled={deduplicating}
               onClick={async () => {
                 setDeduplicating(true);
                 try {
                   const res = await adminApi.deduplicateDrivers();
-                  if (res.removed?.length > 0) {
-                    toast.success(`Removed ${res.removed.length} duplicate driver(s). ${res.unique_drivers} unique drivers remain.`);
-                  } else {
-                    toast.success("No duplicates found — all drivers are unique.");
-                  }
+                  toast.success(res.removed?.length > 0
+                    ? `Removed ${res.removed.length} duplicate(s). ${res.unique_drivers} unique drivers remain.`
+                    : "No duplicates found.");
                   fetchData();
                 } catch (err) {
                   toast.error("Deduplication failed: " + err.message);
                 } finally {
                   setDeduplicating(false);
                 }
-              }}
-            >
-              {deduplicating
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
-                : <Trash2 className="h-3.5 w-3.5 mr-1" />}
+              }}>
+              {deduplicating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Trash2 className="h-3.5 w-3.5 mr-1" />}
               Remove Duplicates
+            </Button>
+          )}
+          {tab === "users" && (
+            <Button size="sm" className="h-9 rounded-xl text-xs bg-brand-blue hover:bg-blue-800 gap-1"
+              onClick={() => setShowCreate(true)}>
+              <UserPlus className="h-3.5 w-3.5" /> Create User
             </Button>
           )}
           <button onClick={fetchData} className="p-2 rounded-xl border bg-white hover:bg-gray-50 shadow-sm">
@@ -184,16 +219,16 @@ export default function UserManagement() {
           <Table>
             <TableHeader className="bg-gray-50">
               <TableRow>
-                {["Name", "Email / Login", "Role", "Driver", "Actions"].map(h => (
+                {["Name", "Email / Login", "Role", "Driver", "Status", "Actions"].map(h => (
                   <TableHead key={h} className="font-black text-xs uppercase text-gray-500">{h}</TableHead>
                 ))}
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-16"><Loader2 className="h-7 w-7 animate-spin mx-auto text-brand-blue" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-16"><Loader2 className="h-7 w-7 animate-spin mx-auto text-brand-blue" /></TableCell></TableRow>
               ) : filteredUsers.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-12 text-gray-400 text-sm">No users found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-12 text-gray-400 text-sm">No users found</TableCell></TableRow>
               ) : filteredUsers.map(u => {
                 const roleKey = getRoleKey(u.roles);
                 const rm = ROLE_META[roleKey] || ROLE_META.fleet_user;
@@ -219,10 +254,26 @@ export default function UserManagement() {
                         : <span className="text-gray-300 text-xs">—</span>}
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline" className="h-8 rounded-xl text-xs"
-                        onClick={() => { setEditUser(u); setEditRole(roleKey); }}>
-                        <Edit3 className="h-3.5 w-3.5 mr-1" /> Role
-                      </Button>
+                      <Badge className={u.active !== false
+                        ? "bg-green-100 text-green-700 border-green-200 text-xs"
+                        : "bg-gray-100 text-gray-500 border-gray-200 text-xs"}>
+                        {u.active !== false ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="outline" className="h-8 rounded-xl text-xs"
+                          onClick={() => { setEditUser(u); setEditRole(getRoleKey(u.roles)); }}>
+                          <Edit3 className="h-3.5 w-3.5 mr-1" /> Role
+                        </Button>
+                        <Button size="sm" variant="outline"
+                          className={`h-8 rounded-xl text-xs ${u.active !== false ? "text-red-600 border-red-200 hover:bg-red-50" : "text-green-600 border-green-200 hover:bg-green-50"}`}
+                          onClick={() => handleToggleActive(u)}>
+                          {u.active !== false
+                            ? <><UserX className="h-3.5 w-3.5 mr-1" />Deactivate</>
+                            : <><UserCheck className="h-3.5 w-3.5 mr-1" />Activate</>}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -346,6 +397,51 @@ export default function UserManagement() {
             <Button variant="outline" onClick={() => setEditDriver(null)}>Cancel</Button>
             <Button className="bg-brand-blue hover:bg-blue-800" disabled={saving} onClick={handleUpdateDriver}>
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Dialog — FR-5.1 */}
+      <Dialog open={showCreate} onOpenChange={v => !v && setShowCreate(false)}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-brand-blue font-black flex items-center gap-2">
+              <UserPlus className="h-5 w-5" /> Create New User
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="text-xs font-black text-gray-600 uppercase">Full Name *</label>
+              <Input className="mt-1 rounded-xl h-11" placeholder="e.g. Abebe Kebede"
+                value={createForm.name} onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs font-black text-gray-600 uppercase">Email / Login *</label>
+              <Input className="mt-1 rounded-xl h-11" type="email" placeholder="e.g. abebe@messob.com"
+                value={createForm.login} onChange={e => setCreateForm(f => ({ ...f, login: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs font-black text-gray-600 uppercase">Password * (min 6 chars)</label>
+              <Input className="mt-1 rounded-xl h-11" type="password" placeholder="••••••••"
+                value={createForm.password} onChange={e => setCreateForm(f => ({ ...f, password: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs font-black text-gray-600 uppercase">Role</label>
+              <Select value={createForm.role} onValueChange={v => setCreateForm(f => ({ ...f, role: v }))}>
+                <SelectTrigger className="mt-1 rounded-xl h-11"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fleet_manager">Admin (Fleet Manager)</SelectItem>
+                  <SelectItem value="fleet_dispatcher">Dispatcher</SelectItem>
+                  <SelectItem value="fleet_user">Staff (Fleet User)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+            <Button className="bg-brand-blue hover:bg-blue-800" disabled={saving} onClick={handleCreateUser}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create User"}
             </Button>
           </DialogFooter>
         </DialogContent>

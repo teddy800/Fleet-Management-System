@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, Car, ClipboardList, CheckSquare, User, Fuel,
   Gauge, LogOut, ShieldCheck, Navigation, CalendarDays, Moon, Sun,
-  Bell, BarChart3, Users,
+  Bell, BarChart3, Users, Package, RefreshCw,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
@@ -21,8 +21,10 @@ const menuItems = [
   { name: "Fuel Logs",       path: "/fuel-log",           icon: Fuel,            roles: ["Admin", "Dispatcher"] },
   { name: "Maintenance",     path: "/maintenance",        icon: Gauge,           roles: ["Admin", "Dispatcher"] },
   { name: "Alerts",          path: "/alerts",             icon: Bell,            roles: ["Admin", "Dispatcher"] },
-  { name: "Analytics",       path: "/analytics",          icon: BarChart3,       roles: ["Admin"] },
-  { name: "User Management", path: "/users",               icon: ShieldCheck,     roles: ["Admin"] },
+  { name: "Analytics",         path: "/analytics",  icon: BarChart3,   roles: ["Admin"] },
+  { name: "Parts & Inventory", path: "/inventory",  icon: Package,     roles: ["Admin"] },
+  { name: "HR Sync",           path: "/hr-sync",    icon: RefreshCw,   roles: ["Admin"] },
+  { name: "User Management",   path: "/users",      icon: ShieldCheck, roles: ["Admin"] },
 ];
 
 const ROLE_COLORS = {
