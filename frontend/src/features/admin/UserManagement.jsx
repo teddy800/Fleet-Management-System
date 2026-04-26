@@ -226,9 +226,9 @@ export default function UserManagement() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-16"><Loader2 className="h-7 w-7 animate-spin mx-auto text-brand-blue" /></TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-16"><Loader2 className="h-7 w-7 animate-spin mx-auto text-brand-blue" /></TableCell></TableRow>
               ) : filteredUsers.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-12 text-gray-400 text-sm">No users found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center py-12 text-gray-400 text-sm">No users found</TableCell></TableRow>
               ) : filteredUsers.map(u => {
                 const roleKey = getRoleKey(u.roles);
                 const rm = ROLE_META[roleKey] || ROLE_META.fleet_user;
