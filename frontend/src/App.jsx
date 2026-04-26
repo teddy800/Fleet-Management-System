@@ -17,7 +17,9 @@ const GPSTracking    = lazy(() => import("./features/fleet/GPSTracking"));
 const Alerts         = lazy(() => import("./features/fleet/Alerts"));
 const Analytics      = lazy(() => import("./features/fleet/Analytics"));
 const Drivers        = lazy(() => import("./features/fleet/Drivers"));
+const Inventory      = lazy(() => import("./features/fleet/Inventory"));
 const UserManagement = lazy(() => import("./features/admin/UserManagement"));
+const HRSync         = lazy(() => import("./features/admin/HRSync"));
 
 // Minimal skeleton shown while a page chunk loads
 function PageLoader() {
@@ -47,7 +49,9 @@ export default function App() {
         <Route path="alerts"             element={<Suspense fallback={<PageLoader />}><Alerts /></Suspense>} />
         <Route path="analytics"          element={<Suspense fallback={<PageLoader />}><Analytics /></Suspense>} />
         <Route path="drivers"            element={<Suspense fallback={<PageLoader />}><Drivers /></Suspense>} />
+        <Route path="inventory"          element={<Suspense fallback={<PageLoader />}><Inventory /></Suspense>} />
         <Route path="users"              element={<Suspense fallback={<PageLoader />}><UserManagement /></Suspense>} />
+        <Route path="hr-sync"            element={<Suspense fallback={<PageLoader />}><HRSync /></Suspense>} />
       </Route>
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>

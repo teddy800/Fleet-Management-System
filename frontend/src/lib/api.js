@@ -209,11 +209,29 @@ export const resourceApi = {
 
 // ─── User management ──────────────────────────────────────────────────────────
 export const userMgmtApi = {
-  list:    () => request("/api/fleet/users"),
-  setRole: (userId, role) => {
+  list:       () => request("/api/fleet/users"),
+  setRole:    (userId, role) => {
     invalidateCache("/api/fleet/users");
     return request(`/api/fleet/users/${userId}/set-role`, {
       body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: { role } }),
+    });
+  },
+  deactivate: (userId) => {
+    invalidateCache("/api/fleet/users");
+    return request(`/api/fleet/users/${userId}/deactivate`, {
+      body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: {} }),
+    });
+  },
+  activate: (userId) => {
+    invalidateCache("/api/fleet/users");
+    return request(`/api/fleet/users/${userId}/activate`, {
+      body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: {} }),
+    });
+  },
+  create: (payload) => {
+    invalidateCache("/api/fleet/users");
+    return request("/api/fleet/users/create", {
+      body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: payload }),
     });
   },
 };
@@ -272,5 +290,29 @@ export const analyticsApi = {
 export const adminApi = {
   deduplicateDrivers: () => request("/api/fleet/admin/deduplicate-drivers", {
     body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: {} }),
+  }),
+  triggerHrSync: () => request("/api/fleet/hr/sync", {
+    body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: {} }),
+  }),
+  hrSyncStatus: () => request("/api/fleet/hr/sync-status"),
+};
+
+// ─── Inventory / Parts Allocation ─────────────────────────────────────────────
+export const inventoryApi = {
+  listAllocations: () => request("/api/fleet/inventory/allocations"),
+  createAllocation: (payload) => {
+    invalidateCache("/api/fleet/inventory/allocations");
+    return request("/api/fleet/inventory/allocations/create", {
+      body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: payload }),
+    });
+  },
+  installPart: (allocId) => {
+    invalidateCache("/api/fleet/inventory/allocations");
+    return request(`/api/fleet/inventory/allocations/${allocId}/install`, {
+      body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: {} }),
+    });
+  },
+  searchProducts: (search = "") => request("/api/fleet/inventory/products", {
+    body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 1, params: { search } }),
   }),
 };

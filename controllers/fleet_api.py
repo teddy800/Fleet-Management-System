@@ -1042,7 +1042,214 @@ class FleetAPIController(http.Controller):
             _logger.error(f"Create maintenance log error: {e}")
             return {'success': False, 'error': str(e)}
 
+    # ── User create / deactivate / activate (FR-5.1) ─────────────────────────
 
+    @http.route('/api/fleet/users/create', type='json', auth='user', methods=['POST'], cors='*')
+    def create_user(self):
+        """FR-5.1: Create a new user account — manager only"""
+        try:
+            if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            data = request.params or {}
+            name     = (data.get('name') or '').strip()
+            login    = (data.get('login') or data.get('email') or '').strip()
+            password = (data.get('password') or '').strip()
+            role     = data.get('role') or 'fleet_user'
+            if not name or not login or not password:
+                return {'success': False, 'error': 'Name, login/email, and password are required'}
+            if len(password) < 6:
+                return {'success': False, 'error': 'Password must be at least 6 characters'}
+            existing = request.env['res.users'].sudo().search([('login', '=', login)], limit=1)
+            if existing:
+                return {'success': False, 'error': f'A user with login "{login}" already exists'}
+            user = request.env['res.users'].sudo().create({
+                'name': name, 'login': login, 'email': login, 'password': password, 'active': True,
+            })
+            group_map = {
+                'fleet_manager':    'mesob_fleet_customizations.group_fleet_manager',
+                'fleet_dispatcher': 'mesob_fleet_customizations.group_fleet_dispatcher',
+                'fleet_user':       'mesob_fleet_customizations.group_fleet_user',
+            }
+            if role in group_map:
+                grp = request.env.ref(group_map[role])
+                user.sudo().write({'groups_id': [(4, grp.id)]})
+            return {'success': True, 'user_id': user.id, 'message': f'User {name} created successfully'}
+        except Exception as e:
+            _logger.error(f"Create user error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/users/<int:user_id>/deactivate', type='json', auth='user', methods=['POST'], cors='*')
+    def deactivate_user(self, user_id):
+        """FR-5.1: Deactivate a user account — manager only"""
+        try:
+            if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            if user_id == request.env.uid:
+                return {'success': False, 'error': 'You cannot deactivate your own account'}
+            user = request.env['res.users'].browse(user_id)
+            if not user.exists():
+                return {'success': False, 'error': 'User not found'}
+            user.sudo().write({'active': False})
+            return {'success': True, 'message': f'{user.name} has been deactivated'}
+        except Exception as e:
+            _logger.error(f"Deactivate user error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/users/<int:user_id>/activate', type='json', auth='user', methods=['POST'], cors='*')
+    def activate_user(self, user_id):
+        """FR-5.1: Re-activate a user account — manager only"""
+        try:
+            if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            user = request.env['res.users'].with_context(active_test=False).browse(user_id)
+            if not user.exists():
+                return {'success': False, 'error': 'User not found'}
+            user.sudo().write({'active': True})
+            return {'success': True, 'message': f'{user.name} has been activated'}
+        except Exception as e:
+            _logger.error(f"Activate user error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    # ── HR Sync status & trigger ──────────────────────────────────────────────
+
+    @http.route('/api/fleet/hr/sync', type='json', auth='user', methods=['POST'], cors='*')
+    def trigger_hr_sync(self):
+        """Manually trigger HR employee sync — manager only"""
+        try:
+            if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            request.env['hr.employee'].sudo()._cron_sync_employees()
+            driver_count = request.env['hr.employee'].sudo().search_count([('is_driver', '=', True)])
+            return {'success': True, 'message': 'HR sync completed', 'driver_count': driver_count}
+        except Exception as e:
+            _logger.error(f"HR sync trigger error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/hr/sync-status', type='json', auth='user', methods=['GET', 'POST'], cors='*')
+    def get_hr_sync_status(self):
+        """Get HR sync configuration status — manager only"""
+        try:
+            if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            hr_url  = request.env['ir.config_parameter'].sudo().get_param('mesob.hr_sync_url') or ''
+            api_key = request.env['ir.config_parameter'].sudo().get_param('mesob.api_key') or ''
+            gps_url = request.env['ir.config_parameter'].sudo().get_param('mesob.gps_gateway_url') or ''
+            return {
+                'success': True,
+                'config': {
+                    'hr_sync_url_configured':      bool(hr_url),
+                    'api_key_configured':           bool(api_key),
+                    'gps_gateway_url_configured':   bool(gps_url),
+                },
+                'stats': {
+                    'total_employees': request.env['hr.employee'].sudo().search_count([]),
+                    'synced_from_hr':  request.env['hr.employee'].sudo().search_count([('synced_from_hr', '=', True)]),
+                    'total_drivers':   request.env['hr.employee'].sudo().search_count([('is_driver', '=', True)]),
+                },
+            }
+        except Exception as e:
+            _logger.error(f"HR sync status error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    # ── Inventory / Parts Allocation ──────────────────────────────────────────
+
+    @http.route('/api/fleet/inventory/allocations', type='json', auth='user', methods=['GET', 'POST'], cors='*')
+    def get_inventory_allocations(self):
+        """List all inventory allocations — dispatcher/manager only"""
+        try:
+            if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
+                    request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            allocs = request.env['mesob.inventory.allocation'].search([], order='allocation_date desc', limit=200)
+            data = [{
+                'id': a.id,
+                'vehicle_name': a.vehicle_id.name if a.vehicle_id else '',
+                'vehicle_id': a.vehicle_id.id if a.vehicle_id else None,
+                'product_name': a.product_id.name if a.product_id else '',
+                'product_id': a.product_id.id if a.product_id else None,
+                'quantity': a.quantity,
+                'unit_cost': a.unit_cost,
+                'total_cost': a.total_cost,
+                'state': a.state,
+                'allocation_date': a.allocation_date.isoformat() if a.allocation_date else None,
+                'maintenance_log_id': a.maintenance_log_id.id if a.maintenance_log_id else None,
+                'notes': a.notes or '',
+            } for a in allocs]
+            return {'success': True, 'allocations': data}
+        except Exception as e:
+            _logger.error(f"Get inventory allocations error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/inventory/allocations/create', type='json', auth='user', methods=['POST'], cors='*')
+    def create_inventory_allocation(self):
+        """Create a parts allocation — manager only"""
+        try:
+            if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            data = request.params or {}
+            vehicle_id = data.get('vehicle_id')
+            product_id = data.get('product_id')
+            quantity   = float(data.get('quantity', 0))
+            if not vehicle_id or not product_id:
+                return {'success': False, 'error': 'vehicle_id and product_id are required'}
+            if quantity <= 0:
+                return {'success': False, 'error': 'Quantity must be greater than zero'}
+            vehicle = request.env['fleet.vehicle'].browse(int(vehicle_id))
+            product = request.env['product.product'].browse(int(product_id))
+            if not vehicle.exists():
+                return {'success': False, 'error': 'Vehicle not found'}
+            if not product.exists():
+                return {'success': False, 'error': 'Product not found'}
+            vals = {
+                'vehicle_id': int(vehicle_id), 'product_id': int(product_id),
+                'quantity': quantity, 'unit_cost': float(data.get('unit_cost', 0)),
+                'notes': data.get('notes', ''), 'state': 'allocated',
+            }
+            if data.get('maintenance_log_id'):
+                vals['maintenance_log_id'] = int(data['maintenance_log_id'])
+            alloc = request.env['mesob.inventory.allocation'].create(vals)
+            return {'success': True, 'allocation_id': alloc.id, 'message': 'Parts allocated successfully'}
+        except Exception as e:
+            _logger.error(f"Create inventory allocation error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/inventory/allocations/<int:alloc_id>/install', type='json', auth='user', methods=['POST'], cors='*')
+    def install_allocation(self, alloc_id):
+        """Mark parts as installed and create stock movement — manager only"""
+        try:
+            if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            alloc = request.env['mesob.inventory.allocation'].browse(alloc_id)
+            if not alloc.exists():
+                return {'success': False, 'error': 'Allocation not found'}
+            alloc.action_install_part()
+            return {'success': True, 'message': 'Part marked as installed'}
+        except Exception as e:
+            _logger.error(f"Install allocation error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/inventory/products', type='json', auth='user', methods=['GET', 'POST'], cors='*')
+    def get_products(self):
+        """Search products from Messob Inventory — dispatcher/manager only"""
+        try:
+            if not (request.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher') or
+                    request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager')):
+                return {'success': False, 'error': 'Insufficient permissions'}
+            data = request.params or {}
+            search_term = data.get('search', '')
+            domain = [('type', 'in', ['consu', 'product'])]
+            if search_term:
+                domain.append(('name', 'ilike', search_term))
+            products = request.env['product.product'].search(domain, limit=50)
+            result = [{
+                'id': p.id, 'name': p.name, 'default_code': p.default_code or '',
+                'uom': p.uom_id.name if p.uom_id else '',
+                'list_price': p.list_price, 'qty_available': p.qty_available,
+            } for p in products]
+            return {'success': True, 'products': result}
+        except Exception as e:
+            _logger.error(f"Get products error: {e}")
+            return {'success': False, 'error': str(e)}
 
     @http.route('/api/fleet/admin/deduplicate-drivers', type='json', auth='user', methods=['POST'], cors='*')
     def deduplicate_drivers(self):
