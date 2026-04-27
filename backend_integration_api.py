@@ -4,6 +4,24 @@
 import requests
 import json
 from datetime import datetime
+from flask import Flask, jsonify, request
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Configuration - Use mock servers for development
+CONFIG = {
+    'odoo_url': 'http://localhost:8069',
+    'hr_system_url': 'http://localhost:5000',  # Use mock HR server
+    'gps_system_url': 'http://localhost:5001',  # Use mock GPS server
+    'database': 'messob_db',
+    'username': 'admin',
+    'password': 'admin'
+}
+
+app = Flask(__name__)
 
 class MesobFleetIntegration:
     def __init__(self, odoo_url, database, username, password):
@@ -16,18 +34,24 @@ class MesobFleetIntegration:
     
     def authenticate(self):
         """Authenticate with Odoo"""
-        auth_url = f"{self.odoo_url}/web/session/authenticate"
-        auth_data = {
-            'jsonrpc': '2.0',
-            'method': 'call',
-            'params': {
-                'db': self.database,
-                'login': self.username,
-                'password': self.password
+        try:
+            auth_url = f"{self.odoo_url}/web/session/authenticate"
+            auth_data = {
+                'jsonrpc': '2.0',
+                'method': 'call',
+                'params': {
+                    'db': self.database,
+                    'login': self.username,
+                    'password': self.password
+                }
             }
-        }
-        response = self.session.post(auth_url, json=auth_data)
-        return response.json()
+            response = self.session.post(auth_url, json=auth_data)
+            result = response.json()
+            logger.info("Odoo authentication successful")
+            return result
+        except Exception as e:
+            logger.error(f"Odoo authentication failed: {e}")
+            return None
     
     def sync_employees_from_hr(self, hr_api_url):
         """Sync employees from external HR system to Odoo"""
@@ -155,3 +179,94 @@ if __name__ == "__main__":
     # Get dashboard data
     dashboard_data = fleet_api.get_fleet_dashboard_data()
     print(json.dumps(dashboard_data, indent=2))
+    def sync_hr_employees(self):
+        """Sync employees from HR system to Odoo"""
+        try:
+            # Get employees from mock HR server
+            hr_response = requests.get(f"{CONFIG['hr_system_url']}/api/employees")
+            if hr_response.status_code == 200:
+                employees = hr_response.json()
+                logger.info(f"Retrieved {len(employees)} employees from HR system")
+                
+                # Send to Odoo webhook
+                webhook_url = f"{self.odoo_url}/webhook/hr/employee-sync"
+                webhook_data = {'employees': employees}
+                
+                odoo_response = self.session.post(webhook_url, json=webhook_data)
+                if odoo_response.status_code == 200:
+                    result = odoo_response.json()
+                    logger.info(f"HR sync completed: {result}")
+                    return result
+                else:
+                    logger.error(f"Odoo webhook failed: {odoo_response.status_code}")
+                    return None
+            else:
+                logger.error(f"HR system request failed: {hr_response.status_code}")
+                return None
+        except Exception as e:
+            logger.error(f"HR sync failed: {e}")
+            return None
+
+    def get_gps_updates(self):
+        """Get GPS updates from GPS system"""
+        try:
+            gps_response = requests.get(f"{CONFIG['gps_system_url']}/api/gps")
+            if gps_response.status_code == 200:
+                gps_data = gps_response.json()
+                logger.info(f"Retrieved GPS data for {len(gps_data)} vehicles")
+                return gps_data
+            else:
+                logger.error(f"GPS system request failed: {gps_response.status_code}")
+                return None
+        except Exception as e:
+            logger.error(f"GPS update failed: {e}")
+            return None
+
+# Initialize integration
+integration = MesobFleetIntegration(
+    CONFIG['odoo_url'],
+    CONFIG['database'],
+    CONFIG['username'],
+    CONFIG['password']
+)
+
+# Flask API endpoints
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'services': {
+            'odoo': CONFIG['odoo_url'],
+            'hr_system': CONFIG['hr_system_url'],
+            'gps_system': CONFIG['gps_system_url']
+        }
+    })
+
+@app.route('/sync/hr', methods=['POST'])
+def sync_hr():
+    """Trigger HR employee sync"""
+    result = integration.sync_hr_employees()
+    if result:
+        return jsonify({'success': True, 'result': result})
+    else:
+        return jsonify({'success': False, 'error': 'HR sync failed'}), 500
+
+@app.route('/gps/updates', methods=['GET'])
+def get_gps():
+    """Get current GPS positions"""
+    result = integration.get_gps_updates()
+    if result:
+        return jsonify({'success': True, 'data': result})
+    else:
+        return jsonify({'success': False, 'error': 'GPS update failed'}), 500
+
+if __name__ == '__main__':
+    logger.info("🚀 Starting MESSOB Fleet Integration API...")
+    logger.info(f"📡 Odoo URL: {CONFIG['odoo_url']}")
+    logger.info(f"👥 HR System: {CONFIG['hr_system_url']}")
+    logger.info(f"📍 GPS System: {CONFIG['gps_system_url']}")
+    logger.info("🌐 Integration API running at http://localhost:8080")
+    
+    app.run(host='0.0.0.0', port=8080, debug=True)

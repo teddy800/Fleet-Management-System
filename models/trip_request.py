@@ -83,19 +83,31 @@ class TripRequest(models.Model):
         ('assigned', 'Vehicle Assigned'),
         ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
+        ('closed', 'Closed'),
         ('cancelled', 'Cancelled'),
         ('rejected', 'Rejected')
     ], string="Status", default='draft', tracking=True)
-    
+
     # Assignment Information
     assigned_vehicle_id = fields.Many2one('fleet.vehicle', string="Assigned Vehicle", tracking=True)
     assigned_driver_id = fields.Many2one('hr.employee', string="Assigned Driver", tracking=True)
     dispatcher_id = fields.Many2one('res.users', string="Dispatcher", tracking=True)
-    
+
     # Approval Information
     approved_by = fields.Many2one('res.users', string="Approved By", readonly=True)
     approved_date = fields.Datetime(string="Approval Date", readonly=True)
     rejection_reason = fields.Text(string="Rejection Reason")
+
+    # Req 1: Lifecycle timestamps
+    submitted_at = fields.Datetime(string="Submitted At", readonly=True, tracking=True)
+    approved_at = fields.Datetime(string="Approved At", readonly=True, tracking=True)
+    rejected_at = fields.Datetime(string="Rejected At", readonly=True, tracking=True)
+    started_at = fields.Datetime(string="Started At", readonly=True, tracking=True)
+    completed_at = fields.Datetime(string="Completed At", readonly=True, tracking=True)
+    closed_at = fields.Datetime(string="Closed At", readonly=True, tracking=True)
+
+    # Req 2: justification field
+    justification = fields.Text(string="Justification")
     
     # Trip Execution
     actual_start_datetime = fields.Datetime(string="Actual Start Time")
@@ -177,9 +189,10 @@ class TripRequest(models.Model):
     @api.depends('state', 'employee_id')
     def _compute_can_cancel(self):
         for request in self:
+            # Req 1.8: only pending (or draft) can be cancelled
             request.can_cancel = (
                 request.state in ['draft', 'pending'] and
-                (request.employee_id.user_id == self.env.user or 
+                (request.employee_id.user_id == self.env.user or
                  self.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher'))
             )
 
@@ -209,72 +222,75 @@ class TripRequest(models.Model):
                 raise ValidationError("Passenger count must be at least 1.")
 
     def action_submit(self):
-        """Submit trip request for approval"""
+        """Submit trip request for approval — Req 1.2"""
         self.ensure_one()
         if self.state != 'draft':
             raise UserError("Only draft requests can be submitted.")
-        
-        # Validate required fields — skip conflict check for managers
         self._validate_request_data()
-        
-        # Calculate route information
         self._calculate_route_info()
-        
-        # Change state to pending
         self.write({
-            'state': 'pending'
+            'state': 'pending',
+            'submitted_at': fields.Datetime.now(),
         })
-        
-        # Send notification to dispatchers
         self._notify_dispatchers()
-        
-        # Log activity
         self.message_post(
             body=f"Trip request submitted by {self.employee_id.name}",
             message_type='notification'
         )
 
     def action_approve(self):
-        """Approve trip request"""
+        """Approve trip request — Req 1.3"""
         self.ensure_one()
         if not self.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher'):
             raise UserError("Only dispatchers can approve requests.")
-        
         if self.state != 'pending':
             raise UserError("Only pending requests can be approved.")
-        
         self.write({
             'state': 'approved',
             'approved_by': self.env.user.id,
             'approved_date': fields.Datetime.now(),
-            'dispatcher_id': self.env.user.id
+            'approved_at': fields.Datetime.now(),
+            'dispatcher_id': self.env.user.id,
         })
-        
-        # Notify requester
         self._notify_requester('approved')
-        
-        # Log activity
         self.message_post(
             body=f"Trip request approved by {self.env.user.name}",
             message_type='notification'
         )
 
     def action_reject(self, reason=None):
-        """Reject trip request"""
+        """Reject trip request — Req 1.4"""
         self.ensure_one()
         if not self.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher'):
             raise UserError("Only dispatchers can reject requests.")
-        
         if self.state != 'pending':
             raise UserError("Only pending requests can be rejected.")
-        
-        vals = {'state': 'rejected'}
+        vals = {
+            'state': 'rejected',
+            'rejected_at': fields.Datetime.now(),
+        }
         if reason:
             vals['rejection_reason'] = reason
         self.write(vals)
         self._notify_requester('rejected')
         self.message_post(
             body=f"Trip request rejected by {self.env.user.name}" + (f": {reason}" if reason else ""),
+            message_type='notification'
+        )
+
+    def action_close(self):
+        """Close a completed trip request — Req 1.7"""
+        self.ensure_one()
+        if not self.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+            raise UserError("Only Fleet Managers can close completed requests.")
+        if self.state != 'completed':
+            raise UserError("Only completed requests can be closed.")
+        self.write({
+            'state': 'closed',
+            'closed_at': fields.Datetime.now(),
+        })
+        self.message_post(
+            body=f"Trip request closed by {self.env.user.name}",
             message_type='notification'
         )
 
@@ -307,7 +323,8 @@ class TripRequest(models.Model):
             'state': 'assigned',
             'assigned_vehicle_id': vehicle_id,
             'assigned_driver_id': driver_id,
-            'trip_assignment_id': assignment.id
+            'trip_assignment_id': assignment.id,
+            'started_at': fields.Datetime.now(),
         })
 
         # Update vehicle status
@@ -331,18 +348,20 @@ class TripRequest(models.Model):
         }
 
     def action_cancel(self):
-        """Cancel trip request"""
+        """Cancel trip request — Req 1.8/1.9: only pending allowed; returns to draft"""
         self.ensure_one()
-        if not self.can_cancel:
-            raise UserError("This request cannot be cancelled.")
-        
-        # If vehicle is assigned, make it available again
+        if self.state not in ['draft', 'pending']:
+            raise UserError("This request cannot be cancelled — only draft or pending requests can be cancelled.")
+        if not (self.employee_id.user_id == self.env.user or
+                self.env.user.has_group('mesob_fleet_customizations.group_fleet_dispatcher')):
+            raise UserError("You can only cancel your own requests.")
+        # Req 1.9: pending → draft, clear submitted_at
+        if self.state == 'pending':
+            self.write({'state': 'draft', 'submitted_at': False})
+        else:
+            self.write({'state': 'cancelled'})
         if self.assigned_vehicle_id:
             self.assigned_vehicle_id.write({'mesob_status': 'available'})
-        
-        self.write({'state': 'cancelled'})
-        
-        # Notify relevant parties
         self._notify_cancellation()
 
     def _validate_request_data(self):

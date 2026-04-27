@@ -14,14 +14,15 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 const STATE_META = {
-  draft:       { label: "Draft",       cls: "bg-gray-100 text-gray-600 border-gray-200",     bar: "bg-gray-400",    step: 0 },
+  draft:       { label: "Draft",       cls: "bg-gray-100 text-gray-600 border-gray-200",      bar: "bg-gray-400",    step: 0 },
   pending:     { label: "Pending",     cls: "bg-yellow-100 text-yellow-800 border-yellow-200", bar: "bg-yellow-500",  step: 1 },
-  approved:    { label: "Approved",    cls: "bg-green-100 text-green-800 border-green-200",   bar: "bg-green-500",   step: 2 },
-  rejected:    { label: "Rejected",    cls: "bg-red-100 text-red-800 border-red-200",         bar: "bg-red-500",     step: -1 },
-  assigned:    { label: "Assigned",    cls: "bg-blue-100 text-blue-800 border-blue-200",      bar: "bg-blue-500",    step: 3 },
-  in_progress: { label: "In Progress", cls: "bg-purple-100 text-purple-800 border-purple-200", bar: "bg-purple-500", step: 4 },
-  completed:   { label: "Completed",   cls: "bg-teal-100 text-teal-800 border-teal-200",      bar: "bg-teal-500",    step: 5 },
-  cancelled:   { label: "Cancelled",   cls: "bg-gray-100 text-gray-500 border-gray-200",      bar: "bg-gray-300",    step: -1 },
+  approved:    { label: "Approved",    cls: "bg-green-100 text-green-800 border-green-200",    bar: "bg-green-500",   step: 2 },
+  rejected:    { label: "Rejected",    cls: "bg-red-100 text-red-800 border-red-200",          bar: "bg-red-500",     step: -1 },
+  assigned:    { label: "Assigned",    cls: "bg-blue-100 text-blue-800 border-blue-200",       bar: "bg-blue-500",    step: 3 },
+  in_progress: { label: "In Progress", cls: "bg-purple-100 text-purple-800 border-purple-200", bar: "bg-purple-500",  step: 4 },
+  completed:   { label: "Completed",   cls: "bg-teal-100 text-teal-800 border-teal-200",       bar: "bg-teal-500",    step: 5 },
+  closed:      { label: "Closed",      cls: "bg-slate-100 text-slate-700 border-slate-200",    bar: "bg-slate-500",   step: 6 },
+  cancelled:   { label: "Cancelled",   cls: "bg-gray-100 text-gray-500 border-gray-200",       bar: "bg-gray-300",    step: -1 },
 };
 
 export default function MyRequests() {
@@ -166,8 +167,8 @@ export default function MyRequests() {
                       <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs" onClick={() => setSelected(req)}>
                         <Eye className="h-3.5 w-3.5 mr-1" /> View
                       </Button>
-                      {/* FR-1.3: Cancel only if pending or draft */}
-                      {(req.state === "pending" || req.state === "draft") && (
+                      {/* FR-1.3 / Req 1.8: Cancel only if pending */}
+                      {req.state === "pending" && (
                         <Button size="sm" className="h-8 rounded-lg text-xs bg-red-50 text-red-600 border border-red-200 hover:bg-red-600 hover:text-white"
                           onClick={() => setConfirmCancel(req)}>
                           <XCircle className="h-3.5 w-3.5 mr-1" /> Cancel
@@ -192,6 +193,7 @@ export default function MyRequests() {
             {[
               ["Status", <Badge key="s" className={`text-xs border ${STATE_META[selected?.state]?.cls || ""}`}>{STATE_META[selected?.state]?.label}</Badge>],
               ["Purpose", selected?.purpose],
+              ["Justification", selected?.justification || "—"],
               ["Vehicle Category", selected?.vehicle_category],
               ["Trip Type", selected?.trip_type?.replace("_", " ")],
               ["Passengers", selected?.passenger_count],
@@ -202,6 +204,8 @@ export default function MyRequests() {
               ["End", selected?.end_datetime ? new Date(selected.end_datetime).toLocaleString() : "—"],
               ["Assigned Vehicle", selected?.assigned_vehicle || "Pending assignment"],
               ["Assigned Driver", selected?.assigned_driver || "Pending assignment"],
+              ["Submitted", selected?.submitted_at ? new Date(selected.submitted_at).toLocaleString() : "—"],
+              ["Approved", selected?.approved_at ? new Date(selected.approved_at).toLocaleString() : "—"],
             ].map(([label, value]) => (
               <div key={label} className="bg-gray-50 rounded-xl p-3">
                 <p className="text-xs text-gray-400 font-bold uppercase">{label}</p>

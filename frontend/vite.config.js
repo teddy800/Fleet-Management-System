@@ -4,10 +4,10 @@ import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
 const proxyConfig = {
-  target: 'http://localhost:8069',
+  target: process.env.NODE_ENV === 'production' ? 'https://your-domain.com' : 'http://localhost:8069',
   changeOrigin: true,
-  secure: false,
-  cookieDomainRewrite: "localhost",
+  secure: process.env.NODE_ENV === 'production',
+  cookieDomainRewrite: process.env.NODE_ENV === 'production' ? "your-domain.com" : "localhost",
   cookiePathRewrite: { "*": "/" },
   configure: (proxy) => {
     proxy.on('proxyRes', (proxyRes) => {
@@ -15,7 +15,7 @@ const proxyConfig = {
       if (setCookie) {
         proxyRes.headers['set-cookie'] = setCookie.map(c =>
           c.replace(/; SameSite=None/gi, '; SameSite=Lax')
-           .replace(/; Secure/gi, '')
+           .replace(/; Secure/gi, process.env.NODE_ENV === 'production' ? '; Secure' : '')
            .replace(/Domain=[^;]+;?\s*/gi, '')
         );
       }

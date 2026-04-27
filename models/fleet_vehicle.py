@@ -15,6 +15,14 @@ class FleetVehicle(models.Model):
         ('unavailable', 'Unavailable')
     ], default='available', string="Fleet Status")
 
+    # Req 4.1: availability boolean field
+    availability = fields.Boolean(
+        string="Available",
+        compute="_compute_availability",
+        store=True,
+        help="True when the vehicle is free to be assigned to a new trip.",
+    )
+
     maintenance_due = fields.Boolean(
         string="Maintenance Due", compute="_compute_maintenance_due", store=True, default=False
     )
@@ -69,6 +77,12 @@ class FleetVehicle(models.Model):
         string="Current Market Value (ETB)",
         default=0.0,
     )
+
+    @api.depends('mesob_status')
+    def _compute_availability(self):
+        """Req 4.1: availability is True only when status is 'available'"""
+        for vehicle in self:
+            vehicle.availability = (vehicle.mesob_status == 'available')
 
     @api.depends('current_odometer')
     def _compute_maintenance_due(self):
@@ -200,9 +214,11 @@ class FleetVehicle(models.Model):
         }
 
     def _cron_check_maintenance(self):
+        """Req 4.3: set availability=False (mesob_status=maintenance) for vehicles with maintenance_due"""
         for rec in self.search([]):
             if rec.maintenance_due:
                 rec.mesob_status = 'maintenance'
+                # availability is computed from mesob_status, so this auto-updates it
 
     @api.model
     def _fix_null_vehicle_categories(self):

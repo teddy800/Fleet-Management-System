@@ -1,4 +1,48 @@
-const BASE_URL = "";
+const BASE_URL = process.env.NODE_ENV === 'production' ? '' : '';
+
+// ─── Security Configuration ──────────────────────────────────────────────────
+const SECURITY_CONFIG = {
+  maxRetries: 3,
+  retryDelay: 1000,
+  requestTimeout: 30000,
+  rateLimitWindow: 60000, // 1 minute
+  maxRequestsPerWindow: 100,
+};
+
+// ─── Rate limiting ───────────────────────────────────────────────────────────
+const _rateLimiter = {
+  requests: [],
+  isAllowed() {
+    const now = Date.now();
+    this.requests = this.requests.filter(time => now - time < SECURITY_CONFIG.rateLimitWindow);
+    
+    if (this.requests.length >= SECURITY_CONFIG.maxRequestsPerWindow) {
+      throw new Error('Rate limit exceeded. Please try again later.');
+    }
+    
+    this.requests.push(now);
+    return true;
+  }
+};
+
+// ─── Enhanced error handling ─────────────────────────────────────────────────
+function handleSecurityError(error, path) {
+  // Log security-related errors for monitoring
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('event', 'api_error', {
+      event_category: 'security',
+      event_label: path,
+      value: 1
+    });
+  }
+  
+  // Don't expose internal error details in production
+  if (process.env.NODE_ENV === 'production') {
+    return new Error('Request failed. Please try again or contact support.');
+  }
+  
+  return error;
+}
 
 // ─── In-memory cache ──────────────────────────────────────────────────────────
 const _cache = new Map();

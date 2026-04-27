@@ -17,10 +17,13 @@
                     <button name="action_open_assign_wizard" string="Assign Vehicle" type="object"
                             class="btn-primary" invisible="state != 'approved'"
                             groups="mesob_fleet_customizations.group_fleet_dispatcher"/>
+                    <button name="action_close" string="Close" type="object"
+                            class="btn-secondary" invisible="state != 'completed'"
+                            groups="mesob_fleet_customizations.group_fleet_manager"/>
                     <button name="action_cancel" string="Cancel" type="object"
                             invisible="state not in ('draft','pending')"/>
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,pending,approved,assigned,in_progress,completed"/>
+                           statusbar_visible="draft,pending,approved,assigned,in_progress,completed,closed"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
@@ -33,6 +36,7 @@
                                 <group string="REQUEST DETAILS">
                                     <field name="employee_id" options="{'no_create': True}"/>
                                     <field name="purpose"/>
+                                    <field name="justification"/>
                                     <field name="vehicle_category"/>
                                     <field name="trip_type"/>
                                     <field name="priority" widget="priority"/>
@@ -78,6 +82,14 @@
                                 <group string="REJECTION" invisible="state != 'rejected'">
                                     <field name="rejection_reason" readonly="1"/>
                                 </group>
+                            </group>
+                            <group string="LIFECYCLE TIMESTAMPS">
+                                <field name="submitted_at" readonly="1"/>
+                                <field name="approved_at" readonly="1"/>
+                                <field name="rejected_at" readonly="1" invisible="state != 'rejected'"/>
+                                <field name="started_at" readonly="1"/>
+                                <field name="completed_at" readonly="1"/>
+                                <field name="closed_at" readonly="1" invisible="state != 'closed'"/>
                             </group>
                             <!-- FR-3.2: Live vehicle location -->
                             <group string="LIVE VEHICLE LOCATION"
@@ -167,7 +179,7 @@
                   decoration-info="state == 'pending'"
                   decoration-success="state == 'approved'"
                   decoration-warning="state == 'in_progress'"
-                  decoration-muted="state in ('completed','cancelled')">
+                  decoration-muted="state in ('completed','cancelled','closed')">
                 <field name="name"/>
                 <field name="employee_id"/>
                 <field name="vehicle_category"/>
@@ -179,7 +191,8 @@
                 <field name="state" widget="badge"
                        decoration-info="state == 'pending'"
                        decoration-success="state in ('approved','assigned')"
-                       decoration-warning="state == 'in_progress'"/>
+                       decoration-warning="state == 'in_progress'"
+                       decoration-danger="state == 'rejected'"/>
             </list>
         </field>
     </record>

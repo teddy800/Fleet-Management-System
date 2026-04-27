@@ -5,18 +5,84 @@ import logging
 from datetime import datetime
 import hmac
 import hashlib
+import os
+from functools import wraps
 
 _logger = logging.getLogger(__name__)
+
+# Production security configuration
+PRODUCTION_CONFIG = {
+    'webhook_timeout': 30,  # seconds
+    'max_payload_size': 1024 * 1024,  # 1MB
+    'rate_limit_window': 60,  # seconds
+    'max_requests_per_window': 100,
+}
+
+# Rate limiting storage (in production, use Redis)
+_rate_limiter = {}
+
+def rate_limit(max_requests=100, window=60):
+    """Rate limiting decorator for webhook endpoints"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            client_ip = request.httprequest.environ.get('REMOTE_ADDR', 'unknown')
+            current_time = datetime.now().timestamp()
+            
+            # Clean old entries
+            if client_ip in _rate_limiter:
+                _rate_limiter[client_ip] = [
+                    req_time for req_time in _rate_limiter[client_ip]
+                    if current_time - req_time < window
+                ]
+            else:
+                _rate_limiter[client_ip] = []
+            
+            # Check rate limit
+            if len(_rate_limiter[client_ip]) >= max_requests:
+                _logger.warning(f"Rate limit exceeded for IP: {client_ip}")
+                return {'success': False, 'error': 'Rate limit exceeded'}
+            
+            # Add current request
+            _rate_limiter[client_ip].append(current_time)
+            
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+def validate_payload_size():
+    """Validate request payload size"""
+    content_length = request.httprequest.content_length
+    if content_length and content_length > PRODUCTION_CONFIG['max_payload_size']:
+        raise ValueError(f"Payload too large: {content_length} bytes")
+
+def get_webhook_secret(webhook_type):
+    """Get webhook secret from environment or system parameters"""
+    # Try environment variable first (production)
+    env_key = f'WEBHOOK_{webhook_type.upper()}_SECRET'
+    secret = os.environ.get(env_key)
+    
+    if not secret:
+        # Fallback to system parameters (development)
+        param_key = f'mesob.webhook_{webhook_type}_secret'
+        secret = request.env['ir.config_parameter'].sudo().get_param(param_key)
+    
+    return secret
 
 
 class WebhookController(http.Controller):
 
     @http.route('/webhook/hr/employee-sync', type='json', auth='public', methods=['POST'], csrf=False)
+    @rate_limit(max_requests=50, window=60)  # 50 requests per minute for HR sync
     def hr_employee_sync_webhook(self):
-        """Webhook for HR employee synchronization"""
+        """Webhook for HR employee synchronization with enhanced security"""
         try:
+            # Validate payload size
+            validate_payload_size()
+            
             # Validate webhook signature
             if not self._validate_webhook_signature('hr_sync'):
+                _logger.warning("Invalid webhook signature for HR sync")
                 return {'success': False, 'error': 'Invalid webhook signature'}
 
             data = request.params
@@ -34,6 +100,12 @@ class WebhookController(http.Controller):
 
             for payload in employees_data:
                 try:
+                    # Validate required fields
+                    if not payload.get('external_hr_id'):
+                        _logger.error("Missing external_hr_id in HR payload: %s", payload)
+                        error_count += 1
+                        continue
+                        
                     Employee._upsert_employee(payload)
                     success_count += 1
                 except Exception as e:
@@ -44,7 +116,8 @@ class WebhookController(http.Controller):
             return {
                 'success': True,
                 'synced': success_count,
-                'errors': error_count
+                'errors': error_count,
+                'timestamp': datetime.now().isoformat()
             }
 
         except Exception as e:
