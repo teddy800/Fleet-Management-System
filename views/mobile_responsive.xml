@@ -20,7 +20,7 @@
                             invisible="state != 'pending'"
                             groups="mesob_fleet_customizations.group_fleet_dispatcher"/>
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,pending,approved,in_progress,completed"/>
+                           statusbar_visible="draft,pending,approved,in_progress,completed,closed"/>
                 </header>
                 <sheet>
                     <div class="oe_title">

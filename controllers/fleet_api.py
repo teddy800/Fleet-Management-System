@@ -93,7 +93,9 @@ class FleetAPIController(http.Controller):
                       'start_datetime', 'end_datetime', 'pickup_location', 'destination_location',
                       'passenger_count', 'priority', 'trip_type', 'assigned_vehicle_id',
                       'assigned_driver_id', 'create_date', 'rejection_reason',
-                      'approved_date', 'estimated_distance']
+                      'approved_date', 'estimated_distance',
+                      'submitted_at', 'approved_at', 'rejected_at',
+                      'started_at', 'completed_at', 'closed_at', 'justification']
 
             if is_dispatcher:
                 records = request.env['mesob.trip.request'].search_read(
@@ -116,6 +118,7 @@ class FleetAPIController(http.Controller):
                     'id': tr['id'],
                     'name': tr['name'],
                     'purpose': tr['purpose'],
+                    'justification': tr.get('justification') or '',
                     'state': tr['state'],
                     'employee_name': emp[1] if emp else '',
                     'vehicle_category': tr['vehicle_category'],
@@ -133,6 +136,12 @@ class FleetAPIController(http.Controller):
                     'rejection_reason': tr.get('rejection_reason') or '',
                     'approved_date': tr['approved_date'].isoformat() if tr.get('approved_date') else None,
                     'estimated_distance': tr.get('estimated_distance') or 0,
+                    'submitted_at': tr['submitted_at'].isoformat() if tr.get('submitted_at') else None,
+                    'approved_at': tr['approved_at'].isoformat() if tr.get('approved_at') else None,
+                    'rejected_at': tr['rejected_at'].isoformat() if tr.get('rejected_at') else None,
+                    'started_at': tr['started_at'].isoformat() if tr.get('started_at') else None,
+                    'completed_at': tr['completed_at'].isoformat() if tr.get('completed_at') else None,
+                    'closed_at': tr['closed_at'].isoformat() if tr.get('closed_at') else None,
                 })
             return {'success': True, 'trip_requests': data}
         except Exception as e:

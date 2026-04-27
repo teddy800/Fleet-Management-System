@@ -139,7 +139,7 @@ export default function RequestWizard() {
 
   // Unified form state across all steps
   const [formData, setFormData] = useState({
-    purpose: "", vehicleCategory: "",
+    purpose: "", justification: "", vehicleCategory: "",
     startDate: format(new Date(), "yyyy-MM-dd"), startTime: "08:00",
     endDate: format(new Date(), "yyyy-MM-dd"), endTime: "17:00",
     pickupLocation: "MESSOB Center HQ", pickupLatitude: 0, pickupLongitude: 0,

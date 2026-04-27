@@ -17,6 +17,7 @@ const STATE_META = {
   assigned:    { label: "Assigned",    cls: "bg-blue-100 text-blue-800 border-blue-200" },
   in_progress: { label: "In Progress", cls: "bg-purple-100 text-purple-800 border-purple-200" },
   completed:   { label: "Completed",   cls: "bg-gray-100 text-gray-700 border-gray-200" },
+  closed:      { label: "Closed",      cls: "bg-slate-100 text-slate-700 border-slate-200" },
   cancelled:   { label: "Cancelled",   cls: "bg-gray-100 text-gray-500 border-gray-200" },
 };
 
@@ -211,7 +212,7 @@ export default function ApprovalQueue() {
         </div>
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-gray-400" />
-          {["all", "pending", "approved", "assigned", "in_progress", "completed"].map(s => (
+          {["all", "pending", "approved", "assigned", "in_progress", "completed", "closed"].map(s => (
             <button key={s} onClick={() => setFilterState(s)}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${filterState === s ? "bg-brand-blue text-white border-brand-blue" : "bg-white text-gray-600 border-gray-200 hover:border-brand-blue"}`}>
               {s === "all" ? "All" : s === "in_progress" ? "In Progress" : STATE_META[s]?.label}
