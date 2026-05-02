@@ -181,27 +181,28 @@ async function _doFetch(path, body, isJsonRpc, options) {
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
+// NOTE: The full login flow (authenticate + role probe) lives in useUserStore.js
+// authApi here is kept for the test suite and for the logout call.
 export const authApi = {
   login: async (username, password) => {
     // Step 1: Authenticate via standard Odoo session endpoint
-    const authBody = JSON.stringify({
-      jsonrpc: "2.0", method: "call", id: 1,
-      params: { db: "messob_db", login: username, password },
-    });
     let authRes;
     try {
       authRes = await fetch("/web/session/authenticate", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: authBody,
+        body: JSON.stringify({
+          jsonrpc: "2.0", method: "call", id: 1,
+          params: { db: "messob_db", login: username, password },
+        }),
       });
     } catch (_) {
       throw new Error("Network error. Check your connection.");
     }
     // Check content-type before parsing — non-JSON means session expired or server error
-    const authContentType = authRes.headers.get("content-type") || "";
-    if (!authContentType.includes("application/json")) {
+    const ct = authRes.headers.get("content-type") || "";
+    if (!ct.includes("application/json")) {
       throw new Error("Session expired. Please log in again.");
     }
     const authRaw = await authRes.json();
@@ -209,108 +210,16 @@ export const authApi = {
     if (!authData?.uid) {
       throw new Error("Invalid credentials. Please try again.");
     }
-
-    // Step 2: Probe role by calling the fleet dashboard (works for all roles)
-    // and checking what data comes back
-    const roles = [];
-    let employeeId = null;
-    let isDriver = false;
-
-    try {
-      // Try the /api/user/info endpoint first (available after Odoo restart)
-      const infoRes = await fetch("/api/user/info", {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 2, params: {} }),
-      });
-      const infoRaw = await infoRes.json();
-      if (infoRaw?.result?.success) {
-        return { success: true, user: infoRaw.result.user };
-      }
-    } catch (_) { /* endpoint not yet available */ }
-
-    // Step 3: Role probe via fleet API endpoints
-    try {
-      // Probe 1: Try dispatcher-only endpoint
-      const vehiclesRes = await fetch("/api/fleet/vehicles", {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 3, params: {} }),
-      });
-      const vehiclesRaw = await vehiclesRes.json();
-      const vehiclesResult = vehiclesRaw?.result;
-
-      if (vehiclesResult?.success === true) {
-        // Can access vehicles → dispatcher or manager
-        roles.push("fleet_dispatcher");
-      } else if (vehiclesResult?.error === "Insufficient permissions") {
-        // Explicitly denied → fleet_user
-        roles.push("fleet_user");
-      } else if (vehiclesResult?.success === false && !vehiclesResult?.error?.includes("permission")) {
-        // Got an error but NOT a permission error → has access, something else failed
-        roles.push("fleet_dispatcher");
-      }
-
-      // Probe 2: Check if manager (can access user management)
-      if (roles.includes("fleet_dispatcher")) {
-        const usersRes = await fetch("/api/fleet/users", {
-          method: "POST", credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 4, params: {} }),
-        });
-        const usersRaw = await usersRes.json();
-        if (usersRaw?.result?.success === true) {
-          roles.push("fleet_manager");
-        }
-      }
-
-      // Probe 3: Get employee info (works for all authenticated users)
-      const empRes = await fetch("/api/mobile/user/trip-requests", {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 5, params: {} }),
-      });
-      const empRaw = await empRes.json();
-      if (empRaw?.result?.success === true && !roles.includes("fleet_dispatcher")) {
-        // Can access trip requests → fleet_user
-        if (roles.length === 0) roles.push("fleet_user");
-      }
-    } catch (_) { /* probe failed */ }
-
-    // Step 4: Get employee record for driver check
-    try {
-      const empBody = JSON.stringify({
-        jsonrpc: "2.0", method: "call", id: 6,
-        params: {
-          model: "hr.employee", method: "search_read",
-          args: [[["user_id", "=", authData.uid]]],
-          kwargs: { fields: ["id", "is_driver"], limit: 1 },
-        },
-      });
-      const empRes = await fetch("/web/dataset/call_kw", {
-        method: "POST", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: empBody,
-      });
-      const empRaw = await empRes.json();
-      const emp = empRaw?.result?.[0];
-      if (emp) {
-        employeeId = emp.id;
-        isDriver = emp.is_driver || false;
-        if (isDriver && !roles.includes("fleet_user")) roles.push("fleet_user");
-        if (isDriver) roles.push("driver");
-      }
-    } catch (_) { /* ignore */ }
-
+    // Return minimal user data — full role detection is done in useUserStore.login()
     return {
       success: true,
       user: {
         id: authData.uid,
         name: authData.name || username,
         email: authData.username || username,
-        roles,
-        employee_id: employeeId,
-        is_driver: isDriver,
+        roles: [],
+        employee_id: null,
+        is_driver: false,
       },
     };
   },
