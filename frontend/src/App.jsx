@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import Login from "./features/auth/Login";
+import ProtectedRoute from "./features/auth/ProtectedRoute";
 
 // Lazy-load all pages — each becomes its own chunk, loaded only when visited
 const RequestWizard  = lazy(() => import("./features/requests/components/RequestWizard"));
@@ -30,29 +31,46 @@ function PageLoader() {
   );
 }
 
+function S({ children }) {
+  return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
+}
+
 export default function App() {
   return (
     <Routes>
+      {/* Public route */}
       <Route path="/login" element={<Login />} />
-      <Route path="/" element={<DashboardLayout />}>
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard"          element={<Suspense fallback={<PageLoader />}><DashboardHome /></Suspense>} />
-        <Route path="requests/new"       element={<Suspense fallback={<PageLoader />}><RequestWizard /></Suspense>} />
-        <Route path="my-requests"        element={<Suspense fallback={<PageLoader />}><MyRequests /></Suspense>} />
-        <Route path="dispatch/approvals" element={<Suspense fallback={<PageLoader />}><ApprovalQueue /></Suspense>} />
-        <Route path="dispatch/calendar"  element={<Suspense fallback={<PageLoader />}><FleetCalendar /></Suspense>} />
-        <Route path="profile"            element={<Suspense fallback={<PageLoader />}><Profile /></Suspense>} />
-        <Route path="fleet"              element={<Suspense fallback={<PageLoader />}><ManageFleet /></Suspense>} />
-        <Route path="tracking"           element={<Suspense fallback={<PageLoader />}><GPSTracking /></Suspense>} />
-        <Route path="fuel-log"           element={<Suspense fallback={<PageLoader />}><FuelLog /></Suspense>} />
-        <Route path="maintenance"        element={<Suspense fallback={<PageLoader />}><Maintenance /></Suspense>} />
-        <Route path="alerts"             element={<Suspense fallback={<PageLoader />}><Alerts /></Suspense>} />
-        <Route path="analytics"          element={<Suspense fallback={<PageLoader />}><Analytics /></Suspense>} />
-        <Route path="drivers"            element={<Suspense fallback={<PageLoader />}><Drivers /></Suspense>} />
-        <Route path="inventory"          element={<Suspense fallback={<PageLoader />}><Inventory /></Suspense>} />
-        <Route path="users"              element={<Suspense fallback={<PageLoader />}><UserManagement /></Suspense>} />
-        <Route path="hr-sync"            element={<Suspense fallback={<PageLoader />}><HRSync /></Suspense>} />
+
+      {/* All dashboard routes are protected */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<DashboardLayout />}>
+          <Route index element={<Navigate to="/dashboard" replace />} />
+
+          {/* Available to all authenticated roles */}
+          <Route path="dashboard"    element={<S><DashboardHome /></S>} />
+          <Route path="requests/new" element={<S><RequestWizard /></S>} />
+          <Route path="my-requests"  element={<S><MyRequests /></S>} />
+          <Route path="profile"      element={<S><Profile /></S>} />
+
+          {/* Dispatcher + Admin only */}
+          <Route path="dispatch/approvals" element={<S><ApprovalQueue /></S>} />
+          <Route path="dispatch/calendar"  element={<S><FleetCalendar /></S>} />
+          <Route path="fleet"              element={<S><ManageFleet /></S>} />
+          <Route path="tracking"           element={<S><GPSTracking /></S>} />
+          <Route path="drivers"            element={<S><Drivers /></S>} />
+          <Route path="fuel-log"           element={<S><FuelLog /></S>} />
+          <Route path="maintenance"        element={<S><Maintenance /></S>} />
+          <Route path="alerts"             element={<S><Alerts /></S>} />
+
+          {/* Admin only */}
+          <Route path="analytics"  element={<S><Analytics /></S>} />
+          <Route path="inventory"  element={<S><Inventory /></S>} />
+          <Route path="hr-sync"    element={<S><HRSync /></S>} />
+          <Route path="users"      element={<S><UserManagement /></S>} />
+        </Route>
       </Route>
+
+      {/* Catch-all → login */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );

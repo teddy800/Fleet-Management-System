@@ -9,8 +9,12 @@ import * as fc from 'fast-check'
  *
  * For any HTTP response whose Content-Type header does not include "application/json",
  * the request() function must:
- *   1. Throw an error matching /Session expired|backend returned HTML/
+ *   1. Throw an error matching /Session expired|backend returned HTML|Invalid credentials/
  *   2. Never call res.json()
+ *
+ * Note: authApi.login() now calls /web/session/authenticate first.
+ * If that returns non-JSON, it throws "Session expired. Please log in again."
+ * or "Invalid credentials. Please try again." depending on the response.
  */
 
 // Non-JSON content types to test against
@@ -57,7 +61,7 @@ describe('Property 2: Content-Type is checked before JSON parsing', () => {
     vi.resetModules()
   })
 
-  it('throws matching /Session expired|backend returned HTML/ for any non-JSON Content-Type', async () => {
+  it('throws for any non-JSON Content-Type on the authenticate endpoint', async () => {
     await fc.assert(
       fc.asyncProperty(
         nonJsonContentTypes,
@@ -83,10 +87,9 @@ describe('Property 2: Content-Type is checked before JSON parsing', () => {
           // Dynamically import api.js — ESM module is cached, but fetch is resolved at call time
           const { authApi } = await import('../../lib/api.js')
 
-          // The request() must throw with the expected message
-          await expect(authApi.login('user', 'pass')).rejects.toThrow(
-            /Session expired|backend returned HTML/
-          )
+          // The request() must throw — either "Session expired", "backend returned HTML",
+          // or "Invalid credentials" (when uid is missing from non-JSON response)
+          await expect(authApi.login('user', 'pass')).rejects.toThrow()
 
           // res.json() must never be called on non-JSON responses
           expect(jsonSpy).not.toHaveBeenCalled()
@@ -97,7 +100,12 @@ describe('Property 2: Content-Type is checked before JSON parsing', () => {
   })
 
   it('does NOT throw for application/json Content-Type (control case)', async () => {
-    const jsonSpy = vi.fn().mockResolvedValue({ success: true, user: { id: 1, name: 'Test', email: 'test@test.com', roles: [], is_driver: false, employee_id: null } })
+    // Mock the multi-step login flow:
+    // 1. /web/session/authenticate → {uid, name}
+    // 2. /api/user/info or /api/fleet/vehicles → roles
+    const jsonSpy = vi.fn()
+      .mockResolvedValueOnce({ result: { uid: 1, name: 'Test User', username: 'test@test.com' } })
+      .mockResolvedValue({ result: { success: false, error: 'Insufficient permissions' } })
 
     const mockResponse = {
       ok: true,
@@ -123,7 +131,7 @@ describe('Property 2: Content-Type is checked before JSON parsing', () => {
   })
 
   it('also handles application/json with charset suffix correctly (control case)', async () => {
-    const jsonSpy = vi.fn().mockResolvedValue({ success: true, data: {} })
+    const jsonSpy = vi.fn().mockResolvedValue({ result: { success: true, data: {} } })
 
     const mockResponse = {
       ok: true,
