@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/s
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { useUserStore } from "@/store/useUserStore";
+import { cn } from "@/lib/utils";
 
 const BREADCRUMBS = {
   "/dashboard":          ["Dashboard"],
@@ -96,7 +97,15 @@ export default function DashboardLayout() {
 
             {/* User avatar */}
             <div className="flex items-center gap-2.5 pl-1">
-              <div className="w-8 h-8 rounded-full gradient-brand flex items-center justify-center text-white text-xs font-black shadow-md ring-2 ring-white">
+              <div className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-black shadow-md ring-2 ring-white",
+                user?.role === "Admin"      && "bg-amber-500",
+                user?.role === "Dispatcher" && "bg-blue-600",
+                user?.role === "Staff"      && "bg-green-600",
+                user?.role === "Driver"     && "bg-purple-600",
+                user?.role === "Mechanic"   && "bg-rose-600",
+                !user?.role                 && "gradient-brand"
+              )}>
                 {user?.name?.charAt(0)?.toUpperCase() || "U"}
               </div>
               <div className="hidden md:block">
