@@ -48,7 +48,7 @@ class FleetAPIController(http.Controller):
             )
             vehicle_data = []
             for v in vehicles:
-                driver = request.env['hr.employee'].browse(v['assigned_driver_id'][0]) if v.get('assigned_driver_id') else None
+                driver = request.env['hr.employee'].sudo().browse(v['assigned_driver_id'][0]) if v.get('assigned_driver_id') else None
                 vehicle_data.append({
                     'id': v['id'],
                     'name': v['name'],
@@ -102,7 +102,7 @@ class FleetAPIController(http.Controller):
                     [], FIELDS, order='create_date asc', limit=100
                 )
             else:
-                employee = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
+                employee = request.env['hr.employee'].sudo().search([('user_id', '=', request.env.uid)], limit=1)
                 if not employee:
                     return {'success': False, 'error': 'Employee record not found'}
                 records = request.env['mesob.trip.request'].search_read(
@@ -174,7 +174,7 @@ class FleetAPIController(http.Controller):
 
             # Get current employee — for admin users without an employee record,
             # create a virtual employee reference or use a fallback
-            employee = request.env['hr.employee'].search([
+            employee = request.env['hr.employee'].sudo().search([
                 ('user_id', '=', request.env.uid)
             ], limit=1)
 
@@ -739,7 +739,7 @@ class FleetAPIController(http.Controller):
             } for v in vehicles]
 
             # Available drivers: is_driver, not busy — deduplicate by name (same person may have multiple HR records)
-            drivers = request.env['hr.employee'].search([
+            drivers = request.env['hr.employee'].sudo().search([
                 ('is_driver', '=', True),
                 ('id', 'not in', busy_driver_ids),
             ])
@@ -772,7 +772,7 @@ class FleetAPIController(http.Controller):
             users = request.env['res.users'].search([('active', '=', True), ('share', '=', False)])
             data = []
             for u in users:
-                employee = request.env['hr.employee'].search([('user_id', '=', u.id)], limit=1)
+                employee = request.env['hr.employee'].sudo().search([('user_id', '=', u.id)], limit=1)
                 roles = []
                 if u.has_group('mesob_fleet_customizations.group_fleet_manager'):
                     roles.append('fleet_manager')
@@ -834,7 +834,7 @@ class FleetAPIController(http.Controller):
             if not request.env.user.has_group('mesob_fleet_customizations.group_fleet_manager'):
                 return {'success': False, 'error': 'Insufficient permissions'}
             data = request.params or {}
-            driver = request.env['hr.employee'].browse(driver_id)
+            driver = request.env['hr.employee'].sudo().browse(driver_id)
             if not driver.exists():
                 return {'success': False, 'error': 'Driver not found'}
             vals = {}
@@ -1003,7 +1003,7 @@ class FleetAPIController(http.Controller):
             vehicle = request.env['fleet.vehicle'].browse(int(vehicle_id))
             if not vehicle.exists():
                 return {'success': False, 'error': 'Vehicle not found'}
-            driver = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
+            driver = request.env['hr.employee'].sudo().search([('user_id', '=', request.env.uid)], limit=1)
             from odoo import fields as odoo_fields
             log = request.env['mesob.fuel.log'].create({
                 'vehicle_id': int(vehicle_id),
@@ -1330,4 +1330,64 @@ class FleetAPIController(http.Controller):
             }
         except Exception as e:
             _logger.error(f"Deduplicate drivers error: {e}")
+            return {'success': False, 'error': str(e)}
+
+    # ── One-time setup endpoint ───────────────────────────────────────────────
+    @http.route('/api/fleet/setup/assign-groups', type='json', auth='user',
+                methods=['POST'], cors='*', csrf=False)
+    def setup_assign_groups(self):
+        """
+        One-time setup: assign fleet groups to all MESSOB users.
+        Must be called as admin. Uses sudo() to bypass RPC restrictions.
+        """
+        try:
+            if not request.env.user.has_group('base.group_system'):
+                return {'success': False, 'error': 'Admin only'}
+
+            env = request.env
+
+            # Resolve group records
+            try:
+                g_user       = env.ref('mesob_fleet_customizations.group_fleet_user')
+                g_dispatcher = env.ref('mesob_fleet_customizations.group_fleet_dispatcher')
+                g_manager    = env.ref('mesob_fleet_customizations.group_fleet_manager')
+            except Exception as e:
+                return {'success': False, 'error': f'Groups not found: {e}'}
+
+            assignments = [
+                ('tigist.haile@mesob.com',     g_dispatcher),
+                ('rahel.mekonnen@mesob.com',   g_dispatcher),
+                ('dawit.bekele@mesob.com',     g_user),
+                ('kebede.worku@mesob.com',     g_user),
+                ('abebe.kebede@mesob.com',     g_user),
+                ('sara.tesfaye@mesob.com',     g_user),
+                ('yonas.girma@mesob.com',      g_user),
+                ('mekdes.alemu@mesob.com',     g_user),
+                ('hana.worku@mesob.com',       g_user),
+                ('tesfaye.mulugeta@mesob.com', g_user),
+                ('liya.solomon@mesob.com',     g_user),
+                ('biruk.tadesse@mesob.com',    g_user),
+            ]
+
+            results = []
+            for login, group in assignments:
+                user = env['res.users'].sudo().search([('login', '=', login)], limit=1)
+                if not user:
+                    results.append({'login': login, 'status': 'not_found'})
+                    continue
+                # Add user to group using sudo — bypasses RPC security
+                if user not in group.sudo().users:
+                    group.sudo().write({'users': [(4, user.id)]})
+                results.append({
+                    'login': login,
+                    'name': user.name,
+                    'group': group.name,
+                    'status': 'ok',
+                })
+                _logger.info("Assigned %s to group %s", login, group.name)
+
+            return {'success': True, 'results': results}
+
+        except Exception as e:
+            _logger.error("setup_assign_groups error: %s", e, exc_info=True)
             return {'success': False, 'error': str(e)}

@@ -260,3 +260,57 @@ class WebhookController(http.Controller):
         expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
 
         return hmac.compare_digest(signature, expected)
+
+    @http.route('/api/user/info', type='json', auth='user', methods=['POST'], cors='*', csrf=False)
+    def get_user_info(self):
+        """
+        Return current user's fleet roles and employee info.
+        Called by the frontend after /web/session/authenticate.
+        Uses sudo() to read group membership securely.
+        """
+        try:
+            uid = request.env.uid
+            user = request.env['res.users'].sudo().browse(uid)
+
+            # Check fleet group membership via sudo
+            roles = []
+            try:
+                if user.has_group('mesob_fleet_customizations.group_fleet_manager'):
+                    roles.append('fleet_manager')
+                if user.has_group('mesob_fleet_customizations.group_fleet_dispatcher'):
+                    roles.append('fleet_dispatcher')
+                if user.has_group('mesob_fleet_customizations.group_fleet_user'):
+                    roles.append('fleet_user')
+            except Exception:
+                # Fallback: check via direct DB query
+                request.env.cr.execute(
+                    """SELECT gid FROM res_groups_users_rel
+                       WHERE uid = %s AND gid IN (48, 49, 74)""",
+                    (uid,)
+                )
+                gids = {row[0] for row in request.env.cr.fetchall()}
+                if 49 in gids: roles.append('fleet_manager')
+                if 74 in gids: roles.append('fleet_dispatcher')
+                if 48 in gids: roles.append('fleet_user')
+
+            # Get employee record
+            employee = request.env['hr.employee'].sudo().search(
+                [('user_id', '=', uid)], limit=1
+            )
+            if employee and employee.is_driver:
+                roles.append('driver')
+
+            return {
+                'success': True,
+                'user': {
+                    'id': uid,
+                    'name': user.name,
+                    'email': user.email or '',
+                    'roles': roles,
+                    'employee_id': employee.id if employee else None,
+                    'is_driver': bool(employee and employee.is_driver),
+                },
+            }
+        except Exception as e:
+            _logger.error("get_user_info error: %s", e, exc_info=True)
+            return {'success': False, 'error': str(e)}

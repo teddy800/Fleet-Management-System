@@ -9,6 +9,22 @@ from odoo import models, fields, api
 _logger = logging.getLogger(__name__)
 
 
+class HrEmployeePublic(models.Model):
+    """Extend the public employee model to expose fleet-specific fields.
+    This allows non-HR users (dispatchers, staff) to read is_driver and
+    driver info without triggering the hr.employee.public restriction.
+    """
+    _inherit = 'hr.employee.public'
+
+    is_driver = fields.Boolean(string="Is Driver", readonly=True)
+    driver_license_number = fields.Char(string="Driver License Number", readonly=True)
+    license_expiry_date = fields.Date(string="License Expiry Date", readonly=True)
+    external_hr_id = fields.Char(string="External HR ID", readonly=True)
+    synced_from_hr = fields.Boolean(string="Synced from HR", readonly=True)
+    is_fleet_dispatcher = fields.Boolean(string="Is Fleet Dispatcher", readonly=True)
+    is_fleet_manager = fields.Boolean(string="Is Fleet Manager", readonly=True)
+
+
 class HrEmployee(models.Model):
     _inherit = 'hr.employee'
 

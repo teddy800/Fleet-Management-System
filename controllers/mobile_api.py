@@ -26,23 +26,41 @@ class MobileAPIController(http.Controller):
             if not username or not password:
                 return {'success': False, 'error': 'Username and password are required'}
 
-            # In Odoo 19, session.db must be set before calling authenticate
+            # Authenticate via Odoo's standard web session authenticate
             db = request.session.db or config.get('db_name') or 'messob_db'
             request.session.db = db
             _logger.info(f"Authenticating user '{username}' against db '{db}'")
 
-            # Odoo 19: authenticate(env, credential) where credential = {login, password, type}
+            uid = None
             try:
+                # Method 1: Odoo 19 session.authenticate with env + credential dict
                 env = request.env(user=None, su=True)
-                credential = {
-                    'login': username,
-                    'password': password,
-                    'type': 'password',
-                }
+                credential = {'login': username, 'password': password, 'type': 'password'}
                 request.session.authenticate(env, credential)
                 uid = request.session.uid
-            except Exception as auth_err:
-                _logger.warning(f"Authentication error for '{username}': {auth_err}")
+            except Exception as auth_err1:
+                _logger.warning(f"Auth method 1 failed for '{username}': {auth_err1}")
+                try:
+                    # Method 2: Odoo 17/18 style — authenticate(db, login, password)
+                    uid = request.session.authenticate(db, username, password)
+                except Exception as auth_err2:
+                    _logger.warning(f"Auth method 2 failed for '{username}': {auth_err2}")
+                    try:
+                        # Method 3: Direct res.users check via sudo
+                        sudo_env = request.env(user=1, su=True)
+                        user_rec = sudo_env['res.users'].sudo().search(
+                            [('login', '=', username)], limit=1
+                        )
+                        if user_rec and user_rec._check_credentials(password, {'interactive': False}):
+                            uid = user_rec.id
+                            request.session.uid = uid
+                            request.session.login = username
+                        else:
+                            _logger.warning(f"Auth method 3 failed for '{username}'")
+                    except Exception as auth_err3:
+                        _logger.warning(f"Auth method 3 failed for '{username}': {auth_err3}")
+
+            if not uid:
                 return {'success': False, 'error': 'Invalid credentials'}
 
             _logger.info(f"Authentication result for '{username}': uid={uid}")
@@ -53,7 +71,7 @@ class MobileAPIController(http.Controller):
             # Build response using the authenticated user's environment
             env = request.env(user=uid)
             user = env['res.users'].browse(uid)
-            employee = env['hr.employee'].search([('user_id', '=', uid)], limit=1)
+            employee = env['hr.employee'].sudo().search([('user_id', '=', uid)], limit=1)
 
             roles = []
             if user.has_group('mesob_fleet_customizations.group_fleet_manager'):
@@ -86,7 +104,7 @@ class MobileAPIController(http.Controller):
     def get_driver_assignments(self):
         """Get assignments for current driver"""
         try:
-            employee = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
+            employee = request.env['hr.employee'].sudo().search([('user_id', '=', request.env.uid)], limit=1)
             if not employee or not employee.is_driver:
                 return {'success': False, 'error': 'User is not a driver'}
 
@@ -130,7 +148,7 @@ class MobileAPIController(http.Controller):
             if not assignment.exists():
                 return {'success': False, 'error': 'Assignment not found'}
 
-            employee = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
+            employee = request.env['hr.employee'].sudo().search([('user_id', '=', request.env.uid)], limit=1)
             if not employee or assignment.driver_id.id != employee.id:
                 return {'success': False, 'error': 'Unauthorized access'}
 
@@ -160,7 +178,7 @@ class MobileAPIController(http.Controller):
             if not assignment.exists():
                 return {'success': False, 'error': 'Assignment not found'}
 
-            employee = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
+            employee = request.env['hr.employee'].sudo().search([('user_id', '=', request.env.uid)], limit=1)
             if not employee or assignment.driver_id.id != employee.id:
                 return {'success': False, 'error': 'Unauthorized access'}
 
@@ -204,7 +222,7 @@ class MobileAPIController(http.Controller):
             if not assignment.exists():
                 return {'success': False, 'error': 'Assignment not found'}
 
-            employee = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
+            employee = request.env['hr.employee'].sudo().search([('user_id', '=', request.env.uid)], limit=1)
             if not employee or assignment.driver_id.id != employee.id:
                 return {'success': False, 'error': 'Unauthorized access'}
 
@@ -221,7 +239,7 @@ class MobileAPIController(http.Controller):
     def get_user_trip_requests(self):
         """Get trip requests for current user"""
         try:
-            employee = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
+            employee = request.env['hr.employee'].sudo().search([('user_id', '=', request.env.uid)], limit=1)
             if not employee:
                 # Admin without employee record — return empty list gracefully
                 return {'success': True, 'trip_requests': []}
@@ -256,7 +274,7 @@ class MobileAPIController(http.Controller):
         """Create a quick trip request from mobile"""
         try:
             data = request.params or {}
-            employee = request.env['hr.employee'].search([('user_id', '=', request.env.uid)], limit=1)
+            employee = request.env['hr.employee'].sudo().search([('user_id', '=', request.env.uid)], limit=1)
             if not employee:
                 return {'success': False, 'error': 'Employee record not found'}
 
