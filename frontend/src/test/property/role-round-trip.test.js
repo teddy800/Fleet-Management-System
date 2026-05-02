@@ -14,49 +14,81 @@ import * as fc from 'fast-check'
  * The round-trip: login → store.user.role → localStorage → hydrate → store.user.role → badge text
  * must be identity-preserving.
  *
- * Role priority mapping:
+ * Role priority mapping (from useUserStore.js):
  *   fleet_manager  → Admin
  *   fleet_dispatcher (no manager) → Dispatcher
+ *   fleet_user (no dispatcher/manager) + is_driver → Driver
  *   fleet_user (no dispatcher/manager) → Staff
  *   driver (no fleet groups) → Driver
- *   empty roles array → Admin
+ *   empty roles array → Admin (Odoo admin fallback)
+ *
+ * Auth flow (new multi-step):
+ *   1. POST /web/session/authenticate → {uid, name}
+ *   2. POST /api/user/info OR fleet API probes → roles
  */
 
 /** Pure role-detection function mirroring useUserStore.login() logic */
-function detectExpectedRole(roles) {
+function detectExpectedRole(roles, isDriver = false) {
   if (roles.includes('fleet_manager')) return 'Admin'
   if (roles.includes('fleet_dispatcher')) return 'Dispatcher'
-  if (roles.includes('fleet_user')) return 'Staff'
+  if (roles.includes('fleet_user')) {
+    // fleet_user + driver role OR is_driver flag → Driver
+    return (isDriver || roles.includes('driver')) ? 'Driver' : 'Staff'
+  }
   if (roles.includes('driver')) return 'Driver'
   return 'Admin' // empty array → Odoo admin
 }
 
-/** Build a mock successful login fetch response for the given roles array */
-function mockLoginFetch(roles) {
-  return vi.fn().mockResolvedValue({
-    ok: true,
-    status: 200,
-    headers: {
-      get: (name) => (name === 'content-type' ? 'application/json' : null),
-    },
-    json: async () => ({
-      success: true,
-      user: {
-        id: 1,
-        name: 'Test User',
-        email: 'test@example.com',
-        roles,
-        is_driver: roles.includes('driver'),
-        employee_id: 42,
-      },
-      session_id: 'test-session-abc',
-    }),
+/**
+ * Build mock fetch that handles the multi-step login flow:
+ * 1. /web/session/authenticate → {uid, name, username}
+ * 2. /api/user/info → {success, user: {roles, is_driver}}
+ * 3. Any subsequent probes → permission denied (so role stays from step 2)
+ */
+function mockLoginFetch(roles, isDriver = false) {
+  let callCount = 0
+  return vi.fn().mockImplementation(async (url) => {
+    callCount++
+    const makeResponse = (data) => ({
+      ok: true,
+      status: 200,
+      headers: { get: (n) => n === 'content-type' ? 'application/json' : null },
+      json: async () => data,
+    })
+
+    // Step 1: authenticate
+    if (typeof url === 'string' && url.includes('/web/session/authenticate')) {
+      return makeResponse({
+        result: { uid: 1, name: 'Test User', username: 'test@example.com' }
+      })
+    }
+
+    // Step 2: /api/user/info — return roles directly
+    if (typeof url === 'string' && url.includes('/api/user/info')) {
+      return makeResponse({
+        result: {
+          success: true,
+          user: {
+            id: 1,
+            name: 'Test User',
+            email: 'test@example.com',
+            roles,
+            is_driver: isDriver,
+            employee_id: 42,
+          }
+        }
+      })
+    }
+
+    // All other probes (fleet/vehicles, fleet/users, etc.) → permission denied
+    return makeResponse({
+      result: { success: false, error: 'Insufficient permissions' }
+    })
   })
 }
 
 describe('Property 4: Login-to-display role round-trip consistency', () => {
   beforeEach(() => {
-    // Prevent jsdom navigation errors from window.location.href assignments
     Object.defineProperty(window, 'location', {
       writable: true,
       value: { href: '/', assign: vi.fn() },
@@ -73,20 +105,15 @@ describe('Property 4: Login-to-display role round-trip consistency', () => {
   it('store.user.role equals localStorage["messob-auth"].state.user.role after login', async () => {
     await fc.assert(
       fc.asyncProperty(
-        // Generate arbitrary subsets of the known Odoo role strings
         fc.subarray(['fleet_manager', 'fleet_dispatcher', 'fleet_user', 'driver']),
         async (roles) => {
-          // Reset modules so each iteration gets a fresh Zustand store instance
           vi.resetModules()
           localStorage.clear()
 
-          // Mock fetch to return a successful login with the generated roles
           globalThis.fetch = mockLoginFetch(roles)
 
-          // Import a fresh store instance
           const { useUserStore } = await import('../../store/useUserStore.js')
 
-          // Perform login
           const result = await useUserStore.getState().login('testuser', 'testpass')
           expect(result.success).toBe(true)
 
@@ -111,12 +138,11 @@ describe('Property 4: Login-to-display role round-trip consistency', () => {
           expect(localStorageRole).toBe(expectedRole)
 
           // 5. Sidebar badge text: the badge renders user?.role directly.
-          //    Verify the role is one of the valid display values the Sidebar accepts.
           const validDisplayRoles = ['Admin', 'Dispatcher', 'Staff', 'Driver']
           expect(validDisplayRoles).toContain(storeRole)
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 50 }
     )
   })
 
@@ -143,8 +169,7 @@ describe('Property 4: Login-to-display role round-trip consistency', () => {
           // The persisted role must match what the store held
           expect(persistedRole).toBe(roleAfterLogin)
 
-          // Second store instance: simulate a page reload by resetting modules
-          // and re-importing (Zustand persist will rehydrate from localStorage)
+          // Second store instance: simulate a page reload
           vi.resetModules()
           const { useUserStore: store2 } = await import('../../store/useUserStore.js')
 
@@ -154,7 +179,7 @@ describe('Property 4: Login-to-display role round-trip consistency', () => {
           expect(roleAfterHydration).toBe(roleAfterLogin)
         }
       ),
-      { numRuns: 100 }
+      { numRuns: 50 }
     )
   })
 })

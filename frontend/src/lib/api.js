@@ -199,6 +199,11 @@ export const authApi = {
     } catch (_) {
       throw new Error("Network error. Check your connection.");
     }
+    // Check content-type before parsing — non-JSON means session expired or server error
+    const authContentType = authRes.headers.get("content-type") || "";
+    if (!authContentType.includes("application/json")) {
+      throw new Error("Session expired. Please log in again.");
+    }
     const authRaw = await authRes.json();
     const authData = authRaw?.result;
     if (!authData?.uid) {
