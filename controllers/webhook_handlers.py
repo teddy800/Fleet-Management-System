@@ -309,6 +309,7 @@ class WebhookController(http.Controller):
                     'roles': roles,
                     'employee_id': employee.id if employee else None,
                     'is_driver': bool(employee and employee.is_driver),
+                    'job_title': (employee.job_title or '') if employee else '',
                 },
             }
         except Exception as e:

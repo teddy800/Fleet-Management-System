@@ -56,8 +56,8 @@ MOCK_EMPLOYEES = [
         "external_hr_id": "EMP-DRV-005",
         "name": "Biruk Tadesse",
         "email": "biruk.tadesse@mesob.com",
-        "job_title": "Driver",
-        "department": "Fleet Operations",
+        "job_title": "Mechanic",
+        "department": "Maintenance",
         "is_driver": True,
         "driver_license_number": "DL-ETH-005",
         "license_expiry_date": "2025-11-30"   # expiring soon — tests alert
