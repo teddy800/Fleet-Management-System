@@ -1,12 +1,24 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-// ── Role detection from API response ─────────────────────────────────────────
-function detectRole(roles = [], isDriver = false) {
+// ── Known mechanic usernames (from mock_hr_server.py EMP-DRV-005) ─────────────
+// Biruk Tadesse is the mechanic — job_title = "Mechanic" in HR system
+// We detect Mechanic by checking job_title from the employee record
+const MECHANIC_KEYWORDS = ["mechanic", "technician", "maintenance tech", "service tech"];
+
+// ── Role detection ────────────────────────────────────────────────────────────
+function detectRole(roles = [], isDriver = false, jobTitle = "") {
   if (roles.includes("fleet_manager"))    return "Admin";
   if (roles.includes("fleet_dispatcher")) return "Dispatcher";
-  if (roles.includes("fleet_user"))       return (isDriver || roles.includes("driver")) ? "Driver" : "Staff";
-  if (roles.includes("driver"))           return "Driver";
+  if (roles.includes("fleet_user")) {
+    // Driver takes priority over Mechanic
+    if (isDriver || roles.includes("driver")) return "Driver";
+    // Check if this is a mechanic by job title
+    const jt = (jobTitle || "").toLowerCase();
+    if (MECHANIC_KEYWORDS.some(k => jt.includes(k))) return "Mechanic";
+    return "Staff";
+  }
+  if (roles.includes("driver")) return "Driver";
   return "Admin"; // Odoo admin / no fleet groups
 }
 
@@ -39,11 +51,11 @@ async function performLogin(username, password) {
     throw new Error("Invalid credentials. Please try again.");
   }
 
-  const uid  = authData.uid;
-  const name = authData.name || username;
+  const uid   = authData.uid;
+  const name  = authData.name || username;
   const email = authData.username || username;
 
-  // Step 2: Try /api/user/info (fast, single call, uses sudo internally)
+  // Step 2: Try /api/user/info (fast path — uses sudo, returns roles + job_title)
   try {
     const infoRes = await fetch("/api/user/info", {
       method: "POST", credentials: "include",
@@ -56,31 +68,33 @@ async function performLogin(username, password) {
       if (info?.success && info.user) {
         return {
           id: uid, name, email,
-          roles: info.user.roles || [],
-          is_driver: info.user.is_driver || false,
+          roles:       info.user.roles       || [],
+          is_driver:   info.user.is_driver   || false,
           employee_id: info.user.employee_id || null,
+          job_title:   info.user.job_title   || "",
         };
       }
     }
   } catch (_) { /* fallback below */ }
 
-  // Step 3: Role probe via fleet API (works with fixed hr_employee_public view)
+  // Step 3: Role probe via fleet API
   const roles = [];
-  let isDriver = false;
+  let isDriver   = false;
   let employeeId = null;
+  let jobTitle   = "";
 
-  // Probe dispatcher access (vehicles endpoint is dispatcher/manager only)
+  // Probe dispatcher access
   try {
     const vRes = await fetch("/api/fleet/vehicles", {
       method: "POST", credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", method: "call", id: 3, params: {} }),
     });
-    const vRaw = await vRes.json();
+    const vRaw    = await vRes.json();
     const vResult = vRaw?.result;
     if (vResult?.success === true) {
       roles.push("fleet_dispatcher");
-      // Check manager (users endpoint is manager-only)
+      // Check manager
       try {
         const uRes = await fetch("/api/fleet/users", {
           method: "POST", credentials: "include",
@@ -95,7 +109,7 @@ async function performLogin(username, password) {
     }
   } catch (_) { /* ignore */ }
 
-  // Get employee info (driver check)
+  // Get employee info — is_driver + job_title for Mechanic detection
   try {
     const empRes = await fetch("/web/dataset/call_kw", {
       method: "POST", credentials: "include",
@@ -105,21 +119,22 @@ async function performLogin(username, password) {
         params: {
           model: "hr.employee", method: "search_read",
           args: [[["user_id", "=", uid]]],
-          kwargs: { fields: ["id", "is_driver"], limit: 1 },
+          kwargs: { fields: ["id", "is_driver", "job_title", "name"], limit: 1 },
         },
       }),
     });
     const empRaw = await empRes.json();
-    const emp = empRaw?.result?.[0];
+    const emp    = empRaw?.result?.[0];
     if (emp) {
       employeeId = emp.id;
-      isDriver = emp.is_driver || false;
+      isDriver   = emp.is_driver || false;
+      jobTitle   = emp.job_title || "";
       if (isDriver && !roles.includes("fleet_user")) roles.push("fleet_user");
       if (isDriver) roles.push("driver");
     }
   } catch (_) { /* ignore */ }
 
-  // If still no roles, try trip requests (fleet_user fallback)
+  // Fallback: try trip requests
   if (roles.length === 0) {
     try {
       const trRes = await fetch("/api/mobile/user/trip-requests", {
@@ -132,7 +147,7 @@ async function performLogin(username, password) {
     } catch (_) { /* ignore */ }
   }
 
-  return { id: uid, name, email, roles, is_driver: isDriver, employee_id: employeeId };
+  return { id: uid, name, email, roles, is_driver: isDriver, employee_id: employeeId, job_title: jobTitle };
 }
 
 // ── Zustand store ─────────────────────────────────────────────────────────────
@@ -147,17 +162,18 @@ export const useUserStore = create(
         set({ loginError: null });
         try {
           const userData = await performLogin(username, password);
-          const role = detectRole(userData.roles, userData.is_driver);
+          const role = detectRole(userData.roles, userData.is_driver, userData.job_title);
 
           set({
             user: {
-              id: userData.id,
-              name: userData.name,
-              email: userData.email,
+              id:          userData.id,
+              name:        userData.name,
+              email:       userData.email,
               role,
-              roles: userData.roles,
+              roles:       userData.roles,
               employee_id: userData.employee_id,
-              is_driver: userData.is_driver,
+              is_driver:   userData.is_driver,
+              job_title:   userData.job_title,
             },
             isAuthenticated: true,
             loginError: null,
