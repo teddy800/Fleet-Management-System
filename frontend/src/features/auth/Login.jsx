@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import {
   Eye, EyeOff, Lock, Mail, AlertCircle, Shield,
   ChevronRight, Truck, Users, Wrench, UserCheck,
-  Star, Zap, CheckCircle2, LogIn,
+  Star, Zap, CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import logo from "@/assets/logo.png";
@@ -200,33 +200,27 @@ function RoleCard({ role, onFill, activeUser }) {
   );
 }
 
-// ─── Loading overlay shown during login ───────────────────────────────────────
-function LoginLoader({ role }) {
+// ─── Top progress bar shown during login (replaces black overlay) ────────────
+function LoginProgress({ role, visible }) {
   const roleColors = {
-    Admin:      "text-amber-400",
-    Dispatcher: "text-blue-400",
-    Staff:      "text-green-400",
-    Driver:     "text-purple-400",
-    Mechanic:   "text-rose-400",
+    Admin:      "from-amber-400 to-orange-400",
+    Dispatcher: "from-blue-400 to-cyan-400",
+    Staff:      "from-green-400 to-emerald-400",
+    Driver:     "from-purple-400 to-violet-400",
+    Mechanic:   "from-rose-400 to-pink-400",
   };
+  const barColor = roleColors[role] || "from-blue-400 to-cyan-400";
+
+  if (!visible) return null;
+
   return (
-    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center rounded-3xl bg-black/60 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-4">
-        <div className="relative">
-          <div className="w-14 h-14 rounded-full border-4 border-white/10 border-t-white animate-spin" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <LogIn className="h-5 w-5 text-white/70" />
-          </div>
-        </div>
-        <div className="text-center">
-          <p className="text-white font-black text-sm">Signing in...</p>
-          {role && (
-            <p className={cn("text-xs font-bold mt-1", roleColors[role] || "text-white/60")}>
-              Loading {role} dashboard
-            </p>
-          )}
-          <p className="text-white/30 text-[10px] mt-1">Verifying permissions</p>
-        </div>
+    <div className="absolute top-0 left-0 right-0 z-10 rounded-t-3xl overflow-hidden">
+      {/* Animated progress bar */}
+      <div className="h-1 bg-white/10">
+        <div
+          className={cn("h-full bg-gradient-to-r animate-pulse", barColor)}
+          style={{ width: "100%", animation: "shimmer 1.5s ease-in-out infinite" }}
+        />
       </div>
     </div>
   );
@@ -369,8 +363,8 @@ export default function Login() {
 
             {/* Login card */}
             <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-              {/* Loading overlay */}
-              {isSubmitting && <LoginLoader role={loginRole} />}
+              {/* Top progress bar — replaces black overlay */}
+              <LoginProgress role={loginRole} visible={isSubmitting} />
 
               <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-7 border border-white/20">
                 {/* Card header */}
@@ -462,22 +456,37 @@ export default function Login() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full h-12 rounded-xl text-sm font-black shadow-xl border-0 relative overflow-hidden group transition-all active:scale-[0.98]"
+                    className={cn(
+                      "w-full h-12 rounded-xl text-sm font-black shadow-xl border-0 relative overflow-hidden group transition-all active:scale-[0.98]",
+                      isSubmitting && "opacity-90 cursor-not-allowed"
+                    )}
                     style={{ background: "linear-gradient(135deg, #1d4ed8, #2563eb, #1e40af)" }}
                   >
                     <span className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors" />
                     {isSubmitting ? (
-                      <span className="flex items-center gap-2">
-                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Authenticating...
+                      <span className="flex items-center justify-center gap-2.5">
+                        <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin shrink-0" />
+                        <span>Signing in...</span>
                       </span>
                     ) : (
-                      <span className="flex items-center gap-2">
+                      <span className="flex items-center justify-center gap-2">
                         Sign In
                         <ChevronRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
                       </span>
                     )}
                   </Button>
+
+                  {/* Inline status message — shown instead of black overlay */}
+                  {isSubmitting && (
+                    <div className="flex items-center justify-center gap-2 py-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                      <p className="text-[11px] text-white/50 text-center">
+                        {loginRole
+                          ? `Loading ${loginRole} dashboard...`
+                          : "Verifying credentials..."}
+                      </p>
+                    </div>
+                  )}
                 </form>
 
                 {/* Mobile credentials toggle */}
