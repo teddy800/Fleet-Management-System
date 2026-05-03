@@ -104,7 +104,7 @@ export default function DashboardHome() {
   }, []);
 
   const fetchMyRequests = useCallback(async () => {
-    if (user?.role !== "Staff" && user?.role !== "Driver") return;
+    if (user?.role !== "Staff" && user?.role !== "Driver" && user?.role !== "Mechanic") return;
     setMyRequestsLoading(true);
     try {
       const res = await tripApi.listMine();
@@ -140,8 +140,8 @@ export default function DashboardHome() {
   const alerts = data?.alerts_summary;
   const predictive = data?.predictive_insights;
 
-  const isAdmin = user?.role === "Admin" || user?.role === "Dispatcher";
-  const isStaffOrDriver = user?.role === "Staff" || user?.role === "Driver";
+  const isAdmin         = user?.role === "Admin" || user?.role === "Dispatcher";
+  const isStaffOrDriver = user?.role === "Staff" || user?.role === "Driver" || user?.role === "Mechanic";
 
   return (
     <div className="space-y-6 pb-8">
@@ -183,9 +183,39 @@ export default function DashboardHome() {
         </div>
       )}
 
-      {/* Staff / Driver simplified view */}
+      {/* Staff / Driver / Mechanic simplified view */}
       {isStaffOrDriver && (
         <div className="space-y-4">
+          {/* Role-specific welcome banner */}
+          <div className={cn(
+            "rounded-2xl p-4 border flex items-center gap-3",
+            user?.role === "Driver"   && "bg-purple-50 border-purple-100",
+            user?.role === "Mechanic" && "bg-rose-50 border-rose-100",
+            user?.role === "Staff"    && "bg-green-50 border-green-100",
+          )}>
+            <div className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-black shrink-0",
+              user?.role === "Driver"   && "bg-purple-500",
+              user?.role === "Mechanic" && "bg-rose-500",
+              user?.role === "Staff"    && "bg-green-500",
+            )}>
+              {user?.name?.charAt(0)?.toUpperCase() || "U"}
+            </div>
+            <div>
+              <p className="font-black text-gray-800">
+                Welcome back, {user?.name?.split(" ")[0] || "User"}
+              </p>
+              <p className={cn(
+                "text-xs font-bold uppercase tracking-widest",
+                user?.role === "Driver"   && "text-purple-600",
+                user?.role === "Mechanic" && "text-rose-600",
+                user?.role === "Staff"    && "text-green-600",
+              )}>
+                {user?.role} · {user?.email}
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-3 gap-3">
             {[
               { label: "My Requests", value: myRequests.length, color: "text-brand-blue", bg: "bg-white border" },
