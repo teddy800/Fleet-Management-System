@@ -1391,3 +1391,74 @@ class FleetAPIController(http.Controller):
         except Exception as e:
             _logger.error("setup_assign_groups error: %s", e, exc_info=True)
             return {'success': False, 'error': str(e)}
+
+    @http.route('/api/fleet/me', type='json', auth='user', methods=['POST'], cors='*', csrf=False)
+    def get_current_user_info(self):
+        """
+        Return current user's fleet role info including job_title.
+        Uses sudo() to bypass hr.employee.public restrictions.
+        This is the primary role-detection endpoint for the React frontend.
+        """
+        try:
+            uid = request.env.uid
+            user = request.env['res.users'].sudo().browse(uid)
+
+            # ── Group membership via direct SQL (most reliable in Odoo 19) ──
+            request.env.cr.execute(
+                "SELECT gid FROM res_groups_users_rel WHERE uid = %s AND gid IN (48, 49, 74)",
+                (uid,)
+            )
+            gids = {row[0] for row in request.env.cr.fetchall()}
+
+            roles = []
+            if 49 in gids: roles.append('fleet_manager')
+            if 74 in gids: roles.append('fleet_dispatcher')
+            if 48 in gids: roles.append('fleet_user')
+
+            # ── Employee record via sudo ──────────────────────────────────────
+            employee = request.env['hr.employee'].sudo().search(
+                [('user_id', '=', uid)], limit=1
+            )
+
+            is_driver = False
+            job_title = ''
+            employee_id = None
+
+            if employee:
+                is_driver = bool(employee.is_driver)
+                employee_id = employee.id
+                # job_title is in hr_version (Odoo 19) — read via sudo
+                try:
+                    job_title = employee.job_title or ''
+                except Exception:
+                    # Fallback: read directly from hr_version
+                    try:
+                        request.env.cr.execute(
+                            """SELECT v.job_title FROM hr_employee e
+                               LEFT JOIN hr_version v ON v.id = e.current_version_id
+                               WHERE e.id = %s""",
+                            (employee.id,)
+                        )
+                        row = request.env.cr.fetchone()
+                        job_title = row[0] or '' if row else ''
+                    except Exception:
+                        job_title = ''
+
+                if is_driver and 'driver' not in roles:
+                    roles.append('driver')
+
+            return {
+                'success': True,
+                'user': {
+                    'id': uid,
+                    'name': user.name,
+                    'email': user.email or '',
+                    'roles': roles,
+                    'is_driver': is_driver,
+                    'employee_id': employee_id,
+                    'job_title': job_title,
+                },
+            }
+        except Exception as e:
+            _logger.error("get_current_user_info error: %s", e, exc_info=True)
+            return {'success': False, 'error': str(e)}
