@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import {
   Car, Clock, CheckCircle2, AlertCircle, TrendingUp, TrendingDown,
   Fuel, Wrench, Users, Activity, RefreshCw, Bell, Target, Zap,
+  ClipboardList,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -183,89 +184,231 @@ export default function DashboardHome() {
         </div>
       )}
 
-      {/* Staff / Driver / Mechanic simplified view */}
+      {/* ══ STAFF / DRIVER / MECHANIC — Role-specific personal dashboards ══ */}
       {isStaffOrDriver && (
-        <div className="space-y-4">
-          {/* Role-specific welcome banner */}
-          <div className={cn(
-            "rounded-2xl p-4 border flex items-center gap-3",
-            user?.role === "Driver"   && "bg-purple-50 border-purple-100",
-            user?.role === "Mechanic" && "bg-rose-50 border-rose-100",
-            user?.role === "Staff"    && "bg-green-50 border-green-100",
-          )}>
-            <div className={cn(
-              "w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-black shrink-0",
-              user?.role === "Driver"   && "bg-purple-500",
-              user?.role === "Mechanic" && "bg-rose-500",
-              user?.role === "Staff"    && "bg-green-500",
-            )}>
-              {user?.name?.charAt(0)?.toUpperCase() || "U"}
-            </div>
-            <div>
-              <p className="font-black text-gray-800">
-                Welcome back, {user?.name?.split(" ")[0] || "User"}
-              </p>
-              <p className={cn(
-                "text-xs font-bold uppercase tracking-widest",
-                user?.role === "Driver"   && "text-purple-600",
-                user?.role === "Mechanic" && "text-rose-600",
-                user?.role === "Staff"    && "text-green-600",
-              )}>
-                {user?.role} · {user?.email}
-              </p>
-            </div>
-          </div>
+        <div className="space-y-5 pb-4">
 
+          {/* ── Role-specific hero banner ── */}
+          {user?.role === "Staff" && (
+            <div className="rounded-2xl overflow-hidden border border-green-100 shadow-sm">
+              <div className="bg-gradient-to-r from-green-600 to-emerald-500 px-6 py-5 text-white">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-black shrink-0">
+                    {user?.name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-lg font-black">Welcome back, {user?.name?.split(" ")[0]}!</p>
+                    <p className="text-green-100 text-sm">Staff Member · Request & track your vehicles</p>
+                  </div>
+                  <div className="ml-auto hidden sm:block">
+                    <span className="bg-white/20 text-white text-xs font-black px-3 py-1.5 rounded-full uppercase tracking-widest">
+                      STAFF
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-green-50 px-6 py-3 flex items-center gap-2 text-xs text-green-700 font-medium">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                You can create vehicle requests, track their status, and update your pickup point.
+              </div>
+            </div>
+          )}
+
+          {user?.role === "Driver" && (
+            <div className="rounded-2xl overflow-hidden border border-purple-100 shadow-sm">
+              <div className="bg-gradient-to-r from-purple-600 to-violet-500 px-6 py-5 text-white">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-black shrink-0">
+                    {user?.name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-lg font-black">Welcome back, {user?.name?.split(" ")[0]}!</p>
+                    <p className="text-purple-100 text-sm">Driver · View & manage your assigned trips</p>
+                  </div>
+                  <div className="ml-auto hidden sm:block">
+                    <span className="bg-white/20 text-white text-xs font-black px-3 py-1.5 rounded-full uppercase tracking-widest">
+                      DRIVER
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-purple-50 px-6 py-3 flex items-center gap-2 text-xs text-purple-700 font-medium">
+                <Car className="h-3.5 w-3.5 shrink-0" />
+                View your assigned trips, update trip status, and log fuel usage.
+              </div>
+            </div>
+          )}
+
+          {user?.role === "Mechanic" && (
+            <div className="rounded-2xl overflow-hidden border border-rose-100 shadow-sm">
+              <div className="bg-gradient-to-r from-rose-600 to-pink-500 px-6 py-5 text-white">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-black shrink-0">
+                    {user?.name?.charAt(0)?.toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-lg font-black">Welcome back, {user?.name?.split(" ")[0]}!</p>
+                    <p className="text-rose-100 text-sm">Mechanic · Maintenance & fuel management</p>
+                  </div>
+                  <div className="ml-auto hidden sm:block">
+                    <span className="bg-white/20 text-white text-xs font-black px-3 py-1.5 rounded-full uppercase tracking-widest">
+                      MECHANIC
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-rose-50 px-6 py-3 flex items-center gap-2 text-xs text-rose-700 font-medium">
+                <Wrench className="h-3.5 w-3.5 shrink-0" />
+                Log maintenance activities, record fuel purchases, and view service schedules.
+              </div>
+            </div>
+          )}
+
+          {/* ── Request stats ── */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "My Requests", value: myRequests.length, color: "text-brand-blue", bg: "bg-white border" },
-              { label: "Pending", value: myRequests.filter(r => r.state === "pending").length, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-100" },
-              { label: "Active", value: myRequests.filter(r => ["approved","assigned","in_progress"].includes(r.state)).length, color: "text-green-600", bg: "bg-green-50 border-green-100" },
+              { label: "Total Requests", value: myRequests.length,                                                                    color: "text-brand-blue",  bg: "bg-white border",              icon: ClipboardList },
+              { label: "Pending",        value: myRequests.filter(r => r.state === "pending").length,                                 color: "text-yellow-600",  bg: "bg-yellow-50 border-yellow-100", icon: Clock },
+              { label: "Active",         value: myRequests.filter(r => ["approved","assigned","in_progress"].includes(r.state)).length, color: "text-green-600", bg: "bg-green-50 border-green-100",   icon: Activity },
             ].map(s => (
               <div key={s.label} className={`${s.bg} rounded-2xl p-4 text-center shadow-sm`}>
                 <p className="text-xs text-gray-500 uppercase font-bold">{s.label}</p>
                 <p className={`text-2xl font-black mt-1 ${s.color}`}>
-                  {myRequestsLoading ? <span className="inline-block w-8 h-6 bg-gray-100 animate-pulse rounded" /> : s.value}
+                  {myRequestsLoading
+                    ? <span className="inline-block w-8 h-6 bg-gray-100 animate-pulse rounded" />
+                    : s.value}
                 </p>
               </div>
             ))}
           </div>
+
+          {/* ── Recent requests ── */}
           <div className="bg-white rounded-2xl border shadow-sm p-5 space-y-3">
-            <p className="text-xs font-black text-brand-blue uppercase tracking-widest">Recent Requests</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-black text-brand-blue uppercase tracking-widest">Recent Requests</p>
+              {myRequests.length > 0 && (
+                <Link to="/my-requests" className="text-xs text-brand-blue font-bold hover:underline">
+                  View all →
+                </Link>
+              )}
+            </div>
             {myRequestsLoading ? (
-              <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 animate-pulse rounded-xl" />)}</div>
-            ) : myRequests.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-gray-400 text-sm">No requests yet</p>
-                <Link to="/requests/new" className="text-brand-blue text-sm font-bold hover:underline mt-1 block">Create your first request →</Link>
+              <div className="space-y-2">
+                {[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 animate-pulse rounded-xl" />)}
               </div>
-            ) : myRequests.slice(0, 5).map(req => {
-              const STATE_COLORS = { pending: "bg-yellow-100 text-yellow-800", approved: "bg-green-100 text-green-800", assigned: "bg-blue-100 text-blue-800", in_progress: "bg-purple-100 text-purple-800", completed: "bg-teal-100 text-teal-800", rejected: "bg-red-100 text-red-800", cancelled: "bg-gray-100 text-gray-500" };
-              return (
-                <div key={req.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-brand-blue truncate">{req.name || `#${req.id}`}</p>
-                    <p className="text-xs text-gray-500 truncate">{req.pickup_location} → {req.destination_location}</p>
-                  </div>
-                  <span className={`ml-3 text-xs font-bold px-2 py-1 rounded-full capitalize shrink-0 ${STATE_COLORS[req.state] || "bg-gray-100 text-gray-600"}`}>
-                    {req.state?.replace("_", " ")}
-                  </span>
+            ) : myRequests.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                  <ClipboardList className="h-5 w-5 text-gray-400" />
                 </div>
-              );
-            })}
-            {myRequests.length > 0 && (
-              <Link to="/my-requests" className="block text-center text-xs text-brand-blue font-bold hover:underline pt-1">View all requests →</Link>
+                <p className="text-gray-400 text-sm font-medium">No requests yet</p>
+                <p className="text-gray-300 text-xs mt-1">Create your first vehicle request below</p>
+                <Link to="/requests/new"
+                  className="inline-flex items-center gap-1.5 mt-3 text-brand-blue text-sm font-bold hover:underline">
+                  <Clock className="h-3.5 w-3.5" /> Create first request →
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {myRequests.slice(0, 5).map(req => {
+                  const STATE_COLORS = {
+                    pending:     "bg-yellow-100 text-yellow-800",
+                    approved:    "bg-green-100 text-green-800",
+                    assigned:    "bg-blue-100 text-blue-800",
+                    in_progress: "bg-purple-100 text-purple-800",
+                    completed:   "bg-teal-100 text-teal-800",
+                    rejected:    "bg-red-100 text-red-800",
+                    cancelled:   "bg-gray-100 text-gray-500",
+                  };
+                  return (
+                    <div key={req.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-brand-blue truncate">{req.name || `#${req.id}`}</p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {req.pickup_location} → {req.destination_location}
+                        </p>
+                      </div>
+                      <span className={`ml-3 text-xs font-bold px-2 py-1 rounded-full capitalize shrink-0 ${STATE_COLORS[req.state] || "bg-gray-100 text-gray-600"}`}>
+                        {req.state?.replace("_", " ")}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-          <div className="bg-brand-blue rounded-2xl p-5 text-white">
-            <p className="text-xs font-black text-brand-gold uppercase tracking-widest mb-3">Quick Actions</p>
-            <Link to="/requests/new" className="flex items-center gap-2 w-full bg-brand-gold hover:bg-yellow-400 text-brand-blue py-2.5 px-4 rounded-xl text-sm font-bold transition-colors">
-              <Clock className="h-4 w-4" /> New Trip Request
-            </Link>
-            <Link to="/my-requests" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold transition-colors mt-2">
-              <CheckCircle2 className="h-4 w-4 text-brand-gold" /> View My Requests
-            </Link>
+
+          {/* ── Role-specific quick actions ── */}
+          <div className={cn(
+            "rounded-2xl p-5 text-white",
+            user?.role === "Staff"    && "bg-gradient-to-br from-green-700 to-emerald-600",
+            user?.role === "Driver"   && "bg-gradient-to-br from-purple-700 to-violet-600",
+            user?.role === "Mechanic" && "bg-gradient-to-br from-rose-700 to-pink-600",
+          )}>
+            <p className="text-xs font-black text-white/60 uppercase tracking-widest mb-3">Quick Actions</p>
+            <div className="space-y-2">
+              <Link to="/requests/new"
+                className="flex items-center gap-2 w-full bg-white/20 hover:bg-white/30 text-white py-3 px-4 rounded-xl text-sm font-bold transition-colors">
+                <Clock className="h-4 w-4 shrink-0" />
+                <span>New Vehicle Request</span>
+              </Link>
+              <Link to="/my-requests"
+                className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-3 px-4 rounded-xl text-sm font-bold transition-colors">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                <span>View My Requests</span>
+                {myRequests.filter(r => r.state === "pending").length > 0 && (
+                  <span className="ml-auto bg-white/30 text-white text-xs font-black px-2 py-0.5 rounded-full">
+                    {myRequests.filter(r => r.state === "pending").length} pending
+                  </span>
+                )}
+              </Link>
+            </div>
           </div>
+
+          {/* ── Role-specific info card ── */}
+          {user?.role === "Staff" && (
+            <div className="bg-green-50 border border-green-100 rounded-2xl p-4">
+              <p className="text-xs font-black text-green-700 uppercase tracking-widest mb-2">Your Access Level</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {["Create vehicle requests","View own request history","Track assigned vehicle","Update pickup point"].map(item => (
+                  <div key={item} className="flex items-center gap-1.5 text-green-700">
+                    <CheckCircle2 className="h-3 w-3 shrink-0 text-green-500" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {user?.role === "Driver" && (
+            <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4">
+              <p className="text-xs font-black text-purple-700 uppercase tracking-widest mb-2">Your Access Level</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {["View assigned trips","Start / complete trip","Update GPS location","Log fuel usage","Create vehicle requests","View own request history"].map(item => (
+                  <div key={item} className="flex items-center gap-1.5 text-purple-700">
+                    <CheckCircle2 className="h-3 w-3 shrink-0 text-purple-500" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {user?.role === "Mechanic" && (
+            <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4">
+              <p className="text-xs font-black text-rose-700 uppercase tracking-widest mb-2">Your Access Level</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {["Log maintenance activities","Record fuel purchases","View maintenance schedules","Service records","Create vehicle requests","View own request history"].map(item => (
+                  <div key={item} className="flex items-center gap-1.5 text-rose-700">
+                    <CheckCircle2 className="h-3 w-3 shrink-0 text-rose-500" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 
