@@ -15,103 +15,127 @@ import { useUserStore } from "@/store/useUserStore";
 // Staff      = Standard User   (request + view own)
 // Driver     = Driver          (request + view own + trip management)
 // Mechanic   = Mechanic        (request + view own + maintenance/fuel)
+// ── Enhanced menu structure with better organization and icons ──────────────────
 const menuItems = [
-  // ── Available to ALL roles ──────────────────────────────────────────────────
+  // ── 📊 DASHBOARD & OVERVIEW (Available to ALL roles) ──────────────────────────
   {
     name: "Dashboard",
     path: "/dashboard",
     icon: LayoutDashboard,
     roles: ["Admin", "Dispatcher", "Staff", "Driver", "Mechanic"],
+    section: "overview"
   },
+
+  // ── 📋 REQUESTS & TRIPS (Available to ALL roles) ───────────────────────────────
   {
     name: "New Request",
     path: "/requests/new",
     icon: ClipboardList,
     roles: ["Admin", "Dispatcher", "Staff", "Driver", "Mechanic"],
+    section: "requests"
   },
   {
     name: "My Requests",
     path: "/my-requests",
     icon: ClipboardList,
     roles: ["Admin", "Dispatcher", "Staff", "Driver", "Mechanic"],
+    section: "requests"
   },
 
-  // ── Dispatcher + Admin only ─────────────────────────────────────────────────
+  // ── 🚗 FLEET OPERATIONS (Dispatcher + Admin) ───────────────────────────────────
   {
     name: "Approval Queue",
     path: "/dispatch/approvals",
     icon: CheckSquare,
     roles: ["Admin", "Dispatcher"],
     badge: "Dispatch",
+    section: "fleet_ops"
   },
   {
     name: "Fleet Calendar",
     path: "/dispatch/calendar",
     icon: CalendarDays,
     roles: ["Admin", "Dispatcher"],
+    section: "fleet_ops"
   },
   {
     name: "Manage Fleet",
     path: "/fleet",
     icon: Car,
     roles: ["Admin", "Dispatcher"],
-  },
-  {
-    name: "GPS Tracking",
-    path: "/tracking",
-    icon: Navigation,
-    roles: ["Admin", "Dispatcher"],
+    section: "fleet_ops"
   },
   {
     name: "Drivers",
     path: "/drivers",
     icon: Users,
     roles: ["Admin", "Dispatcher"],
+    section: "fleet_ops"
+  },
+
+  // ── 🛰️ TRACKING & MONITORING (Dispatcher + Admin) ─────────────────────────────
+  {
+    name: "GPS Tracking",
+    path: "/tracking",
+    icon: Navigation,
+    roles: ["Admin", "Dispatcher"],
+    section: "tracking"
+  },
+  {
+    name: "Fleet Alerts",
+    path: "/alerts",
+    icon: Bell,
+    roles: ["Admin", "Dispatcher"],
+    section: "tracking"
+  },
+
+  // ── 🔧 MAINTENANCE & SERVICE (Admin + Dispatcher + Mechanic) ───────────────────
+  {
+    name: "Maintenance",
+    path: "/maintenance",
+    icon: Wrench,
+    roles: ["Admin", "Dispatcher", "Mechanic"],
+    section: "maintenance"
   },
   {
     name: "Fuel Logs",
     path: "/fuel-log",
     icon: Fuel,
-    roles: ["Admin", "Dispatcher"],
-  },
-  {
-    name: "Maintenance",
-    path: "/maintenance",
-    icon: Gauge,
-    roles: ["Admin", "Dispatcher"],
-  },
-  {
-    name: "Alerts",
-    path: "/alerts",
-    icon: Bell,
-    roles: ["Admin", "Dispatcher"],
+    roles: ["Admin", "Dispatcher", "Mechanic"],
+    section: "maintenance"
   },
 
-  // ── Admin only ──────────────────────────────────────────────────────────────
+  // ── 📈 ANALYTICS & REPORTS (Admin only) ────────────────────────────────────────
   {
     name: "Analytics",
     path: "/analytics",
     icon: BarChart3,
     roles: ["Admin"],
     badge: "Admin",
+    section: "analytics"
   },
+
+  // ── ⚙️ ADMINISTRATION (Admin only) ─────────────────────────────────────────────
   {
     name: "Parts & Inventory",
     path: "/inventory",
     icon: Package,
     roles: ["Admin"],
+    section: "admin"
   },
   {
     name: "HR Sync",
     path: "/hr-sync",
     icon: RefreshCw,
     roles: ["Admin"],
+    section: "admin"
   },
   {
     name: "User Management",
     path: "/users",
     icon: ShieldCheck,
     roles: ["Admin"],
+    section: "admin"
   },
 ];
 
@@ -124,10 +148,14 @@ const ROLE_META = {
   Mechanic:   { color: "text-rose-300 bg-rose-400/20 border-rose-400/30",      dot: "bg-rose-400" },
 };
 
-// ── Section separators ────────────────────────────────────────────────────────
+// ── Enhanced section separators with better organization ─────────────────────────
 const SECTION_LABELS = {
-  "/dispatch/approvals": "Fleet Operations",
-  "/analytics":          "Administration",
+  "/requests/new":       "📋 Trip Requests",
+  "/dispatch/approvals": "🚗 Fleet Operations", 
+  "/tracking":           "🛰️ Tracking & Monitoring",
+  "/maintenance":        "🔧 Maintenance & Service",
+  "/analytics":          "📈 Analytics & Reports",
+  "/inventory":          "⚙️ Administration",
 };
 
 export default function Sidebar({ setOpen }) {
@@ -189,7 +217,7 @@ export default function Sidebar({ setOpen }) {
 
       <div className="mx-4 h-px bg-white/10 mb-2" />
 
-      {/* ── Navigation ── */}
+      {/* ── Navigation with enhanced sections ── */}
       <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto no-scrollbar pb-2">
         {visibleItems.map((item, idx) => {
           const isActive = location.pathname === item.path;
@@ -199,9 +227,13 @@ export default function Sidebar({ setOpen }) {
           return (
             <div key={item.path}>
               {sectionLabel && (
-                <p className="text-[9px] font-black text-white/25 uppercase tracking-widest px-3 pt-3 pb-1">
-                  {sectionLabel}
-                </p>
+                <div className="flex items-center gap-2 px-3 pt-4 pb-2">
+                  <div className="h-px bg-white/10 flex-1" />
+                  <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">
+                    {sectionLabel}
+                  </p>
+                  <div className="h-px bg-white/10 flex-1" />
+                </div>
               )}
               <Link
                 to={item.path}
@@ -210,8 +242,8 @@ export default function Sidebar({ setOpen }) {
                 className={cn(
                   "flex items-center px-3 py-2.5 rounded-xl transition-all duration-150 group relative overflow-hidden animate-slide-in-left",
                   isActive
-                    ? "bg-brand-gold text-brand-blue font-black shadow-lg"
-                    : "hover:bg-white/10 text-white/65 hover:text-white"
+                    ? "bg-brand-gold text-brand-blue font-black shadow-lg transform scale-[1.02]"
+                    : "hover:bg-white/10 text-white/65 hover:text-white hover:transform hover:scale-[1.01]"
                 )}
               >
                 {isActive && (
@@ -223,7 +255,12 @@ export default function Sidebar({ setOpen }) {
                     ? "text-brand-blue"
                     : "text-brand-gold/60 group-hover:text-brand-gold group-hover:scale-110"
                 )} />
-                <span className="text-sm">{item.name}</span>
+                <span className="text-sm font-medium">{item.name}</span>
+                {item.badge && !isActive && (
+                  <span className="ml-auto text-[8px] font-black px-1.5 py-0.5 rounded-full bg-brand-gold/20 text-brand-gold border border-brand-gold/30">
+                    {item.badge}
+                  </span>
+                )}
                 {!isActive && (
                   <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 )}

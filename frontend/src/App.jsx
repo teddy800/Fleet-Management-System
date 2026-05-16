@@ -1,8 +1,9 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import Login from "./features/auth/Login";
 import ProtectedRoute from "./features/auth/ProtectedRoute";
+import { useUserStore } from "./store/useUserStore";
 
 // Lazy-load all pages — each becomes its own chunk, loaded only when visited
 const RequestWizard  = lazy(() => import("./features/requests/components/RequestWizard"));
@@ -36,6 +37,15 @@ function S({ children }) {
 }
 
 export default function App() {
+  const isAuthenticated = useUserStore(s => s.isAuthenticated);
+
+  // Log auth state changes for debugging (but don't navigate here)
+  useEffect(() => {
+    console.log("🔄 App: Auth state changed:", {
+      isAuthenticated,
+    });
+  }, [isAuthenticated]);
+
   return (
     <Routes>
       {/* Public route */}

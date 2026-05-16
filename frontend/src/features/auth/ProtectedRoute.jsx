@@ -1,34 +1,12 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useUserStore } from '@/store/useUserStore';
+import { useEffect, useState } from 'react';
 
 /**
- * Route-level RBAC enforcement.
- *
- * Access table (matches SRS exactly):
- * ─────────────────────────────────────────────────────────────────
- * Route                  Admin  Dispatcher  Staff  Driver  Mechanic
- * /dashboard             ✅     ✅          ✅     ✅      ✅
- * /requests/new          ✅     ✅          ✅     ✅      ✅
- * /my-requests           ✅     ✅          ✅     ✅      ✅
- * /profile               ✅     ✅          ✅     ✅      ✅
- * /dispatch/approvals    ✅     ✅          ❌     ❌      ❌
- * /dispatch/calendar     ✅     ✅          ❌     ❌      ❌
- * /fleet                 ✅     ✅          ❌     ❌      ❌
- * /tracking              ✅     ✅          ❌     ❌      ❌
- * /drivers               ✅     ✅          ❌     ❌      ❌
- * /fuel-log              ✅     ✅          ❌     ❌      ❌
- * /maintenance           ✅     ✅          ❌     ❌      ❌
- * /alerts                ✅     ✅          ❌     ❌      ❌
- * /analytics             ✅     ❌          ❌     ❌      ❌
- * /inventory             ✅     ❌          ❌     ❌      ❌
- * /hr-sync               ✅     ❌          ❌     ❌      ❌
- * /users                 ✅     ❌          ❌     ❌      ❌
- * ─────────────────────────────────────────────────────────────────
+ * SIMPLIFIED Protected Route - Direct storage check
+ * No Zustand dependency, checks storage directly
  */
 
-// Routes that require specific roles (routes NOT listed here are open to all authenticated users)
 const ROUTE_ROLES = {
-  // Dispatcher + Admin
   '/dispatch/approvals': ['Admin', 'Dispatcher'],
   '/dispatch/calendar':  ['Admin', 'Dispatcher'],
   '/fleet':              ['Admin', 'Dispatcher'],
@@ -37,30 +15,107 @@ const ROUTE_ROLES = {
   '/fuel-log':           ['Admin', 'Dispatcher'],
   '/maintenance':        ['Admin', 'Dispatcher'],
   '/alerts':             ['Admin', 'Dispatcher'],
-
-  // Admin only
   '/analytics':          ['Admin'],
   '/inventory':          ['Admin'],
   '/hr-sync':            ['Admin'],
   '/users':              ['Admin'],
 };
 
-export default function ProtectedRoute() {
-  const isAuthenticated = useUserStore(s => s.isAuthenticated);
-  const user            = useUserStore(s => s.user);
-  const location        = useLocation();
+// Direct storage check - no Zustand
+function checkAuthFromStorage() {
+  console.log("🔍 ProtectedRoute: Checking storage...");
+  
+  try {
+    // Check localStorage
+    const stored = localStorage.getItem('messob-auth');
+    console.log("💾 localStorage raw:", stored ? stored.substring(0, 100) + "..." : "null");
+    
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      console.log("📦 localStorage parsed:", {
+        hasState: !!parsed.state,
+        isAuth: parsed.state?.isAuthenticated,
+        hasUser: !!parsed.state?.user,
+        userRole: parsed.state?.user?.role
+      });
+      
+      if (parsed.state?.isAuthenticated && parsed.state?.user) {
+        console.log("✅ Auth found in localStorage!");
+        return {
+          isAuthenticated: true,
+          user: parsed.state.user
+        };
+      }
+    }
+    
+    // Check sessionStorage backup
+    const backup = sessionStorage.getItem('messob-auth-backup');
+    console.log("💾 sessionStorage backup:", backup ? "exists" : "null");
+    
+    if (backup) {
+      const parsed = JSON.parse(backup);
+      if (parsed.state?.isAuthenticated && parsed.state?.user) {
+        console.log("✅ Auth found in sessionStorage - restoring to localStorage");
+        // Restore to localStorage
+        localStorage.setItem('messob-auth', backup);
+        return {
+          isAuthenticated: true,
+          user: parsed.state.user
+        };
+      }
+    }
+  } catch (err) {
+    console.error('❌ Storage check error:', err);
+  }
+  
+  console.log("❌ No auth found in storage");
+  return {
+    isAuthenticated: false,
+    user: null
+  };
+}
 
-  // Step 1: Must be authenticated
-  if (!isAuthenticated) {
+export default function ProtectedRoute() {
+  const location = useLocation();
+  const [authState, setAuthState] = useState(null);
+
+  useEffect(() => {
+    console.log('🛡️ ProtectedRoute: Checking auth for:', location.pathname);
+    
+    // Direct storage check
+    const auth = checkAuthFromStorage();
+    console.log('🔍 Auth result:', auth);
+    
+    setAuthState(auth);
+  }, [location.pathname]);
+
+  // Loading state
+  if (authState === null) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-900">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-white/60 text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not authenticated
+  if (!authState.isAuthenticated) {
+    console.log('❌ Not authenticated - redirecting to login');
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  // Step 2: Check route-level role requirement
+  console.log('✅ User authenticated:', authState.user.role);
+
+  // Check role permissions
   const requiredRoles = ROUTE_ROLES[location.pathname];
-  if (requiredRoles && user?.role && !requiredRoles.includes(user.role)) {
-    // Silently redirect to dashboard — no error page
+  if (requiredRoles && !requiredRoles.includes(authState.user.role)) {
+    console.log('⚠️ Insufficient permissions - redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
+  console.log('✅ Access granted to:', location.pathname);
   return <Outlet />;
 }
