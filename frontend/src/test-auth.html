@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #fff;
+        }
+        .container {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #60a5fa;
+            margin-top: 0;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .output {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { color: #10b981; }
+        .error { color: #ef4444; }
+        .info { color: #60a5fa; }
+        input {
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #fff;
+            font-size: 14px;
+            margin: 5px;
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Authentication Test Tool</h1>
+        <p>Test authentication without the React app to isolate issues.</p>
+        
+        <div>
+            <input type="text" id="username" placeholder="Username" value="admin">
+            <input type="password" id="password" placeholder="Password" value="admin">
+            <button onclick="testLogin()">Test Login</button>
+        </div>
+        
+        <div>
+            <button onclick="checkLocalStorage()">Check LocalStorage</button>
+            <button onclick="checkCookies()">Check Cookies</button>
+            <button onclick="testSession()">Test Session</button>
+            <button onclick="clearAll()">Clear All</button>
+        </div>
+        
+        <div id="output" class="output"></div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            output.innerHTML = '';
+            log('🚀 Starting login test...', 'info');
+            log(`Username: ${username}`, 'info');
+            
+            try {
+                // Test 1: Mobile API
+                log('\n📱 Testing Mobile API endpoint...', 'info');
+                const mobileRes = await fetch('/api/mobile/auth/login', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        method: 'call',
+                        id: 1,
+                        params: { username, password }
+                    })
+                });
+                
+                const mobileData = await mobileRes.json();
+                log(`Mobile API Response: ${JSON.stringify(mobileData, null, 2)}`, 
+                    mobileData.result?.success ? 'success' : 'error');
+                
+                // Test 2: Standard Odoo auth
+                log('\n🔐 Testing Standard Odoo auth...', 'info');
+                const authRes = await fetch('/web/session/authenticate', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        method: 'call',
+                        id: 2,
+                        params: {
+                            db: 'messob_db',
+                            login: username,
+                            password: password
+                        }
+                    })
+                });
+                
+                const authData = await authRes.json();
+                log(`Odoo Auth Response: ${JSON.stringify(authData, null, 2)}`, 
+                    authData.result?.uid ? 'success' : 'error');
+                
+                // Check cookies
+                log('\n🍪 Checking cookies...', 'info');
+                const cookies = document.cookie.split(';').map(c => c.trim());
+                const sessionCookie = cookies.find(c => c.startsWith('session_id='));
+                if (sessionCookie) {
+                    log(`✅ Session cookie found: ${sessionCookie}`, 'success');
+                } else {
+                    log(`❌ No session cookie found`, 'error');
+                    log(`All cookies: ${cookies.join(', ')}`, 'info');
+                }
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                log(`Stack: ${error.stack}`, 'error');
+            }
+        }
+
+        function checkLocalStorage() {
+            output.innerHTML = '';
+            log('📦 Checking LocalStorage...', 'info');
+            
+            const authData = localStorage.getItem('messob-auth');
+            if (authData) {
+                try {
+                    const parsed = JSON.parse(authData);
+                    log(`✅ Auth data found:\n${JSON.stringify(parsed, null, 2)}`, 'success');
+                } catch (e) {
+                    log(`❌ Invalid JSON in localStorage: ${authData}`, 'error');
+                }
+            } else {
+                log('❌ No auth data in localStorage', 'error');
+            }
+            
+            log(`\nAll localStorage keys: ${Object.keys(localStorage).join(', ')}`, 'info');
+        }
+
+        function checkCookies() {
+            output.innerHTML = '';
+            log('🍪 Checking Cookies...', 'info');
+            
+            const cookies = document.cookie.split(';').map(c => c.trim());
+            if (cookies.length === 0 || (cookies.length === 1 && cookies[0] === '')) {
+                log('❌ No cookies found', 'error');
+            } else {
+                cookies.forEach(cookie => {
+                    const isSession = cookie.startsWith('session_id=');
+                    log(`${isSession ? '✅' : '  '} ${cookie}`, isSession ? 'success' : 'info');
+                });
+            }
+        }
+
+        async function testSession() {
+            output.innerHTML = '';
+            log('🌐 Testing Session Info...', 'info');
+            
+            try {
+                const res = await fetch('/web/session/get_session_info', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        jsonrpc: '2.0',
+                        method: 'call',
+                        id: 1,
+                        params: {}
+                    })
+                });
+                
+                const data = await res.json();
+                log(`Session Info:\n${JSON.stringify(data, null, 2)}`, 
+                    data.result?.uid ? 'success' : 'info');
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearAll() {
+            output.innerHTML = '';
+            log('🧹 Clearing all data...', 'info');
+            
+            // Clear localStorage
+            localStorage.clear();
+            log('✅ LocalStorage cleared', 'success');
+            
+            // Clear cookies
+            document.cookie.split(";").forEach(c => {
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+            });
+            log('✅ Cookies cleared', 'success');
+            
+            log('\n✅ All data cleared. Refresh page to test again.', 'success');
+        }
+
+        // Auto-run checks on load
+        window.addEventListener('load', () => {
+            log('🔍 Page loaded. Ready to test.', 'info');
+            log('💡 Click "Test Login" to start authentication test.', 'info');
+        });
+    </script>
+</body>
+</html>

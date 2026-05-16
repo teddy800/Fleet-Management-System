@@ -232,18 +232,11 @@ export default function Login() {
   const [apiError, setApiError]         = useState(null);
   const [loginRole, setLoginRole]       = useState(null);   // role detected during login
   const [mobileOpen, setMobileOpen]     = useState(false);
+  const [isLoggingIn, setIsLoggingIn]   = useState(false);  // Track login in progress
   const navigate  = useNavigate();
   const location  = useLocation();
   const loginUser = useUserStore(s => s.login);
   const isAuthenticated = useUserStore(s => s.isAuthenticated);
-
-  // If already logged in, redirect immediately
-  useEffect(() => {
-    if (isAuthenticated) {
-      const from = location.state?.from?.pathname || "/dashboard";
-      navigate(from, { replace: true });
-    }
-  }, [isAuthenticated, navigate, location]);
 
   const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(loginSchema),
@@ -252,19 +245,74 @@ export default function Login() {
 
   const activeUser = watch("email");
 
+  // Don't check for existing auth on login page - let user login
+  // This prevents redirect loops
+
   const onSubmit = async (data) => {
+    console.log("📝 Form submitted with username:", data.email);
     setApiError(null);
     setLoginRole(null);
-    const result = await loginUser(data.email, data.password);
-    if (result.success) {
-      setLoginRole(result.role);
-      // Small delay so user sees the role-specific loading message
-      setTimeout(() => {
-        const from = location.state?.from?.pathname || "/dashboard";
-        navigate(from, { replace: true });
-      }, 400);
-    } else {
-      setApiError(result.error || "Invalid credentials. Please try again.");
+    setIsLoggingIn(true);
+    
+    try {
+      const result = await loginUser(data.email, data.password);
+      console.log("📊 Login result:", result);
+      
+      if (result.success) {
+        setLoginRole(result.role);
+        console.log("✅ Login successful - role:", result.role);
+        
+        // CRITICAL: Write to localStorage IMMEDIATELY and SYNCHRONOUSLY
+        const authData = {
+          state: {
+            user: result.user,
+            isAuthenticated: true,
+          },
+          version: 0,
+          timestamp: Date.now(),
+        };
+        
+        const serialized = JSON.stringify(authData);
+        
+        // Write to BOTH storages synchronously
+        localStorage.setItem('messob-auth', serialized);
+        sessionStorage.setItem('messob-auth-backup', serialized);
+        console.log("✅ Auth data written to storage SYNCHRONOUSLY");
+        
+        // Verify IMMEDIATELY
+        const verify1 = localStorage.getItem('messob-auth');
+        const verify2 = sessionStorage.getItem('messob-auth-backup');
+        console.log("🔍 Immediate verification:", {
+          localStorage: !!verify1,
+          sessionStorage: !!verify2,
+          match: verify1 === serialized && verify2 === serialized
+        });
+        
+        if (!verify1 || !verify2) {
+          console.error("❌ CRITICAL: Storage write failed!");
+          setApiError("Storage error. Please try again.");
+          setIsLoggingIn(false);
+          return;
+        }
+        
+        console.log("✅ Storage verified - navigating in 500ms");
+        
+        // Navigate after short delay
+        setTimeout(() => {
+          const from = location.state?.from?.pathname || "/dashboard";
+          console.log("🚀 Navigating to:", from);
+          window.location.href = from;
+        }, 500);
+        
+      } else {
+        console.error("❌ Login failed:", result.error);
+        setApiError(result.error || "Invalid credentials. Please try again.");
+        setIsLoggingIn(false);
+      }
+    } catch (error) {
+      console.error("❌ Login error:", error);
+      setApiError("An error occurred during login. Please try again.");
+      setIsLoggingIn(false);
     }
   };
 
@@ -452,6 +500,17 @@ export default function Login() {
                     </div>
                   )}
 
+                  {/* System status notice */}
+                  <div className="bg-blue-500/10 border border-blue-400/30 rounded-xl p-3 text-sm text-blue-300 flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-blue-400" />
+                    <div>
+                      <p className="font-medium">System Status</p>
+                      <p className="text-xs text-blue-300/70 mt-1">
+                        Currently only <strong>admin/admin</strong> is working. Other users are being set up.
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Submit button */}
                   <Button
                     type="submit"
@@ -509,7 +568,7 @@ export default function Login() {
 
                 {/* Quick admin hint */}
                 <p className="text-center text-[11px] text-white/20 mt-4">
-                  Default admin:{" "}
+                  <span className="text-green-400 font-bold">✅ WORKING LOGIN:</span>{" "}
                   <button
                     type="button"
                     onClick={() => fillCredentials("admin", "admin")}
@@ -517,6 +576,7 @@ export default function Login() {
                   >
                     admin / admin
                   </button>
+                  {" "}← Click to auto-fill
                 </p>
               </div>
             </div>

@@ -1,18 +1,225 @@
 <odoo>
     <data noupdate="0">
+        <!-- Base Groups -->
         <record id="group_fleet_user" model="res.groups">
-            <field name="name">Fleet User</field>
+            <field name="name">Fleet User (Staff)</field>
+            <field name="comment">Can request trips and view own requests</field>
             <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <record id="group_fleet_driver" model="res.groups">
+            <field name="name">Fleet Driver</field>
+            <field name="comment">Can view assigned trips and update trip status</field>
+            <field name="implied_ids" eval="[(4, ref('mesob_fleet_customizations.group_fleet_user'))]"/>
+        </record>
+
+        <record id="group_fleet_mechanic" model="res.groups">
+            <field name="name">Fleet Mechanic</field>
+            <field name="comment">Can manage maintenance, service records, and fuel logs</field>
+            <field name="implied_ids" eval="[(4, ref('mesob_fleet_customizations.group_fleet_user'))]"/>
         </record>
 
         <record id="group_fleet_dispatcher" model="res.groups">
             <field name="name">Fleet Dispatcher</field>
+            <field name="comment">Can approve trips, assign vehicles and drivers</field>
             <field name="implied_ids" eval="[(4, ref('mesob_fleet_customizations.group_fleet_user'))]"/>
         </record>
 
         <record id="group_fleet_manager" model="res.groups">
             <field name="name">Fleet Manager</field>
+            <field name="comment">Full access to all fleet operations and analytics</field>
             <field name="implied_ids" eval="[(4, ref('mesob_fleet_customizations.group_fleet_dispatcher'))]"/>
+        </record>
+
+        <!-- Record Rules: Trip Requests -->
+        <record id="rule_trip_request_user_own" model="ir.rule">
+            <field name="name">Trip Request: User can see own requests</field>
+            <field name="model_id" ref="model_mesob_trip_request"/>
+            <field name="domain_force">[('employee_id.user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_trip_request_driver" model="ir.rule">
+            <field name="name">Trip Request: Driver can see assigned trips</field>
+            <field name="model_id" ref="model_mesob_trip_request"/>
+            <field name="domain_force">[('assigned_driver_id.user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_driver'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_trip_request_dispatcher_all" model="ir.rule">
+            <field name="name">Trip Request: Dispatcher sees all</field>
+            <field name="model_id" ref="model_mesob_trip_request"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_dispatcher'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_trip_request_manager_all" model="ir.rule">
+            <field name="name">Trip Request: Manager sees all</field>
+            <field name="model_id" ref="model_mesob_trip_request"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_manager'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Record Rules: Trip Assignments -->
+        <record id="rule_trip_assignment_driver" model="ir.rule">
+            <field name="name">Trip Assignment: Driver sees own assignments</field>
+            <field name="model_id" ref="model_mesob_trip_assignment"/>
+            <field name="domain_force">[('driver_id.user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_driver'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_trip_assignment_dispatcher_all" model="ir.rule">
+            <field name="name">Trip Assignment: Dispatcher sees all</field>
+            <field name="model_id" ref="model_mesob_trip_assignment"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_dispatcher'))]"/>
+        </record>
+
+        <record id="rule_trip_assignment_manager_all" model="ir.rule">
+            <field name="name">Trip Assignment: Manager sees all</field>
+            <field name="model_id" ref="model_mesob_trip_assignment"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_manager'))]"/>
+        </record>
+
+        <!-- Record Rules: Vehicles -->
+        <record id="rule_vehicle_user_read" model="ir.rule">
+            <field name="name">Vehicle: User can read available vehicles</field>
+            <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+            <field name="domain_force">[('mesob_status', 'in', ['available', 'in_use'])]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_vehicle_driver_assigned" model="ir.rule">
+            <field name="name">Vehicle: Driver can see assigned vehicles</field>
+            <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+            <field name="domain_force">[('assigned_driver_id.user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_driver'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_vehicle_mechanic_all" model="ir.rule">
+            <field name="name">Vehicle: Mechanic sees all vehicles</field>
+            <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_mechanic'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_vehicle_dispatcher_all" model="ir.rule">
+            <field name="name">Vehicle: Dispatcher sees all</field>
+            <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_dispatcher'))]"/>
+        </record>
+
+        <record id="rule_vehicle_manager_all" model="ir.rule">
+            <field name="name">Vehicle: Manager sees all</field>
+            <field name="model_id" ref="fleet.model_fleet_vehicle"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_manager'))]"/>
+        </record>
+
+        <!-- Record Rules: Maintenance & Service -->
+        <record id="rule_maintenance_mechanic" model="ir.rule">
+            <field name="name">Maintenance: Mechanic sees all</field>
+            <field name="model_id" ref="model_mesob_maintenance_log"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_mechanic'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_service_mechanic" model="ir.rule">
+            <field name="name">Service Record: Mechanic sees all</field>
+            <field name="model_id" ref="model_mesob_service_record"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_mechanic'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- Record Rules: GPS Tracking -->
+        <record id="rule_gps_driver_own" model="ir.rule">
+            <field name="name">GPS: Driver sees own vehicle tracking</field>
+            <field name="model_id" ref="model_mesob_gps_log"/>
+            <field name="domain_force">[('vehicle_id.assigned_driver_id.user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_driver'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_gps_dispatcher_all" model="ir.rule">
+            <field name="name">GPS: Dispatcher sees all tracking</field>
+            <field name="model_id" ref="model_mesob_gps_log"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_dispatcher'))]"/>
+        </record>
+
+        <!-- Record Rules: Employee Access -->
+        <record id="rule_employee_user_self" model="ir.rule">
+            <field name="name">Employee: User sees own record</field>
+            <field name="model_id" ref="hr.model_hr_employee"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_employee_dispatcher_drivers" model="ir.rule">
+            <field name="name">Employee: Dispatcher sees all drivers</field>
+            <field name="model_id" ref="hr.model_hr_employee"/>
+            <field name="domain_force">['|', ('is_driver', '=', True), ('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_dispatcher'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="False"/>
+            <field name="perm_create" eval="False"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="rule_employee_manager_all" model="ir.rule">
+            <field name="name">Employee: Manager sees all</field>
+            <field name="model_id" ref="hr.model_hr_employee"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_fleet_manager'))]"/>
         </record>
     </data>
 </odoo>

@@ -78,10 +78,21 @@ class MobileAPIController(http.Controller):
                 roles.append('fleet_manager')
             if user.has_group('mesob_fleet_customizations.group_fleet_dispatcher'):
                 roles.append('fleet_dispatcher')
-            if user.has_group('mesob_fleet_customizations.group_fleet_user'):
-                roles.append('fleet_user')
-            if employee and employee.is_driver:
+            if user.has_group('mesob_fleet_customizations.group_fleet_mechanic'):
+                roles.append('mechanic')
+            if user.has_group('mesob_fleet_customizations.group_fleet_driver'):
                 roles.append('driver')
+            if user.has_group('mesob_fleet_customizations.group_fleet_user'):
+                roles.append('staff_user')
+            
+            # Also check employee flags
+            if employee:
+                if employee.is_driver and 'driver' not in roles:
+                    roles.append('driver')
+                if employee.is_fleet_dispatcher and 'fleet_dispatcher' not in roles:
+                    roles.append('fleet_dispatcher')
+                if employee.is_fleet_manager and 'fleet_manager' not in roles:
+                    roles.append('fleet_manager')
 
             return {
                 'success': True,
