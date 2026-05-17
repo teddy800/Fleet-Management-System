@@ -5,7 +5,7 @@ import Sidebar from "../shared/Sidebar";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
-import { useUserStore } from "@/store/useUserStore";
+import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 
 const BREADCRUMBS = {
@@ -30,14 +30,21 @@ const BREADCRUMBS = {
 export default function DashboardLayout() {
   const [open, setOpen] = useState(false);
   const [pageKey, setPageKey] = useState(0);
-  const isAuthenticated = useUserStore((s) => s.isAuthenticated);
-  const user = useUserStore((s) => s.user);
+  const { ready, isAuthenticated, user } = useAuth();
   const location = useLocation();
 
   // Trigger page transition animation on route change
   useEffect(() => {
     setPageKey(k => k + 1);
   }, [location.pathname]);
+
+  if (!ready) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="w-10 h-10 border-4 border-brand-blue border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

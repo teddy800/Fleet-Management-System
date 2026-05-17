@@ -17,6 +17,7 @@ import { Wrench, RefreshCw, Loader2, Search, AlertCircle, CheckCircle2, Clock, C
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const STATE_META = {
   draft:       { label: "Draft",       cls: "bg-gray-100 text-gray-600 border border-gray-300" },
@@ -52,6 +53,7 @@ function SummaryCard({ label, value, icon: Icon, color, bg, loading }) {
 }
 
 export default function Maintenance() {
+  const { can, role, meta } = usePermissions();
   const [logs, setLogs] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -136,16 +138,18 @@ export default function Maintenance() {
           </div>
           <div>
             <h1 className="text-2xl font-black text-brand-blue">Maintenance</h1>
-            <p className="text-sm text-gray-400">Service history and preventive schedules</p>
+            <p className="text-sm text-gray-400">{meta.description || "Service history and preventive schedules"}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={fetchData} className="flex items-center gap-2 text-sm text-gray-500 hover:text-brand-blue bg-white border rounded-xl px-3 py-2 shadow-sm">
+          <button type="button" onClick={fetchData} className="flex items-center gap-2 text-sm text-gray-500 hover:text-brand-blue bg-white border rounded-xl px-3 py-2 shadow-sm">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
           </button>
-          <Button onClick={() => setShowAdd(true)} className="bg-brand-blue hover:bg-blue-800 rounded-xl gap-2">
-            <Plus className="h-4 w-4" /> Add Log
-          </Button>
+          {can("maintenance.create") && (
+            <Button type="button" onClick={() => setShowAdd(true)} className="bg-brand-blue hover:bg-blue-800 rounded-xl gap-2">
+              <Plus className="h-4 w-4" /> Add Log
+            </Button>
+          )}
         </div>
       </div>
 
