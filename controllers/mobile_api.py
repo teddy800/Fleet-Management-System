@@ -71,7 +71,17 @@ class MobileAPIController(http.Controller):
             # Build response using the authenticated user's environment
             env = request.env(user=uid)
             user = env['res.users'].browse(uid)
-            employee = env['hr.employee'].sudo().search([('user_id', '=', uid)], limit=1)
+            employee = env['hr.employee'].sudo().browse()
+            try:
+                employee = env['hr.employee'].sudo().search(
+                    [('user_id', '=', uid)], limit=1
+                )
+            except Exception as emp_err:
+                _logger.warning(
+                    "Could not load hr.employee for uid %s (run module upgrade): %s",
+                    uid,
+                    emp_err,
+                )
 
             roles = []
             if user.has_group('mesob_fleet_customizations.group_fleet_manager'):

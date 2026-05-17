@@ -260,50 +260,9 @@ export default function Login() {
       
       if (result.success) {
         setLoginRole(result.role);
-        console.log("✅ Login successful - role:", result.role);
-        
-        // CRITICAL: Write to localStorage IMMEDIATELY and SYNCHRONOUSLY
-        const authData = {
-          state: {
-            user: result.user,
-            isAuthenticated: true,
-          },
-          version: 0,
-          timestamp: Date.now(),
-        };
-        
-        const serialized = JSON.stringify(authData);
-        
-        // Write to BOTH storages synchronously
-        localStorage.setItem('messob-auth', serialized);
-        sessionStorage.setItem('messob-auth-backup', serialized);
-        console.log("✅ Auth data written to storage SYNCHRONOUSLY");
-        
-        // Verify IMMEDIATELY
-        const verify1 = localStorage.getItem('messob-auth');
-        const verify2 = sessionStorage.getItem('messob-auth-backup');
-        console.log("🔍 Immediate verification:", {
-          localStorage: !!verify1,
-          sessionStorage: !!verify2,
-          match: verify1 === serialized && verify2 === serialized
-        });
-        
-        if (!verify1 || !verify2) {
-          console.error("❌ CRITICAL: Storage write failed!");
-          setApiError("Storage error. Please try again.");
-          setIsLoggingIn(false);
-          return;
-        }
-        
-        console.log("✅ Storage verified - navigating in 500ms");
-        
-        // Navigate after short delay
-        setTimeout(() => {
-          const from = location.state?.from?.pathname || "/dashboard";
-          console.log("🚀 Navigating to:", from);
-          window.location.href = from;
-        }, 500);
-        
+        setIsLoggingIn(false);
+        const from = location.state?.from?.pathname || "/dashboard";
+        navigate(from, { replace: true });
       } else {
         console.error("❌ Login failed:", result.error);
         setApiError(result.error || "Invalid credentials. Please try again.");

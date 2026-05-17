@@ -9,6 +9,7 @@ import { Loader2, Fuel, Search, TrendingUp, TrendingDown, AlertTriangle, Plus } 
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { usePermissions } from "@/hooks/usePermissions";
 
 function SummaryCard({ label, value, sub, icon: Icon, gradient, iconColor }) {
   return (
@@ -29,6 +30,7 @@ function SummaryCard({ label, value, sub, icon: Icon, gradient, iconColor }) {
 }
 
 export default function FuelLog() {
+  const { can, meta } = usePermissions();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -105,9 +107,11 @@ export default function FuelLog() {
           <h1 className="text-2xl font-black text-brand-blue">Fuel Logs</h1>
           <p className="text-sm text-gray-400">{logs.length} records</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="ml-auto bg-brand-blue hover:bg-blue-800 rounded-xl gap-2">
-          <Plus className="h-4 w-4" /> Add Fuel Log
-        </Button>
+        {can("fuel.create") && (
+          <Button type="button" onClick={() => setShowAdd(true)} className="ml-auto bg-brand-blue hover:bg-blue-800 rounded-xl gap-2">
+            <Plus className="h-4 w-4" /> Add Fuel Log
+          </Button>
+        )}
       </div>
 
       {/* Summary */}

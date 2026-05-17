@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { analyticsApi, tripApi } from "@/lib/api";
-import { useUserStore } from "@/store/useUserStore";
+import { analyticsApi, tripApi, driverMobileApi } from "@/lib/api";
+import { usePermissions } from "@/hooks/usePermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -76,7 +76,7 @@ function AlertItem({ message, severity }) {
 }
 
 export default function DashboardHome() {
-  const user = useUserStore((s) => s.user);
+  const { user, role, can, isOperations, isField, isAdmin, isDriver, isMechanic, meta } = usePermissions();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -86,6 +86,10 @@ export default function DashboardHome() {
   const [myRequestsLoading, setMyRequestsLoading] = useState(false);
 
   const fetchDashboard = useCallback(async () => {
+    if (!can("analytics.dashboard")) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await analyticsApi.dashboard();
       setData(res.data);
@@ -101,10 +105,10 @@ export default function DashboardHome() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [can]);
 
   const fetchMyRequests = useCallback(async () => {
-    if (user?.role !== "Staff" && user?.role !== "Driver" && user?.role !== "Mechanic") return;
+    if (!isField) return;
     setMyRequestsLoading(true);
     try {
       const res = await tripApi.listMine();
@@ -114,12 +118,13 @@ export default function DashboardHome() {
     } finally {
       setMyRequestsLoading(false);
     }
-  }, [user?.role]);
+  }, [isField]);
 
   useEffect(() => {
+    setLoading(can("analytics.dashboard"));
     fetchDashboard();
     fetchMyRequests();
-    // Poll every 60 seconds per requirement 5.5; pause when tab is hidden to save resources
+    if (!can("analytics.dashboard")) return undefined;
     const interval = setInterval(() => {
       if (!document.hidden) fetchDashboard();
     }, 60_000);
@@ -140,8 +145,9 @@ export default function DashboardHome() {
   const alerts = data?.alerts_summary;
   const predictive = data?.predictive_insights;
 
-  const isAdmin         = user?.role === "Admin" || user?.role === "Dispatcher";
-  const isStaffOrDriver = user?.role === "Staff" || user?.role === "Driver" || user?.role === "Mechanic";
+  const titles = { Admin: "Fleet Command Center", Dispatcher: "Dispatch Operations", Staff: "My Trip Hub", Driver: "Driver Dashboard", Mechanic: "Service & Maintenance" };
+  const showOps = isOperations;
+  const showField = isField;
 
   return (
     <div className="space-y-6 pb-8">
@@ -149,25 +155,21 @@ export default function DashboardHome() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-brand-blue">
-            {isAdmin ? "Fleet Command Center" : `Welcome back, ${user?.name?.split(" ")[0] || "User"}`}
+            {titles[role] || `Welcome, ${user?.name?.split(" ")[0] || "User"}`}
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">
-            {lastUpdated ? `Last updated ${lastUpdated.toLocaleTimeString()}` : "Loading live data..."}
-          </p>
+          <p className="text-sm text-gray-400 mt-0.5">{meta.description}</p>
         </div>
         <div className="flex items-center gap-3">
-          {alerts?.critical_alerts > 0 && (
+          {showOps && alerts?.critical_alerts > 0 && (
             <Badge className="bg-red-600 text-white gap-1 px-3 py-1">
               <Bell className="h-3 w-3" /> {alerts.critical_alerts} Critical
             </Badge>
           )}
-          <button
-            onClick={fetchDashboard}
-            className="flex items-center gap-2 text-sm text-gray-500 hover:text-brand-blue bg-white border rounded-xl px-3 py-2 shadow-sm transition-colors"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
-          </button>
+          {showOps && (
+            <button type="button" onClick={fetchDashboard} className="flex items-center gap-2 text-sm text-gray-500 hover:text-brand-blue bg-white border rounded-xl px-3 py-2 shadow-sm">
+              <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+            </button>
+          )}
         </div>
       </div>
 
@@ -184,7 +186,7 @@ export default function DashboardHome() {
       )}
 
       {/* Staff / Driver / Mechanic simplified view */}
-      {isStaffOrDriver && (
+      {showField && (
         <div className="space-y-4">
           {/* Role-specific welcome banner */}
           <div className={cn(
@@ -265,12 +267,36 @@ export default function DashboardHome() {
             <Link to="/my-requests" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold transition-colors mt-2">
               <CheckCircle2 className="h-4 w-4 text-brand-gold" /> View My Requests
             </Link>
+            {isDriver && (
+              <>
+                <Link to="/driver/assignments" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold mt-2">
+                  <Car className="h-4 w-4 text-brand-gold" /> My Assignments
+                </Link>
+                <Link to="/fuel-log" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold mt-2">
+                  <Fuel className="h-4 w-4 text-brand-gold" /> Log Fuel
+                </Link>
+              </>
+            )}
+            {isMechanic && (
+              <>
+                <Link to="/maintenance" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold mt-2">
+                  <Wrench className="h-4 w-4 text-brand-gold" /> Maintenance
+                </Link>
+                <Link to="/fuel-log" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold mt-2">
+                  <Fuel className="h-4 w-4 text-brand-gold" /> Fuel Logs
+                </Link>
+              </>
+            )}
+            {role === "Staff" && (
+              <Link to="/tracking" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold mt-2">
+                <Activity className="h-4 w-4 text-brand-gold" /> Track Vehicle
+              </Link>
+            )}
           </div>
         </div>
       )}
 
-      {/* Admin / Dispatcher full fleet view */}
-      {!isStaffOrDriver && (
+      {showOps && (
       <>
       {/* Primary KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
@@ -403,7 +429,7 @@ export default function DashboardHome() {
           <Card className="border-0 shadow-md bg-brand-blue text-white">
             <CardContent className="p-5 space-y-2">
               <p className="text-xs font-black text-brand-gold uppercase tracking-widest mb-3">Quick Actions</p>
-              {isAdmin && (
+              {can("trip.approve") && (
                 <Link to="/dispatch/approvals" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold transition-colors">
                   <CheckCircle2 className="h-4 w-4 text-brand-gold" />
                   Review Pending Requests
@@ -412,9 +438,14 @@ export default function DashboardHome() {
                   )}
                 </Link>
               )}
-              {isAdmin && (
+              {can("fleet.manage") && (
                 <Link to="/fleet" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold transition-colors">
                   <Car className="h-4 w-4 text-brand-gold" /> Manage Fleet
+                </Link>
+              )}
+              {isAdmin && (
+                <Link to="/analytics" className="flex items-center gap-2 w-full bg-white/10 hover:bg-white/20 text-white py-2.5 px-4 rounded-xl text-sm font-bold transition-colors">
+                  <Activity className="h-4 w-4 text-brand-gold" /> Analytics
                 </Link>
               )}
               <Link to="/requests/new" className="flex items-center gap-2 w-full bg-brand-gold hover:bg-yellow-400 text-brand-blue py-2.5 px-4 rounded-xl text-sm font-bold transition-colors">

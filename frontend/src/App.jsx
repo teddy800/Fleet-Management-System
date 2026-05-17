@@ -1,9 +1,9 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import DashboardLayout from "./components/layouts/DashboardLayout";
 import Login from "./features/auth/Login";
 import ProtectedRoute from "./features/auth/ProtectedRoute";
-import { useUserStore } from "./store/useUserStore";
+import { useAuth } from "./hooks/useAuth";
 
 // Lazy-load all pages — each becomes its own chunk, loaded only when visited
 const RequestWizard  = lazy(() => import("./features/requests/components/RequestWizard"));
@@ -22,6 +22,7 @@ const Drivers        = lazy(() => import("./features/fleet/Drivers"));
 const Inventory      = lazy(() => import("./features/fleet/Inventory"));
 const UserManagement = lazy(() => import("./features/admin/UserManagement"));
 const HRSync         = lazy(() => import("./features/admin/HRSync"));
+const DriverAssignments = lazy(() => import("./features/driver/DriverAssignments"));
 
 // Minimal skeleton shown while a page chunk loads
 function PageLoader() {
@@ -36,20 +37,18 @@ function S({ children }) {
   return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
 }
 
+function LoginRoute() {
+  const { ready, isAuthenticated } = useAuth();
+  if (ready && isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <Login />;
+}
+
 export default function App() {
-  const isAuthenticated = useUserStore(s => s.isAuthenticated);
-
-  // Log auth state changes for debugging (but don't navigate here)
-  useEffect(() => {
-    console.log("🔄 App: Auth state changed:", {
-      isAuthenticated,
-    });
-  }, [isAuthenticated]);
-
   return (
     <Routes>
-      {/* Public route */}
-      <Route path="/login" element={<Login />} />
+      <Route path="/login" element={<LoginRoute />} />
 
       {/* All dashboard routes are protected */}
       <Route element={<ProtectedRoute />}>
@@ -61,6 +60,7 @@ export default function App() {
           <Route path="requests/new" element={<S><RequestWizard /></S>} />
           <Route path="my-requests"  element={<S><MyRequests /></S>} />
           <Route path="profile"      element={<S><Profile /></S>} />
+          <Route path="driver/assignments" element={<S><DriverAssignments /></S>} />
 
           {/* Dispatcher + Admin only */}
           <Route path="dispatch/approvals" element={<S><ApprovalQueue /></S>} />

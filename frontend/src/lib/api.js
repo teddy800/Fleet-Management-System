@@ -1,5 +1,17 @@
 const BASE_URL = process.env.NODE_ENV === 'production' ? '' : '';
 
+let _redirectingToLogin = false;
+async function redirectToLogin() {
+  const path = window.location?.pathname || "";
+  if (path.includes("/login") || _redirectingToLogin) return;
+  _redirectingToLogin = true;
+  try {
+    const { useUserStore } = await import("@/store/useUserStore");
+    await useUserStore.getState().logout();
+  } catch (_) { /* ignore */ }
+  window.location.href = "/login";
+}
+
 // ─── Security Configuration ──────────────────────────────────────────────────
 const SECURITY_CONFIG = {
   maxRetries: 3,
@@ -129,14 +141,9 @@ async function _doFetch(path, body, isJsonRpc, options) {
 
   const contentType = res.headers.get("content-type") || "";
   if (!contentType.includes("application/json")) {
-    if (!(window.location?.pathname || "").includes("/login")) {
-      try {
-        const { useUserStore } = await import("@/store/useUserStore");
-        useUserStore.getState().logout();
-      } catch (_) { /* ignore */ }
-      window.location.href = "/login";
-    }
-    throw new Error("Session expired. Please log in again.");
+    throw new Error(
+      "Session expired or backend returned HTML. Please log in again."
+    );
   }
 
   const raw = await res.json();
@@ -146,16 +153,14 @@ async function _doFetch(path, body, isJsonRpc, options) {
     const errCode = raw.error?.code;
     const errMsg = raw.error?.message || raw.error?.data?.message || "Request failed";
     if (errCode === 100) {
-      try { const { useUserStore } = await import("@/store/useUserStore"); useUserStore.getState().logout(); } catch (_) {}
-      window.location.href = "/login";
+      await redirectToLogin();
       throw new Error("Session expired. Please log in again.");
     }
     throw new Error(errMsg);
   }
 
   if (data?.error?.code === 100) {
-    try { const { useUserStore } = await import("@/store/useUserStore"); useUserStore.getState().logout(); } catch (_) {}
-    window.location.href = "/login";
+    await redirectToLogin();
     throw new Error("Session expired. Please log in again.");
   }
 
