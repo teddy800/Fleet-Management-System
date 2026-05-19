@@ -490,7 +490,11 @@ export const useUserStore = create(
         } else if (state?.isAuthenticated) {
           console.log("Auth rehydrated:", state.user?.role);
         }
-        useUserStore.setState({ _hasHydrated: true });
+        // Defer state update to avoid initialization issues
+        setTimeout(() => {
+          const store = useUserStore.getState();
+          store._hasHydrated = true;
+        }, 0);
       },
     }
   )

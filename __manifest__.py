@@ -97,14 +97,8 @@
         'demo/fleet_demo_data.xml',
     ],
     'assets': {
-        'web.assets_backend': [
-            'mesob_fleet_customizations/static/src/css/fleet_dashboard.css',
-            'mesob_fleet_customizations/static/src/js/fleet_dashboard.js',
-            'mesob_fleet_customizations/static/src/js/gps_tracking.js',
-        ],
-        'web.assets_frontend': [
-            'mesob_fleet_customizations/static/src/css/mobile_responsive.css',
-        ],
+        'web.assets_backend': [],
+        'web.assets_frontend': [],
     },
     'images': [
         'static/description/banner.png',
