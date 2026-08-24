@@ -15,8 +15,15 @@ export function readAuthFromStorage() {
     if (parsed?.state?.isAuthenticated && parsed?.state?.user) {
       return parsed.state;
     }
-  } catch {
-    /* ignore */
+  } catch (error) {
+    console.warn("⚠️ Failed to read auth from storage:", error);
+    // Clear corrupted storage
+    try {
+      localStorage.removeItem(AUTH_KEY);
+      sessionStorage.removeItem(BACKUP_KEY);
+    } catch (e) {
+      console.warn("⚠️ Failed to clear corrupted storage:", e);
+    }
   }
   return null;
 }
@@ -28,34 +35,41 @@ export function readAuthFromStorage() {
 export function useAuth() {
   const isAuthenticated = useUserStore((s) => s.isAuthenticated);
   const user = useUserStore((s) => s.user);
+  const _hasHydrated = useUserStore((s) => s._hasHydrated);
   const restoreFromStorage = useUserStore((s) => s.restoreFromStorage);
-  const [hydrated, setHydrated] = useState(
-    () => useUserStore.persist?.hasHydrated?.() ?? false
-  );
+  
+  // Use internal hydration flag instead of persist.hasHydrated()
+  const [hydrated, setHydrated] = useState(_hasHydrated);
 
   useEffect(() => {
-    const finish = () => setHydrated(true);
-    if (useUserStore.persist.hasHydrated()) {
-      finish();
-      return;
+    if (_hasHydrated && !hydrated) {
+      setHydrated(true);
     }
-    return useUserStore.persist.onFinishHydration(finish);
-  }, []);
+  }, [_hasHydrated, hydrated]);
 
   useEffect(() => {
     if (!hydrated) return;
     if (!isAuthenticated) {
+      console.log("🔄 No auth state, attempting restore from storage");
       restoreFromStorage();
     }
   }, [hydrated, isAuthenticated, restoreFromStorage]);
 
-  const storageState = useMemo(
-    () => (hydrated ? readAuthFromStorage() : null),
-    [hydrated, isAuthenticated, user]
-  );
+  const storageState = useMemo(() => {
+    if (!hydrated) return null;
+    return readAuthFromStorage();
+  }, [hydrated, isAuthenticated, user]);
 
   const authed = isAuthenticated || !!storageState?.isAuthenticated;
   const currentUser = user || storageState?.user || null;
+
+  console.log("🔍 useAuth state:", {
+    hydrated,
+    isAuthenticated,
+    hasUser: !!user,
+    hasStorageState: !!storageState,
+    finalAuth: authed
+  });
 
   return {
     ready: hydrated,

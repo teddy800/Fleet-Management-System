@@ -1,24 +1,20 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Root Menu - Positioned prominently in app list -->
+    <!-- Root Menu -->
     <menuitem id="mesob_root"
-              name="🚗 MESSOB Fleet"
+              name="MESSOB Fleet"
               sequence="5"
               web_icon="mesob_fleet_customizations,static/description/icon.png"/>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-    <!-- 📊 DASHBOARD & OVERVIEW -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- DASHBOARD -->
     <menuitem id="mesob_dashboard_menu"
-              name="📊 Dashboard"
+              name="Dashboard"
               parent="mesob_root"
-              action="mesob_fleet_customizations.action_fleet_dashboard"
               sequence="5"/>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-    <!-- 🚗 FLEET MANAGEMENT -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- FLEET MANAGEMENT -->
     <menuitem id="mesob_fleet_menu"
-              name="🚗 Fleet Management"
+              name="Fleet Management"
               parent="mesob_root"
               sequence="10"/>
 
@@ -40,11 +36,9 @@
               action="mesob_fleet_customizations.action_vehicle_categories"
               sequence="30"/>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-    <!-- 📋 TRIP REQUESTS & DISPATCH -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- TRIP REQUESTS -->
     <menuitem id="mesob_trips_menu"
-              name="📋 Trip Requests"
+              name="Trip Requests"
               parent="mesob_root"
               sequence="20"/>
 
@@ -61,13 +55,13 @@
               sequence="20"/>
 
     <menuitem id="mesob_dispatcher_queue_menu"
-              name="⚡ Approval Queue"
+              name="Approval Queue"
               parent="mesob_trips_menu"
               action="mesob_fleet_customizations.action_dispatcher_queue"
               sequence="30"/>
 
     <menuitem id="mesob_assignments_menu"
-              name="📅 Fleet Calendar"
+              name="Fleet Calendar"
               parent="mesob_trips_menu"
               action="mesob_fleet_customizations.action_trip_assignments"
               sequence="40"/>
@@ -78,11 +72,9 @@
               action="mesob_fleet_customizations.action_trip_logs"
               sequence="50"/>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-    <!-- 🔧 MAINTENANCE & SERVICE -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- MAINTENANCE -->
     <menuitem id="mesob_maintenance_menu"
-              name="🔧 Maintenance"
+              name="Maintenance"
               parent="mesob_root"
               sequence="30"/>
 
@@ -105,21 +97,19 @@
               sequence="30"/>
 
     <menuitem id="mesob_maintenance_alerts_menu"
-              name="🚨 Maintenance Alerts"
+              name="Maintenance Alerts"
               parent="mesob_maintenance_menu"
               action="mesob_fleet_customizations.action_maintenance_alerts"
               sequence="40"/>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-    <!-- 📊 ASSET TRACKING & LOGS -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- ASSET TRACKING -->
     <menuitem id="mesob_assets_menu"
-              name="📊 Asset Tracking"
+              name="Asset Tracking"
               parent="mesob_root"
               sequence="40"/>
 
     <menuitem id="mesob_fuel_log_menu"
-              name="⛽ Fuel Logs"
+              name="Fuel Logs"
               parent="mesob_assets_menu"
               action="mesob_fleet_customizations.action_fuel_logs"
               sequence="10"/>
@@ -131,27 +121,25 @@
               sequence="20"/>
 
     <menuitem id="mesob_odometer_log_menu"
-              name="📏 Odometer Logs"
+              name="Odometer Logs"
               parent="mesob_assets_menu"
               action="mesob_fleet_customizations.action_odometer_log"
               sequence="30"/>
 
     <menuitem id="mesob_inventory_menu"
-              name="📦 Parts & Inventory"
+              name="Parts and Inventory"
               parent="mesob_assets_menu"
               action="mesob_fleet_customizations.action_inventory_allocation"
               sequence="40"/>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-    <!-- 🛰️ GPS TRACKING & MONITORING -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- GPS TRACKING -->
     <menuitem id="mesob_tracking_menu"
-              name="🛰️ GPS Tracking"
+              name="GPS Tracking"
               parent="mesob_root"
               sequence="50"/>
 
     <menuitem id="mesob_live_tracking_menu"
-              name="🔴 Live Tracking"
+              name="Live Tracking"
               parent="mesob_tracking_menu"
               action="mesob_fleet_customizations.action_live_gps_tracking"
               sequence="5"/>
@@ -163,28 +151,26 @@
               sequence="10"/>
 
     <menuitem id="mesob_fleet_alerts_menu"
-              name="🚨 Fleet Alerts"
+              name="Fleet Alerts"
               parent="mesob_tracking_menu"
               action="mesob_fleet_customizations.action_fleet_alerts"
               sequence="20"/>
 
     <menuitem id="mesob_geofences_menu"
-              name="🗺️ Geofences"
+              name="Geofences"
               parent="mesob_tracking_menu"
               action="mesob_fleet_customizations.action_geofences"
               sequence="30"/>
 
     <menuitem id="mesob_route_optimization_menu"
-              name="🎯 Route Optimization"
+              name="Route Optimization"
               parent="mesob_tracking_menu"
               action="mesob_fleet_customizations.action_route_optimization"
               sequence="40"/>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-    <!-- 📈 ANALYTICS & REPORTS -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- ANALYTICS -->
     <menuitem id="mesob_analytics_menu"
-              name="📈 Analytics"
+              name="Analytics"
               parent="mesob_root"
               sequence="60"/>
 
@@ -195,136 +181,130 @@
               sequence="10"/>
 
     <menuitem id="mesob_cost_analysis_menu"
-              name="💰 Cost Analysis"
+              name="Cost Analysis"
               parent="mesob_analytics_menu"
               action="mesob_fleet_customizations.action_cost_analysis"
               sequence="20"/>
 
     <menuitem id="mesob_utilization_reports_menu"
-              name="📊 Utilization Reports"
+              name="Utilization Reports"
               parent="mesob_analytics_menu"
               action="mesob_fleet_customizations.action_utilization_reports"
               sequence="30"/>
 
     <menuitem id="mesob_compliance_reports_menu"
-              name="📋 Compliance Reports"
+              name="Compliance Reports"
               parent="mesob_analytics_menu"
               action="mesob_fleet_customizations.action_compliance_reports"
               sequence="40"/>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-    <!-- ⚙️ ADMINISTRATION -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- ADMINISTRATION -->
     <menuitem id="mesob_admin_menu"
-              name="⚙️ Administration"
+              name="Administration"
               parent="mesob_root"
               sequence="70"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_hr_sync_menu"
-              name="👥 HR Synchronization"
+              name="HR Synchronization"
               parent="mesob_admin_menu"
               action="mesob_fleet_customizations.action_hr_sync"
               sequence="10"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_system_config_menu"
-              name="🔧 System Configuration"
+              name="System Configuration"
               parent="mesob_admin_menu"
               action="mesob_fleet_customizations.action_system_config"
               sequence="20"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_user_management_menu"
-              name="👤 User Management"
+              name="User Management"
               parent="mesob_admin_menu"
               action="mesob_fleet_customizations.action_user_management"
               sequence="30"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_audit_logs_menu"
-              name="📝 Audit Logs"
+              name="Audit Logs"
               parent="mesob_admin_menu"
               action="mesob_fleet_customizations.action_audit_logs"
               sequence="40"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-    <!-- 📱 MOBILE & INTEGRATION -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- INTEGRATION -->
     <menuitem id="mesob_integration_menu"
-              name="📱 Integration"
+              name="Integration"
               parent="mesob_root"
               sequence="80"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_mobile_app_menu"
-              name="📱 Mobile App"
+              name="Mobile App"
               parent="mesob_integration_menu"
               action="mesob_fleet_customizations.action_mobile_app_config"
               sequence="10"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_api_endpoints_menu"
-              name="🔗 API Endpoints"
+              name="API Endpoints"
               parent="mesob_integration_menu"
               action="mesob_fleet_customizations.action_api_endpoints"
               sequence="20"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_webhooks_menu"
-              name="🔔 Webhooks"
+              name="Webhooks"
               parent="mesob_integration_menu"
               action="mesob_fleet_customizations.action_webhooks"
               sequence="30"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
-    <!-- ⚙️ SETTINGS & CONFIGURATION -->
-    <!-- ═══════════════════════════════════════════════════════════════════════════ -->
+    <!-- SETTINGS -->
     <menuitem id="mesob_settings_menu"
-              name="⚙️ Settings"
+              name="Settings"
               parent="mesob_root"
               sequence="90"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_general_settings_menu"
-              name="🔧 General Settings"
+              name="General Settings"
               parent="mesob_settings_menu"
               action="mesob_fleet_customizations.action_general_settings"
               sequence="10"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_fleet_parameters_menu"
-              name="🚗 Fleet Parameters"
+              name="Fleet Parameters"
               parent="mesob_settings_menu"
               action="mesob_fleet_customizations.action_fleet_parameters"
               sequence="20"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_notification_settings_menu"
-              name="🔔 Notification Settings"
+              name="Notification Settings"
               parent="mesob_settings_menu"
               action="mesob_fleet_customizations.action_notification_settings"
               sequence="30"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_system_parameters_menu"
-              name="🔧 System Parameters"
+              name="System Parameters"
               parent="mesob_settings_menu"
               action="base.ir_config_parameter_action"
               sequence="40"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_backup_restore_menu"
-              name="💾 Backup & Restore"
+              name="Backup and Restore"
               parent="mesob_settings_menu"
               action="mesob_fleet_customizations.action_backup_restore"
               sequence="50"
               groups="mesob_fleet_customizations.group_fleet_admin"/>
 
     <menuitem id="mesob_odoo_settings_menu"
-              name="🔧 Odoo Settings"
+              name="Odoo Settings"
               parent="mesob_settings_menu"
               action="base_setup.action_general_configuration"
               sequence="60"

@@ -96,28 +96,12 @@
     'demo': [
         'demo/fleet_demo_data.xml',
     ],
-    'assets': {
-        'web.assets_backend': [
-            'mesob_fleet_customizations/static/src/css/fleet_dashboard.css',
-            'mesob_fleet_customizations/static/src/js/fleet_dashboard.js',
-            'mesob_fleet_customizations/static/src/js/gps_tracking.js',
-        ],
-        'web.assets_frontend': [
-            'mesob_fleet_customizations/static/src/css/mobile_responsive.css',
-        ],
-    },
-    'images': [
-        'static/description/banner.png',
-        'static/description/icon.png',
-        'static/description/screenshot_dashboard.png',
-        'static/description/screenshot_tracking.png',
-    ],
     'pre_init_hook': 'pre_init_hook',
     'post_init_hook': 'post_init_hook',
     'installable': True,
     'application': True,
     'auto_install': False,
-    'sequence': 5,  # High priority in app list
+    'sequence': 5,
     'price': 0.00,
     'currency': 'USD',
 }

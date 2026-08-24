@@ -1,0 +1,65 @@
+/* MESSOB Fleet Management Dashboard Styles */
+
+.o_fleet_dashboard {
+    margin: 0;
+    padding: 20px;
+    background: #f8f9fa;
+}
+
+.o_fleet_dashboard .o_dashboard_action {
+    margin-bottom: 20px;
+}
+
+.o_fleet_dashboard .o_kanban_view {
+    background: transparent;
+}
+
+.o_fleet_dashboard .o_kanban_record {
+    margin: 10px;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.o_fleet_dashboard .o_dashboard_graph {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 10px 0;
+}
+
+/* Fleet specific styles */
+.fleet_vehicle_card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.fleet_status_active {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.fleet_status_inactive {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.fleet_status_maintenance {
+    color: #ffc107;
+    font-weight: bold;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .o_fleet_dashboard {
+        padding: 10px;
+    }
+    
+    .o_fleet_dashboard .o_kanban_record {
+        margin: 5px;
+        padding: 10px;
+    }
+}

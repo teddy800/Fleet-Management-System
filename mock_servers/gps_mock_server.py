@@ -79,10 +79,10 @@ def health_check():
         "vehicles_tracked": len(VEHICLES)
     })
 
-@app.route('/api/vehicles', methods=['GET'])
-def get_all_vehicles():
-    """Get all vehicle locations"""
-    logger.info(f"Received vehicle list request from {request.remote_addr}")
+@app.route('/api/gps', methods=['GET'])
+def get_gps_data():
+    """Get GPS data - main endpoint that Odoo calls"""
+    logger.info(f"Received GPS data request from {request.remote_addr}")
     
     # Simulate movement for all vehicles
     for vehicle_id in VEHICLES:
@@ -94,6 +94,11 @@ def get_all_vehicles():
         "vehicles": list(VEHICLES.values()),
         "timestamp": datetime.now().isoformat()
     })
+
+@app.route('/api/vehicles', methods=['GET'])
+def get_all_vehicles():
+    """Get all vehicle locations (alias for /api/gps)"""
+    return get_gps_data()
 
 @app.route('/api/vehicles/<vehicle_id>', methods=['GET'])
 def get_vehicle_location(vehicle_id):

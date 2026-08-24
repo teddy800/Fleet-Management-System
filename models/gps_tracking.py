@@ -257,10 +257,43 @@ class GPSLog(models.Model):
         try:
             response = _requests.get(url, timeout=15)
             response.raise_for_status()
-            gps_records = response.json()
+            data = response.json()
+            
+            # Handle different response formats
+            if isinstance(data, dict):
+                # If response is {"vehicles": [...]} format
+                gps_records = data.get('vehicles', [])
+            elif isinstance(data, list):
+                # If response is a direct list
+                gps_records = data
+            else:
+                _logger.error("Unexpected GPS data format: %s", type(data))
+                return
+            
+            # Process each record
+            processed = 0
             for record in gps_records:
-                self.sudo().create_from_gps_data(record)
-            _logger.info("GPS fetch complete: %d records processed.", len(gps_records))
+                if isinstance(record, dict):
+                    # Convert GPS mock format to expected format
+                    formatted_record = {
+                        'vehicle_plate': record.get('vehicle_id'),  # GPS mock uses 'vehicle_id' for plate
+                        'latitude': record.get('latitude'),
+                        'longitude': record.get('longitude'),
+                        'speed': record.get('speed', 0),
+                        'heading': record.get('heading', 0),
+                        'accuracy': record.get('accuracy', 0),
+                        'altitude': record.get('altitude', 0),
+                        'timestamp': record.get('last_update', fields.Datetime.now()),
+                        'engine_on': record.get('status') == 'moving',
+                        'fuel_level': record.get('fuel_level', 0),
+                        'odometer': record.get('odometer', 0)
+                    }
+                    if self.sudo().create_from_gps_data(formatted_record):
+                        processed += 1
+                else:
+                    _logger.warning("Skipping non-dict GPS record: %s", type(record))
+            
+            _logger.info("GPS fetch complete: %d records processed.", processed)
         except Exception as e:
             _logger.error("GPS fetch failed: %s", e)
 

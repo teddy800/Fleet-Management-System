@@ -1,0 +1,11 @@
+/* Placeholder responsive styles for MESSOB Fleet mobile interface */
+body {
+    margin: 0;
+    padding: 0;
+}
+
+.o_mobile_responsive {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
